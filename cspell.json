@@ -66,6 +66,9 @@
     "trunci",
     "unranked",
     "vulkan",
-    "xori"
+    "xori",
+    "LLVMIR",
+    "somepathto",
+    "Bufferizable"
   ]
 }

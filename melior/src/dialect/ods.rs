@@ -9,11 +9,14 @@ pub mod __private {
 
 melior_macro::dialect! {
     name: "affine",
-    table_gen: r#"include "mlir/Dialect/Affine/IR/AffineOps.td""#
+    table_gen: r#"include "mlir/Dialect/Affine/IR/AffineOps.td"
+        include "mlir/Dialect/Affine/TransformOps/AffineTransformOps.td"
+        include "mlir/Dialect/Affine/IR/AffineMemoryOpInterfaces.td""#
 }
 melior_macro::dialect! {
     name: "amdgpu",
-    table_gen: r#"include "mlir/Dialect/AMDGPU/IR/AMDGPU.td""#
+    table_gen: r#"include "mlir/Dialect/AMDGPU/IR/AMDGPU.td"
+    include "mlir/Dialect/AMDGPU/Transforms/Passes.td""#
 }
 melior_macro::dialect! {
     name: "arith",
@@ -28,8 +31,16 @@ melior_macro::dialect! {
     table_gen: r#"include "mlir/Dialect/ArmSVE/IR/ArmSVE.td""#
 }
 melior_macro::dialect! {
+    name: "arm_sme",
+    table_gen: r#"include "mlir/Dialect/ArmSME/IR/ArmSME.td"
+        include "mlir/Dialect/ArmSME/IR/ArmSMEOps.td"
+        include "mlir/Dialect/ArmSME/IR/ArmSMEIntrinsicOps.td""#
+}
+melior_macro::dialect! {
     name: "async",
-    table_gen: r#"include "mlir/Dialect/Async/IR/AsyncOps.td""#
+    table_gen: r#"include "mlir/Dialect/Async/IR/AsyncDialect.td"
+        include "mlir/Dialect/Async/IR/AsyncOps.td"
+        include "mlir/Dialect/Async/IR/AsyncTypes.td""#
 }
 melior_macro::dialect! {
     name: "amx",
@@ -41,7 +52,13 @@ melior_macro::dialect! {
 }
 melior_macro::dialect! {
     name: "bufferization",
-    table_gen: r#"include "mlir/Dialect/Bufferization/IR/BufferizationOps.td""#
+    table_gen: r#"include "mlir/Dialect/Bufferization/IR/BufferizationOps.td"
+        include "mlir/Dialect/Bufferization/IR/AllocationOpInterface.td"
+        include "mlir/Dialect/Bufferization/IR/BufferizationEnums.td"
+        include "mlir/Dialect/Bufferization/IR/BufferizableOpInterface.td"
+        include "mlir/Dialect/Bufferization/TransformOps/BufferizationTransformOps.td"
+        include "mlir/Dialect/Bufferization/Transforms/Passes.td"
+    "#
 }
 melior_macro::dialect! {
     name: "complex",
@@ -53,11 +70,15 @@ melior_macro::dialect! {
 }
 melior_macro::dialect! {
     name: "dlti",
-    table_gen: r#"include "mlir/Dialect/DLTI/DLTI.td""#
+    table_gen: r#"include "mlir/Dialect/DLTI/DLTI.td"
+        include "mlir/Dialect/DLTI/DLTIAttrs.td"
+        include "mlir/Dialect/DLTI/DLTIBase.td""#
 }
 melior_macro::dialect! {
     name: "func",
-    table_gen: r#"include "mlir/Dialect/Func/IR/FuncOps.td""#
+    table_gen: r#"include "mlir/Dialect/Func/IR/FuncOps.td"
+        include "mlir/Dialect/Func/TransformOps/FuncTransformOps.td"
+        include "mlir/Dialect/Func/Transforms/Passes.td""#
 }
 melior_macro::dialect! {
     name: "index",
@@ -65,12 +86,19 @@ melior_macro::dialect! {
 }
 melior_macro::dialect! {
     name: "irdl",
-    table_gen: r#"include "mlir/Dialect/IRDL/IR/IRDL.td""#
+    table_gen: r#"include "mlir/Dialect/IRDL/IR/IRDL.td" include "mlir/Dialect/IRDL/IR/IRDLOps.td""#
 }
 melior_macro::dialect! {
     name: "llvm",
     // spell-checker: disable-next-line
-    table_gen: r#"include "mlir/Dialect/LLVMIR/LLVMOps.td" include "mlir/Dialect/LLVMIR/LLVMIntrinsicOps.td""#
+    table_gen: r#"include "mlir/Dialect/LLVMIR/LLVMOps.td"
+        include "mlir/Dialect/LLVMIR/LLVMIntrinsicOps.td"
+        include "mlir/Dialect/LLVMIR/LLVMDialect.td"
+        include "mlir/Dialect/LLVMIR/LLVMInterfaces.td"
+        include "mlir/Dialect/LLVMIR/LLVMTypes.td"
+        include "mlir/Dialect/LLVMIR/LLVMOpBase.td"
+        include "mlir/Dialect/LLVMIR/LLVMAttrDefs.td"
+        include "mlir/Dialect/LLVMIR/BasicPtxBuilderInterface.td""#
 }
 melior_macro::dialect! {
     name: "memref",
