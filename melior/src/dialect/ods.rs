@@ -114,7 +114,7 @@ melior_macro::dialect! {
         "LLVMTypes.td",
         "LLVMOpBase.td",
         "LLVMAttrDefs.td",
-        "/BasicPtxBuilderInterface.td",
+        "BasicPtxBuilderInterface.td",
     ],
     include_directories: ["mlir/Dialect/LLVMIR"],
 }

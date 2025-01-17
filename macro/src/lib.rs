@@ -20,7 +20,8 @@ use syn::parse_macro_input;
 /// ```rust
 /// melior::dialect! {
 ///     name: "func",
-///     table_gen: r#"include "mlir/Dialect/Func/IR/FuncOps.td""#
+///     files: ["IR/FuncOps.td", "TransformOps/FuncTransformOps.td", "Transforms/Passes.td"],
+///     include_directories: ["mlir/Dialect/Func"],
 /// }
 /// ```
 #[proc_macro]
