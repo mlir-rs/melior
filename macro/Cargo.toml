@@ -13,7 +13,7 @@ keywords = ["mlir", "llvm"]
 proc-macro = true
 
 [dependencies]
-comrak = { version = "0.34.0", default-features = false }
+comrak = { version = "0.35.0", default-features = false }
 convert_case = "0.7.1"
 proc-macro2 = "1"
 quote = "1"
