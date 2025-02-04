@@ -81,6 +81,7 @@ mod tests {
     use crate::{
         ir::{
             block::BlockLike, operation::OperationBuilder, Attribute, Block, Identifier, Location,
+            OperationLike,
         },
         test::create_test_context,
         Context,

@@ -381,7 +381,7 @@ mod tests {
             attribute::{IntegerAttribute, StringAttribute, TypeAttribute},
             block::BlockLike,
             r#type::{FunctionType, IntegerType},
-            Block, Module, Region, RegionLike,
+            Block, Module, OperationLike, Region, RegionLike,
         },
         pass::{self, PassManager},
         test::create_test_context,

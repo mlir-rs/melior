@@ -1,6 +1,9 @@
 use super::{BlockArgument, BlockRef, TypeLike};
 use crate::{
-    ir::{operation::OperationRefMut, Location, Operation, OperationRef, RegionRef, Type, Value},
+    ir::{
+        operation::OperationRefMut, Location, Operation, OperationLike, OperationRef, RegionRef,
+        Type, Value,
+    },
     Error,
 };
 use core::fmt::Display;

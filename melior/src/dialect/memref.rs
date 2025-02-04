@@ -326,7 +326,7 @@ mod tests {
             attribute::{DenseElementsAttribute, StringAttribute, TypeAttribute},
             block::BlockLike,
             r#type::{FunctionType, IntegerType, RankedTensorType},
-            Block, Module, Region, RegionLike, Type,
+            Block, Module, OperationLike, Region, RegionLike, Type,
         },
         test::create_test_context,
     };

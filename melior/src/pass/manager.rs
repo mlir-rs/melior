@@ -1,6 +1,10 @@
 use super::OperationPassManager;
 use crate::{
-    context::Context, ir::Module, logical_result::LogicalResult, pass::Pass, string_ref::StringRef,
+    context::Context,
+    ir::{Module, OperationLike},
+    logical_result::LogicalResult,
+    pass::Pass,
+    string_ref::StringRef,
     Error,
 };
 use mlir_sys::{
