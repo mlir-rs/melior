@@ -18,7 +18,7 @@ pub use self::{
     identifier::Identifier,
     location::Location,
     module::Module,
-    operation::{Operation, OperationRef},
+    operation::{Operation, OperationLike, OperationLikeMut, OperationRef},
     r#type::{ShapedTypeLike, Type, TypeLike},
     region::{Region, RegionLike, RegionRef},
     value::{Value, ValueLike},

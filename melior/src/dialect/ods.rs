@@ -202,7 +202,7 @@ mod tests {
         ir::{
             attribute::{IntegerAttribute, StringAttribute, TypeAttribute},
             r#type::{FunctionType, IntegerType},
-            Block, BlockLike, Location, Module, Region, RegionLike, Type,
+            Block, BlockLike, Location, Module, OperationLike, Region, RegionLike, Type,
         },
         pass::{self, PassManager},
         test::create_test_context,
