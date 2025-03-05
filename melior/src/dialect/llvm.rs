@@ -8,7 +8,8 @@ use crate::{
         },
         operation::OperationBuilder,
         r#type::IntegerType,
-        Attribute, Identifier, Location, Operation, Region, Type, Value,
+        Attribute, AttributeLike, Identifier, Location, Operation, Region, Type, TypeLike, Value,
+        ValueLike,
     },
     Context,
 };
@@ -20,6 +21,25 @@ pub mod attributes;
 mod load_store_options;
 pub mod r#type;
 
+macro_rules! assert_operation {
+    ($context:expr, $name:expr, [$($x:expr),+]) => {
+        assert!($context.is_registered_operation($name));
+        assert_context!($context, $($x),+);
+
+    };
+}
+
+macro_rules! assert_context {
+    ($context:expr) => {};
+    ($context:expr, $x:expr) => {
+        assert!($context == &$x.context());
+    };
+    ($context:expr, $x:expr, $($y:expr),+) => {
+        assert!($context == &$x.context());
+        assert_context!($context, $($y),+);
+    };
+}
+
 // spell-checker: disable
 
 /// Creates a `llvm.extractvalue` operation.
@@ -30,7 +50,15 @@ pub fn extract_value<'c>(
     result_type: Type<'c>,
     location: Location<'c>,
 ) -> Operation<'c> {
-    OperationBuilder::new("llvm.extractvalue", location)
+    const NAME: &str = "llvm.extractvalue";
+
+    assert_operation!(
+        context,
+        NAME,
+        [container.r#type(), position, result_type, location]
+    );
+
+    OperationBuilder::new(NAME, location)
         .add_attributes(&[(Identifier::new(context, "position"), position.into())])
         .add_operands(&[container])
         .add_results(&[result_type])
