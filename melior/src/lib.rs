@@ -38,7 +38,7 @@ mod tests {
             attribute::{IntegerAttribute, StringAttribute, TypeAttribute},
             operation::OperationBuilder,
             r#type::{FunctionType, IntegerType},
-            Block, BlockLike, Location, Module, Region, RegionLike, Type, Value,
+            Block, BlockLike, Location, Module, OperationLike, Region, RegionLike, Type, Value,
         },
         test::load_all_dialects,
     };
