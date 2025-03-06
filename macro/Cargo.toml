@@ -22,7 +22,7 @@ syn = { version = "2", features = ["full"] }
 tblgen = { version = "0.5.2", features = [
   "llvm19-0",
 ], default-features = false }
-unindent = "0.2.3"
+unindent = "0.2.4"
 
 [dev-dependencies]
 melior = { path = "../melior", features = ["ods-dialects"] }
