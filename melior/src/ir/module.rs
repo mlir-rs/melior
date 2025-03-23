@@ -98,7 +98,7 @@ impl Drop for Module<'_> {
 mod tests {
     use super::*;
     use crate::{
-        ir::{attribute::StringAttribute, operation::OperationBuilder, Block, Region, RegionLike},
+        ir::{attribute::StringAttribute, operation::{OperationBuilder, OperationLike}, Block, Region, RegionLike},
         test::create_test_context,
     };
 

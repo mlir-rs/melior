@@ -74,10 +74,7 @@ mod tests {
     use crate::{
         dialect::func,
         ir::{
-            attribute::{StringAttribute, TypeAttribute},
-            block::BlockLike,
-            r#type::{FunctionType, IntegerType},
-            Block, Location, Module, Region, RegionLike, Type,
+            attribute::{StringAttribute, TypeAttribute}, block::BlockLike, operation::OperationLike, r#type::{FunctionType, IntegerType}, Block, Location, Module, Region, RegionLike, Type
         },
         test::load_all_dialects,
         Context,

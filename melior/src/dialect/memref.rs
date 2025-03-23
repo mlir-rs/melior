@@ -323,10 +323,7 @@ mod tests {
     use crate::{
         dialect::{func, index},
         ir::{
-            attribute::{DenseElementsAttribute, StringAttribute, TypeAttribute},
-            block::BlockLike,
-            r#type::{FunctionType, IntegerType, RankedTensorType},
-            Block, Module, Region, RegionLike, Type,
+            attribute::{DenseElementsAttribute, StringAttribute, TypeAttribute}, block::BlockLike, operation::OperationLike, r#type::{FunctionType, IntegerType, RankedTensorType}, Block, Module, Region, RegionLike, Type
         },
         test::create_test_context,
     };
