@@ -102,6 +102,7 @@ unsafe extern "C" fn callback_clone<'a, T: RunExternalPass<'a>>(pass: *mut T) ->
 ///     pass::{ExternalPass, RunExternalPass},
 ///     ContextRef,
 /// };
+/// use crate::melior::ir::operation::OperationLike;
 ///
 /// #[derive(Clone, Debug)]
 /// struct ExamplePass;
