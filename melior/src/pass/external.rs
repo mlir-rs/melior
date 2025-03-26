@@ -146,6 +146,7 @@ impl<'c, F: FnMut(OperationRef<'c, '_>, ExternalPass<'_>) + Clone> RunExternalPa
 ///     ir::{r#type::TypeId, OperationRef},
 ///     pass::{create_external, ExternalPass},
 /// };
+/// use crate::melior::ir::operation::OperationLike;
 ///
 /// #[repr(align(8))]
 /// struct PassId;

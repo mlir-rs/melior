@@ -10,26 +10,17 @@ pub use operation_like::OperationLike;
 pub use self::{
     builder::OperationBuilder, printing_flags::OperationPrintingFlags, result::OperationResult,
 };
-use super::{Attribute, AttributeLike, BlockRef, Identifier, Location, RegionRef, Value};
 use crate::{
-    context::{Context, ContextRef},
+    context::Context,
     utility::{print_callback, print_string_callback},
-    Error, StringRef,
+    Error,
 };
 use core::{
     fmt,
     mem::{forget, transmute},
 };
 use mlir_sys::{
-    mlirOperationClone, mlirOperationDestroy, mlirOperationDump, mlirOperationEqual,
-    mlirOperationGetAttribute, mlirOperationGetAttributeByName, mlirOperationGetBlock,
-    mlirOperationGetContext, mlirOperationGetLocation, mlirOperationGetName,
-    mlirOperationGetNextInBlock, mlirOperationGetNumAttributes, mlirOperationGetNumOperands,
-    mlirOperationGetNumRegions, mlirOperationGetNumResults, mlirOperationGetNumSuccessors,
-    mlirOperationGetOperand, mlirOperationGetParentOperation, mlirOperationGetRegion,
-    mlirOperationGetResult, mlirOperationGetSuccessor, mlirOperationPrint,
-    mlirOperationPrintWithFlags, mlirOperationRemoveAttributeByName, mlirOperationRemoveFromParent,
-    mlirOperationSetAttributeByName, mlirOperationVerify, MlirOperation,
+    mlirOperationClone, mlirOperationDestroy, mlirOperationEqual, mlirOperationPrint, MlirOperation,
 };
 use std::{
     ffi::c_void,
@@ -306,7 +297,7 @@ mod tests {
     use super::*;
     use crate::{
         context::Context,
-        ir::{attribute::StringAttribute, Block, BlockLike, Location, Region, RegionLike, Type},
+        ir::{attribute::StringAttribute, Block, BlockLike, Identifier, Location, Region, RegionLike, Type, Value},
         test::create_test_context,
     };
     use pretty_assertions::assert_eq;

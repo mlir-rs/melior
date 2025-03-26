@@ -31,7 +31,7 @@ pub use melior_macro::dialect;
 
 #[cfg(test)]
 mod tests {
-    use crate::melior::ir::operation::OperationLike;
+    use crate::ir::operation::OperationLike;
     use crate::{
         context::Context,
         dialect::{self, arith, func, scf},
@@ -55,6 +55,8 @@ mod tests {
 
     #[test]
     fn build_module_with_dialect() {
+        use crate::ir::operation::OperationLike;
+
         let registry = dialect::DialectRegistry::new();
         let context = Context::new();
         context.append_dialect_registry(&registry);
