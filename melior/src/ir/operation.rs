@@ -186,6 +186,13 @@ impl<'c, 'a> OperationLike<'c, 'a> for OperationRef<'c, 'a> {
         self.raw
     }
 }
+impl<'c> Deref for OperationRef<'c, '_> {
+    type Target = Operation<'c>;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.to_ref() }
+    }
+}
 
 impl PartialEq for OperationRef<'_, '_> {
     fn eq(&self, other: &Self) -> bool {
@@ -197,25 +204,13 @@ impl Eq for OperationRef<'_, '_> {}
 
 impl Display for OperationRef<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        let mut data = (formatter, Ok(()));
-
-        unsafe {
-            mlirOperationPrint(
-                self.raw,
-                Some(print_callback),
-                &mut data as *mut _ as *mut c_void,
-            );
-        }
-
-        data.1
+        Display::fmt(self.deref(), formatter)
     }
 }
 
 impl Debug for OperationRef<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        writeln!(formatter, "Operation(")?;
-        Display::fmt(self, formatter)?;
-        write!(formatter, ")")
+        Debug::fmt(self.deref(), formatter)
     }
 }
 
