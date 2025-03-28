@@ -1,8 +1,22 @@
-use mlir_sys::{mlirOperationDump, mlirOperationGetAttribute, mlirOperationGetAttributeByName, mlirOperationGetBlock, mlirOperationGetContext, mlirOperationGetLocation, mlirOperationGetName, mlirOperationGetNextInBlock, mlirOperationGetNumAttributes, mlirOperationGetNumOperands, mlirOperationGetNumRegions, mlirOperationGetNumResults, mlirOperationGetNumSuccessors, mlirOperationGetOperand, mlirOperationGetParentOperation, mlirOperationGetRegion, mlirOperationGetResult, mlirOperationGetSuccessor, mlirOperationPrintWithFlags, mlirOperationRemoveAttributeByName, mlirOperationRemoveFromParent, mlirOperationSetAttributeByName, mlirOperationVerify, MlirOperation};
+use mlir_sys::{
+    mlirOperationDump, mlirOperationGetAttribute, mlirOperationGetAttributeByName,
+    mlirOperationGetBlock, mlirOperationGetContext, mlirOperationGetLocation, mlirOperationGetName,
+    mlirOperationGetNextInBlock, mlirOperationGetNumAttributes, mlirOperationGetNumOperands,
+    mlirOperationGetNumRegions, mlirOperationGetNumResults, mlirOperationGetNumSuccessors,
+    mlirOperationGetOperand, mlirOperationGetParentOperation, mlirOperationGetRegion,
+    mlirOperationGetResult, mlirOperationGetSuccessor, mlirOperationPrintWithFlags,
+    mlirOperationRemoveAttributeByName, mlirOperationRemoveFromParent,
+    mlirOperationSetAttributeByName, mlirOperationVerify, MlirOperation,
+};
 
-use crate::{ir::{Attribute, AttributeLike, BlockRef, Identifier, Location, RegionRef, Value}, ContextRef, Error, StringRef};
+use crate::{
+    ir::{Attribute, AttributeLike, BlockRef, Identifier, Location, RegionRef, Value},
+    ContextRef, Error, StringRef,
+};
 
-use super::{print_string_callback, OperationPrintingFlags, OperationRef, OperationRefMut, OperationResult};
+use super::{
+    print_string_callback, OperationPrintingFlags, OperationRef, OperationRefMut, OperationResult,
+};
 
 pub trait OperationLike<'c: 'a, 'a>: ToString {
     /// Converts a value into a raw value.
@@ -81,7 +95,9 @@ pub trait OperationLike<'c: 'a, 'a>: ToString {
     /// Returns a region at a position.
     fn region(&self, index: usize) -> Result<RegionRef<'c, 'a>, Error> {
         if index < self.region_count() {
-            Ok(unsafe { RegionRef::from_raw(mlirOperationGetRegion(self.to_raw(), index as isize)) })
+            Ok(unsafe {
+                RegionRef::from_raw(mlirOperationGetRegion(self.to_raw(), index as isize))
+            })
         } else {
             Err(Error::PositionOutOfBounds {
                 name: "region",
@@ -109,7 +125,9 @@ pub trait OperationLike<'c: 'a, 'a>: ToString {
     /// Returns a successor at a position.
     fn successor(&self, index: usize) -> Result<BlockRef<'c, 'a>, Error> {
         if index < self.successor_count() {
-            Ok(unsafe { BlockRef::from_raw(mlirOperationGetSuccessor(self.to_raw(), index as isize)) })
+            Ok(unsafe {
+                BlockRef::from_raw(mlirOperationGetSuccessor(self.to_raw(), index as isize))
+            })
         } else {
             Err(Error::PositionOutOfBounds {
                 name: "successor",

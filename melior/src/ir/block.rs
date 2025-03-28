@@ -206,7 +206,9 @@ mod tests {
     use super::*;
     use crate::{
         ir::{
-            operation::{OperationBuilder, OperationLike}, r#type::IntegerType, Module, Region, RegionLike, ValueLike,
+            operation::{OperationBuilder, OperationLike},
+            r#type::IntegerType,
+            Module, Region, RegionLike, ValueLike,
         },
         test::create_test_context,
         Error,

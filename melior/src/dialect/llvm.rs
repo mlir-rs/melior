@@ -378,7 +378,11 @@ mod tests {
             },
         },
         ir::{
-            attribute::{IntegerAttribute, StringAttribute, TypeAttribute}, block::BlockLike, operation::OperationLike, r#type::{FunctionType, IntegerType}, Block, Module, Region, RegionLike
+            attribute::{IntegerAttribute, StringAttribute, TypeAttribute},
+            block::BlockLike,
+            operation::OperationLike,
+            r#type::{FunctionType, IntegerType},
+            Block, Module, Region, RegionLike,
         },
         pass::{self, PassManager},
         test::create_test_context,

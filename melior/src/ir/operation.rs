@@ -1,7 +1,7 @@
 //! Operations and operation builders.
 
-mod operation_like;
 mod builder;
+mod operation_like;
 mod printing_flags;
 mod result;
 
@@ -297,7 +297,10 @@ mod tests {
     use super::*;
     use crate::{
         context::Context,
-        ir::{attribute::StringAttribute, Block, BlockLike, Identifier, Location, Region, RegionLike, Type, Value},
+        ir::{
+            attribute::StringAttribute, Block, BlockLike, Identifier, Location, Region, RegionLike,
+            Type, Value,
+        },
         test::create_test_context,
     };
     use pretty_assertions::assert_eq;

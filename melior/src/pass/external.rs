@@ -217,7 +217,11 @@ mod tests {
     use crate::{
         dialect::func,
         ir::{
-            attribute::{StringAttribute, TypeAttribute}, block::BlockLike, operation::OperationLike, r#type::FunctionType, Block, Identifier, Location, Module, Region, RegionLike
+            attribute::{StringAttribute, TypeAttribute},
+            block::BlockLike,
+            operation::OperationLike,
+            r#type::FunctionType,
+            Block, Identifier, Location, Module, Region, RegionLike,
         },
         pass::PassManager,
         test::create_test_context,

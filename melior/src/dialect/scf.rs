@@ -113,7 +113,11 @@ mod tests {
     use crate::{
         dialect::{arith, func},
         ir::{
-            attribute::{FloatAttribute, IntegerAttribute, StringAttribute, TypeAttribute}, block::BlockLike, operation::OperationLike, r#type::{FunctionType, IntegerType, Type}, Attribute, Block, Module, RegionLike
+            attribute::{FloatAttribute, IntegerAttribute, StringAttribute, TypeAttribute},
+            block::BlockLike,
+            operation::OperationLike,
+            r#type::{FunctionType, IntegerType, Type},
+            Attribute, Block, Module, RegionLike,
         },
         test::load_all_dialects,
         Context,
