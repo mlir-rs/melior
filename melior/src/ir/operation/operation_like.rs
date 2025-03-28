@@ -194,24 +194,6 @@ where
         self.attribute(name).is_ok()
     }
 
-    /// Sets the attribute with the given name to the given attribute.
-    fn set_attribute(&mut self, name: &str, attribute: Attribute<'c>) {
-        unsafe {
-            mlirOperationSetAttributeByName(
-                self.to_raw(),
-                StringRef::new(name).to_raw(),
-                attribute.to_raw(),
-            )
-        }
-    }
-
-    /// Removes the attribute with the given name.
-    fn remove_attribute(&mut self, name: &str) -> Result<(), Error> {
-        unsafe { mlirOperationRemoveAttributeByName(self.to_raw(), StringRef::new(name).to_raw()) }
-            .then_some(())
-            .ok_or_else(|| Error::AttributeNotFound(name.into()))
-    }
-
     /// Returns a reference to the next operation in the same block.
     fn next_in_block(&self) -> Option<OperationRef<'c, 'a>> {
         unsafe { OperationRef::from_option_raw(mlirOperationGetNextInBlock(self.to_raw())) }
@@ -230,11 +212,6 @@ where
     /// Returns a reference to a parent operation.
     fn parent_operation(&self) -> Option<OperationRef<'c, '_>> {
         unsafe { OperationRef::from_option_raw(mlirOperationGetParentOperation(self.to_raw())) }
-    }
-
-    /// Removes itself from a parent block.
-    fn remove_from_parent(&mut self) {
-        unsafe { mlirOperationRemoveFromParent(self.to_raw()) }
     }
 
     /// Verifies an operation.
@@ -263,5 +240,30 @@ where
         data.1?;
 
         Ok(data.0)
+    }
+}
+
+pub trait OperationMutLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
+    /// Sets the attribute with the given name to the given attribute.
+    fn set_attribute(&mut self, name: &str, attribute: Attribute<'c>) {
+        unsafe {
+            mlirOperationSetAttributeByName(
+                self.to_raw(),
+                StringRef::new(name).to_raw(),
+                attribute.to_raw(),
+            )
+        }
+    }
+
+    /// Removes the attribute with the given name.
+    fn remove_attribute(&mut self, name: &str) -> Result<(), Error> {
+        unsafe { mlirOperationRemoveAttributeByName(self.to_raw(), StringRef::new(name).to_raw()) }
+            .then_some(())
+            .ok_or_else(|| Error::AttributeNotFound(name.into()))
+    }
+
+    /// Removes itself from a parent block.
+    fn remove_from_parent(&mut self) {
+        unsafe { mlirOperationRemoveFromParent(self.to_raw()) }
     }
 }

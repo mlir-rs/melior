@@ -5,7 +5,7 @@ mod operation_like;
 mod printing_flags;
 mod result;
 
-pub use operation_like::OperationLike;
+pub use operation_like::{OperationLike, OperationMutLike};
 
 pub use self::{
     builder::OperationBuilder, printing_flags::OperationPrintingFlags, result::OperationResult,
@@ -76,6 +76,7 @@ impl<'c: 'a, 'a> OperationLike<'c, 'a> for Operation<'c> {
         self.raw
     }
 }
+impl<'c: 'a, 'a> OperationMutLike<'c, 'a> for Operation<'c> {}
 
 impl Clone for Operation<'_> {
     fn clone(&self) -> Self {
@@ -252,6 +253,13 @@ impl OperationRefMut<'_, '_> {
         }
     }
 }
+
+impl<'c, 'a> OperationLike<'c, 'a> for OperationRefMut<'c, 'a> {
+    fn to_raw(&self) -> MlirOperation {
+        self.raw
+    }
+}
+impl<'c, 'a> OperationMutLike<'c, 'a> for OperationRefMut<'c, 'a> {}
 
 impl<'c> Deref for OperationRefMut<'c, '_> {
     type Target = Operation<'c>;

@@ -100,6 +100,7 @@ fn generate_dialect_module(
         #[doc = #doc]
         pub mod #name {
             use melior::ir::operation::OperationLike;
+            use melior::ir::operation::OperationMutLike;
 
             #(#operations)*
         }

@@ -97,6 +97,7 @@ impl Drop for Module<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ir::operation::OperationMutLike;
     use crate::{
         ir::{
             attribute::StringAttribute,
