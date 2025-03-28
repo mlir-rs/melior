@@ -325,6 +325,7 @@ mod tests {
         ir::{
             attribute::{DenseElementsAttribute, StringAttribute, TypeAttribute},
             block::BlockLike,
+            operation::OperationLike,
             r#type::{FunctionType, IntegerType, RankedTensorType},
             Block, Module, Region, RegionLike, Type,
         },

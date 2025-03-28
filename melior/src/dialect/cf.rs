@@ -154,6 +154,7 @@ mod tests {
         },
         ir::{
             attribute::{IntegerAttribute, StringAttribute, TypeAttribute},
+            operation::OperationLike,
             r#type::{FunctionType, IntegerType, Type},
             Block, Module, Region, RegionLike,
         },

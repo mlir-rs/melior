@@ -115,6 +115,7 @@ mod tests {
         ir::{
             attribute::{FloatAttribute, IntegerAttribute, StringAttribute, TypeAttribute},
             block::BlockLike,
+            operation::OperationLike,
             r#type::{FunctionType, IntegerType, Type},
             Attribute, Block, Module, RegionLike,
         },
@@ -238,6 +239,8 @@ mod tests {
     }
 
     mod r#if {
+        use crate::ir::operation::OperationLike;
+
         use super::*;
 
         #[test]

@@ -380,6 +380,7 @@ mod tests {
         ir::{
             attribute::{IntegerAttribute, StringAttribute, TypeAttribute},
             block::BlockLike,
+            operation::OperationLike,
             r#type::{FunctionType, IntegerType},
             Block, Module, Region, RegionLike,
         },
