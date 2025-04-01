@@ -8,6 +8,7 @@ mod bool;
 mod dense_elements;
 mod dense_i32_array;
 mod dense_i64_array;
+mod distinct;
 mod flat_symbol_ref;
 mod float;
 mod integer;
@@ -22,6 +23,7 @@ pub use self::{
     string::StringAttribute,
 };
 use crate::{context::Context, string_ref::StringRef, utility::print_callback};
+use distinct::DistinctAttribute;
 use mlir_sys::{
     mlirAttributeEqual, mlirAttributeGetNull, mlirAttributeParseGet, mlirAttributePrint,
     mlirUnitAttrGet, MlirAttribute,
@@ -134,6 +136,7 @@ from_subtypes!(
     IntegerAttribute,
     StringAttribute,
     TypeAttribute,
+    DistinctAttribute,
 );
 
 #[cfg(test)]
