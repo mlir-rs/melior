@@ -1,7 +1,7 @@
 use super::Attribute;
 use mlir_sys::{mlirDisctinctAttrCreate, MlirAttribute};
 
-/// A bool attribute.
+/// A distinct attribute.
 #[derive(Clone, Copy)]
 pub struct DistinctAttribute<'c> {
     attribute: Attribute<'c>,
