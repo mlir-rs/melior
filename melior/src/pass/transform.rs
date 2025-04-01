@@ -3,6 +3,7 @@
 melior_macro::passes!(
     "Transforms",
     [
+        // spell-checker: disable-next-line
         mlirCreateTransformsCSE,
         mlirCreateTransformsCanonicalizer,
         mlirCreateTransformsCompositeFixedPointPass,

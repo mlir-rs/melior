@@ -1,20 +1,20 @@
 use super::Attribute;
 use mlir_sys::{mlirDisctinctAttrCreate, MlirAttribute};
 
-/// A distinct attribute.
+/// A disctinct attribute.
 #[derive(Clone, Copy)]
-pub struct DistinctAttribute<'c> {
+pub struct DisctinctAttribute<'c> {
     attribute: Attribute<'c>,
 }
 
-impl<'c> DistinctAttribute<'c> {
-    /// Creates a distinct attribute.
+impl<'c> DisctinctAttribute<'c> {
+    /// Creates a disctinct attribute.
     pub fn new(referenced_attr: &Attribute<'c>) -> Self {
         unsafe { Self::from_raw(mlirDisctinctAttrCreate(referenced_attr.raw)) }
     }
 }
 
-attribute_traits_no_try_from!(DistinctAttribute);
+attribute_traits_no_try_from!(DisctinctAttribute);
 
 #[cfg(test)]
 mod tests {
@@ -25,7 +25,7 @@ mod tests {
     fn value() {
         let context = create_test_context();
         let bool_attr = BoolAttribute::new(&context, true);
-        let value = DistinctAttribute::new(&bool_attr.into());
+        let value = DisctinctAttribute::new(&bool_attr.into());
         let _value: Attribute = value.into();
     }
 }

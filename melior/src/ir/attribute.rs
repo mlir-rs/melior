@@ -23,7 +23,7 @@ pub use self::{
     string::StringAttribute,
 };
 use crate::{context::Context, string_ref::StringRef, utility::print_callback};
-use distinct::DistinctAttribute;
+use distinct::DisctinctAttribute;
 use mlir_sys::{
     mlirAttributeEqual, mlirAttributeGetNull, mlirAttributeParseGet, mlirAttributePrint,
     mlirUnitAttrGet, MlirAttribute,
@@ -136,7 +136,7 @@ from_subtypes!(
     IntegerAttribute,
     StringAttribute,
     TypeAttribute,
-    DistinctAttribute,
+    DisctinctAttribute,
 );
 
 #[cfg(test)]
