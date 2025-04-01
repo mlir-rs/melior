@@ -4,8 +4,8 @@ expression: module.as_operation()
 ---
 module {
   llvm.func @foo(%arg0: !llvm.struct<(i64)>) {
-    %0 = llvm.mlir.constant(42 : i64) : i64
-    %1 = llvm.insertvalue %0, %arg0[0] : !llvm.struct<(i64)> 
+    %c42_i64 = arith.constant 42 : i64
+    %0 = llvm.insertvalue %c42_i64, %arg0[0] : !llvm.struct<(i64)> 
     llvm.return
   }
 }

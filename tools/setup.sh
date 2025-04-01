@@ -2,7 +2,7 @@
 
 set -e
 
-llvm_version=19
+llvm_version=20
 
 brew install llvm@$llvm_version
 
