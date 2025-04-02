@@ -3,6 +3,7 @@
 melior_macro::passes!(
     "Linalg",
     [
+        // spell-checker: disable-next-line
         mlirCreateLinalgConvertElementwiseToLinalgPass,
         mlirCreateLinalgConvertLinalgToAffineLoopsPass,
         mlirCreateLinalgConvertLinalgToLoopsPass,
