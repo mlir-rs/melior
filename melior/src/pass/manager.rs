@@ -1,7 +1,7 @@
 use super::OperationPassManager;
 use crate::{
     context::Context,
-    ir::{Module, OperationLike},
+    ir::{operation::OperationPrintingFlags, Module, OperationLike},
     logical_result::LogicalResult,
     pass::Pass,
     string_ref::StringRef,
@@ -13,7 +13,7 @@ use mlir_sys::{
     mlirPassManagerGetAsOpPassManager, mlirPassManagerGetNestedUnder, mlirPassManagerRunOnOp,
     MlirPassManager,
 };
-use std::{marker::PhantomData, mem::forget};
+use std::{marker::PhantomData, mem::forget, path::PathBuf};
 
 /// A pass manager.
 pub struct PassManager<'c> {
@@ -50,9 +50,23 @@ impl PassManager<'_> {
         unsafe { mlirPassManagerEnableVerifier(self.raw, enabled) }
     }
 
-    /// Enables IR printing.
-    pub fn enable_ir_printing(&self) {
-        unsafe { mlirPassManagerEnableIRPrinting(self.raw) }
+    /// Enable IR printing.
+    /// The treePrintingPath argument is an optional path to a directory
+    /// where the dumps will be produced. If it isn't provided then dumps
+    /// are produced to stderr.
+    pub fn enable_ir_printing(&self, options: &PassIrPrintingOptions) {
+        unsafe {
+            mlirPassManagerEnableIRPrinting(
+                self.raw,
+                options.before_all,
+                options.after_all,
+                options.module_scope,
+                options.on_change,
+                options.on_failure,
+                options.flags.to_raw(),
+                StringRef::new(&options.tree_printing_path.display().to_string()).to_raw(),
+            )
+        }
     }
 
     /// Runs passes added to a pass manager against a module.
@@ -101,6 +115,17 @@ impl Drop for PassManager<'_> {
     fn drop(&mut self) {
         unsafe { mlirPassManagerDestroy(self.raw) }
     }
+}
+
+#[derive(Debug)]
+pub struct PassIrPrintingOptions {
+    pub before_all: bool,
+    pub after_all: bool,
+    pub module_scope: bool,
+    pub on_change: bool,
+    pub on_failure: bool,
+    pub flags: OperationPrintingFlags,
+    pub tree_printing_path: PathBuf,
 }
 
 #[cfg(test)]

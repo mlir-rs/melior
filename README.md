@@ -68,10 +68,10 @@ cargo add melior
 
 ### Dependencies
 
-[LLVM/MLIR 19](https://llvm.org/) needs to be installed on your system. On Linux and macOS, you can install it via [Homebrew](https://brew.sh).
+[LLVM/MLIR 20](https://llvm.org/) needs to be installed on your system. On Linux and macOS, you can install it via [Homebrew](https://brew.sh).
 
 ```sh
-brew install llvm@19
+brew install llvm@20
 ```
 
 ## Documentation

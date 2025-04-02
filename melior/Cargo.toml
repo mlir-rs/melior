@@ -1,12 +1,13 @@
 [package]
 name = "melior"
 description = "The rustic MLIR bindings in Rust"
-version = "0.22.0"
+version = "0.23.0"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/mlir-rs/melior"
 documentation = "https://mlir-rs.github.io/melior/melior/"
 keywords = ["mlir", "llvm"]
+categories = ["api-bindings"]
 
 [features]
 ods-dialects = []
@@ -14,10 +15,10 @@ ods-dialects = []
 helpers = ["ods-dialects"]
 
 [dependencies]
-melior-macro = { version = "0.15.0", path = "../macro" }
-mlir-sys = "0.4.2"
+melior-macro = { version = "0.16.0", path = "../macro" }
+mlir-sys = "0.5.0"
 
 [dev-dependencies]
 indoc = "2.0.6"
-insta = "1.41.1"
+insta = "1.42.2"
 pretty_assertions = "1.4.1"

@@ -4,7 +4,7 @@ expression: module.as_operation()
 ---
 module {
   llvm.func @foo(%arg0: i64) -> i64 {
-    %0 = llvm.intr.ctpop(%arg0)  : (i64) -> i64
+    %0 = llvm.intr.ctpop(%arg0) : (i64) -> i64
     llvm.return %0 : i64
   }
 }
