@@ -71,17 +71,12 @@ impl Operation<'_> {
     }
 }
 
-impl<'c: 'a, 'a> OperationLike<'c, 'a> for &'a Operation<'c> {
+impl<'c: 'a, 'a> OperationLike<'c, 'a> for Operation<'c> {
     fn to_raw(&self) -> MlirOperation {
         self.raw
     }
 }
-impl<'c: 'a, 'a> OperationLike<'c, 'a> for &'a mut Operation<'c> {
-    fn to_raw(&self) -> MlirOperation {
-        self.raw
-    }
-}
-impl<'c: 'a, 'a> OperationMutLike<'c, 'a> for &'a mut Operation<'c> {}
+impl<'c: 'a, 'a> OperationMutLike<'c, 'a> for Operation<'c> {}
 
 impl Clone for Operation<'_> {
     fn clone(&self) -> Self {
