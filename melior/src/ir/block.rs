@@ -89,8 +89,8 @@ impl<'c> Block<'c> {
     }
 }
 
-impl<'c, 'a> BlockLike<'c, 'a> for &'a Block<'c> {
-    fn to_raw(self) -> MlirBlock {
+impl<'c: 'a, 'a> BlockLike<'c, 'a> for Block<'c> {
+    fn to_raw(&self) -> MlirBlock {
         self.raw
     }
 }
@@ -168,7 +168,7 @@ impl BlockRef<'_, '_> {
 }
 
 impl<'c, 'a> BlockLike<'c, 'a> for BlockRef<'c, 'a> {
-    fn to_raw(self) -> MlirBlock {
+    fn to_raw(&self) -> MlirBlock {
         self.raw
     }
 }

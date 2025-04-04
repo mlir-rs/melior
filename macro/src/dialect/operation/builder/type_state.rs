@@ -1,5 +1,5 @@
 use quote::format_ident;
-use std::iter::repeat;
+use std::iter::repeat_n;
 use syn::{parse_quote, GenericArgument};
 
 const RESULT_PREFIX: &str = "T";
@@ -133,8 +133,7 @@ impl TypeState {
         };
 
         Box::new(
-            repeat(Self::build_argument(true))
-                .take(index)
+            repeat_n(Self::build_argument(true), index)
                 .chain([Self::build_argument(set)])
                 .chain(Self::build_parameters(fields, prefix).skip(index + 1)),
         )
@@ -159,7 +158,7 @@ impl TypeState {
         fields: &[String],
         set: bool,
     ) -> impl Iterator<Item = GenericArgument> {
-        repeat(Self::build_argument(set)).take(fields.len())
+        repeat_n(Self::build_argument(set), fields.len())
     }
 
     fn build_generic_argument(prefix: &str, index: usize) -> GenericArgument {
