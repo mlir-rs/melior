@@ -17,9 +17,14 @@ This crate is a wrapper of [the MLIR C API](https://mlir.llvm.org/docs/CAPI/).
 ```rust
 use melior::{
     Context,
-    dialect::{arith, DialectRegistry, func},
-    ir::{*, attribute::{StringAttribute, TypeAttribute}, r#type::FunctionType},
-    operation::OperationLike, utility::register_all_dialects,
+    dialect::{DialectRegistry, arith, func},
+    ir::{
+        attribute::{StringAttribute, TypeAttribute},
+        operation::OperationLike,
+        r#type::FunctionType,
+        *,
+    },
+    utility::register_all_dialects,
 };
 
 let registry = DialectRegistry::new();
