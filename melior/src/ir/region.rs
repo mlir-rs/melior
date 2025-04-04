@@ -35,8 +35,8 @@ impl Region<'_> {
     }
 }
 
-impl<'c> RegionLike<'c, '_> for &Region<'c> {
-    fn to_raw(self) -> MlirRegion {
+impl<'c> RegionLike<'c, '_> for Region<'c> {
+    fn to_raw(&self) -> MlirRegion {
         self.raw
     }
 }
@@ -96,7 +96,7 @@ impl RegionRef<'_, '_> {
 }
 
 impl<'c, 'a> RegionLike<'c, 'a> for RegionRef<'c, 'a> {
-    fn to_raw(self) -> MlirRegion {
+    fn to_raw(&self) -> MlirRegion {
         self.raw
     }
 }

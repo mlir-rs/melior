@@ -14,12 +14,12 @@ use mlir_sys::{
 
 /// A trait for block-like types.
 // TODO Split this trait into `BlockLike` and `BlockLikeMut`.
-pub trait BlockLike<'c, 'a>: Copy + Display {
+pub trait BlockLike<'c, 'a>: Display + 'a {
     /// Converts a block into a raw object.
-    fn to_raw(self) -> MlirBlock;
+    fn to_raw(&self) -> MlirBlock;
 
     /// Returns an argument at a position.
-    fn argument(self, index: usize) -> Result<BlockArgument<'c, 'a>, Error> {
+    fn argument(&self, index: usize) -> Result<BlockArgument<'c, 'a>, Error> {
         unsafe {
             if index < self.argument_count() {
                 Ok(BlockArgument::from_raw(mlirBlockGetArgument(
@@ -37,43 +37,43 @@ pub trait BlockLike<'c, 'a>: Copy + Display {
     }
 
     /// Returns a number of arguments.
-    fn argument_count(self) -> usize {
+    fn argument_count(&self) -> usize {
         unsafe { mlirBlockGetNumArguments(self.to_raw()) as usize }
     }
 
     /// Returns a reference to the first operation.
-    fn first_operation(self) -> Option<OperationRef<'c, 'a>> {
+    fn first_operation(&self) -> Option<OperationRef<'c, 'a>> {
         unsafe { OperationRef::from_option_raw(mlirBlockGetFirstOperation(self.to_raw())) }
     }
 
     /// Returns a mutable reference to the first operation.
-    fn first_operation_mut(self) -> Option<OperationRefMut<'c, 'a>> {
+    fn first_operation_mut(&self) -> Option<OperationRefMut<'c, 'a>> {
         unsafe { OperationRefMut::from_option_raw(mlirBlockGetFirstOperation(self.to_raw())) }
     }
 
     /// Returns a reference to a terminator operation.
-    fn terminator(self) -> Option<OperationRef<'c, 'a>> {
+    fn terminator(&self) -> Option<OperationRef<'c, 'a>> {
         unsafe { OperationRef::from_option_raw(mlirBlockGetTerminator(self.to_raw())) }
     }
 
     /// Returns a mutable reference to a terminator operation.
-    fn terminator_mut(self) -> Option<OperationRefMut<'c, 'a>> {
+    fn terminator_mut(&self) -> Option<OperationRefMut<'c, 'a>> {
         unsafe { OperationRefMut::from_option_raw(mlirBlockGetTerminator(self.to_raw())) }
     }
 
     /// Returns a parent region.
     // TODO Store lifetime of regions in blocks, or create another type like `InsertedBlockRef`?
-    fn parent_region(self) -> Option<RegionRef<'c, 'a>> {
+    fn parent_region(&self) -> Option<RegionRef<'c, 'a>> {
         unsafe { RegionRef::from_option_raw(mlirBlockGetParentRegion(self.to_raw())) }
     }
 
     /// Returns a parent operation.
-    fn parent_operation(self) -> Option<OperationRef<'c, 'a>> {
+    fn parent_operation(&self) -> Option<OperationRef<'c, 'a>> {
         unsafe { OperationRef::from_option_raw(mlirBlockGetParentOperation(self.to_raw())) }
     }
 
     /// Adds an argument.
-    fn add_argument(self, r#type: Type<'c>, location: Location<'c>) -> Value<'c, 'a> {
+    fn add_argument(&self, r#type: Type<'c>, location: Location<'c>) -> Value<'c, 'a> {
         unsafe {
             Value::from_raw(mlirBlockAddArgument(
                 self.to_raw(),
@@ -84,7 +84,7 @@ pub trait BlockLike<'c, 'a>: Copy + Display {
     }
 
     /// Appends an operation.
-    fn append_operation(self, operation: Operation<'c>) -> OperationRef<'c, 'a> {
+    fn append_operation(&self, operation: Operation<'c>) -> OperationRef<'c, 'a> {
         unsafe {
             let operation = operation.into_raw();
 
@@ -97,7 +97,7 @@ pub trait BlockLike<'c, 'a>: Copy + Display {
     /// Inserts an operation.
     // TODO How can we make those update functions take `&mut self`?
     // TODO Use cells?
-    fn insert_operation(self, position: usize, operation: Operation<'c>) -> OperationRef<'c, 'a> {
+    fn insert_operation(&self, position: usize, operation: Operation<'c>) -> OperationRef<'c, 'a> {
         unsafe {
             let operation = operation.into_raw();
 
@@ -109,7 +109,7 @@ pub trait BlockLike<'c, 'a>: Copy + Display {
 
     /// Inserts an operation after another.
     fn insert_operation_after(
-        self,
+        &self,
         one: OperationRef<'c, 'a>,
         other: Operation<'c>,
     ) -> OperationRef<'c, 'a> {
@@ -124,7 +124,7 @@ pub trait BlockLike<'c, 'a>: Copy + Display {
 
     /// Inserts an operation before another.
     fn insert_operation_before(
-        self,
+        &self,
         one: OperationRef<'c, 'a>,
         other: Operation<'c>,
     ) -> OperationRef<'c, 'a> {
@@ -138,7 +138,7 @@ pub trait BlockLike<'c, 'a>: Copy + Display {
     }
 
     /// Returns a next block in a region.
-    fn next_in_region(self) -> Option<BlockRef<'c, 'a>> {
+    fn next_in_region(&self) -> Option<BlockRef<'c, 'a>> {
         unsafe { BlockRef::from_option_raw(mlirBlockGetNextInRegion(self.to_raw())) }
     }
 }
