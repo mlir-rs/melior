@@ -17,11 +17,15 @@ This crate is a wrapper of [the MLIR C API](https://mlir.llvm.org/docs/CAPI/).
 ```rust
 use melior::{
     Context,
-    dialect::{arith, DialectRegistry, func},
-    ir::{*, attribute::{StringAttribute, TypeAttribute}, r#type::FunctionType},
+    dialect::{DialectRegistry, arith, func},
+    ir::{
+        attribute::{StringAttribute, TypeAttribute},
+        operation::OperationLike,
+        r#type::FunctionType,
+        *,
+    },
     utility::register_all_dialects,
 };
-use melior::ir::operation::OperationLike;
 
 let registry = DialectRegistry::new();
 register_all_dialects(&registry);
@@ -38,17 +42,22 @@ let index_type = Type::index(&context);
 module.body().append_operation(func::func(
     &context,
     StringAttribute::new(&context, "add"),
-    TypeAttribute::new(FunctionType::new(&context, &[index_type, index_type], &[index_type]).into()),
+    TypeAttribute::new(
+        FunctionType::new(&context, &[index_type, index_type], &[index_type]).into(),
+    ),
     {
         let block = Block::new(&[(index_type, location), (index_type, location)]);
 
-        let sum = block.append_operation(arith::addi(
-            block.argument(0).unwrap().into(),
-            block.argument(1).unwrap().into(),
-            location
-        ));
+        let sum = block
+            .append_operation(arith::addi(
+                block.argument(0).unwrap().into(),
+                block.argument(1).unwrap().into(),
+                location,
+            ))
+            .result(0)
+            .unwrap();
 
-        block.append_operation(func::r#return( &[sum.result(0).unwrap().into()], location));
+        block.append_operation(func::r#return(&[sum.into()], location));
 
         let region = Region::new();
         region.append_block(block);
