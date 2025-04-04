@@ -1,5 +1,4 @@
-use super::arith::ArithBlockExt;
-use super::builtin::BuiltinBlockExt;
+use super::{arith::ArithBlockExt, builtin::BuiltinBlockExt};
 use crate::{
     dialect::{llvm::r#type, ods},
     ir::{
@@ -44,8 +43,8 @@ pub trait LlvmBlockExt<'c>: BuiltinBlockExt<'c> + ArithBlockExt<'c> {
         index: usize,
     ) -> Result<Value<'c, '_>, Error>;
 
-    /// Creates an `llvm.insertvalue` operation that insert multiple elements into an aggregate
-    /// from the first index.
+    /// Creates an `llvm.insertvalue` operation that insert multiple elements
+    /// into an aggregate from the first index.
     fn insert_values<'block>(
         &'block self,
         context: &'c Context,
@@ -82,7 +81,8 @@ pub trait LlvmBlockExt<'c>: BuiltinBlockExt<'c> + ArithBlockExt<'c> {
         align: usize,
     ) -> Result<Value<'c, '_>, Error>;
 
-    /// Creates an `llvm.alloca` operation that allocates one element of the given size of an integer.
+    /// Creates an `llvm.alloca` operation that allocates one element of the
+    /// given size of an integer.
     fn alloca_int(
         &self,
         context: &'c Context,
@@ -112,7 +112,8 @@ pub trait LlvmBlockExt<'c>: BuiltinBlockExt<'c> + ArithBlockExt<'c> {
 
     /// Creates an `llvm.getelementptr` operation.
     ///
-    /// This method allows combining both compile time indexes and runtime value indexes.
+    /// This method allows combining both compile time indexes and runtime value
+    /// indexes.
     fn gep(
         &self,
         context: &'c Context,

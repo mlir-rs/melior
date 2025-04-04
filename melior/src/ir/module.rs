@@ -97,11 +97,10 @@ impl Drop for Module<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ir::operation::OperationMutLike;
     use crate::{
         ir::{
             attribute::StringAttribute,
-            operation::{OperationBuilder, OperationLike},
+            operation::{OperationBuilder, OperationLike, OperationMutLike},
             Block, Region, RegionLike,
         },
         test::create_test_context,

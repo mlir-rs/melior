@@ -3,8 +3,7 @@
 mod argument;
 mod block_like;
 
-pub use self::argument::BlockArgument;
-pub use self::block_like::BlockLike;
+pub use self::{argument::BlockArgument, block_like::BlockLike};
 use super::{Location, Type, TypeLike, Value};
 use crate::{context::Context, utility::print_callback};
 use mlir_sys::{
