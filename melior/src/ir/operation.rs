@@ -606,4 +606,43 @@ mod tests {
             &operation
         );
     }
+
+    #[test]
+    fn operation_ref_lifetime() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+
+        let location = Location::unknown(&context);
+        let block = Block::new(&[]);
+
+        // Keep the reference to result even after drop of `OperationRef`.
+        fn append<'c, 'a>(
+            context: &'c Context,
+            block: &'a Block<'c>,
+            location: Location<'c>,
+        ) -> OperationResult<'c, 'a> {
+            block
+                .append_operation(
+                    OperationBuilder::new("foo", location)
+                        .add_results(&[Type::index(context)])
+                        .add_regions([{
+                            let region = Region::new();
+
+                            let block = Block::new(&[]);
+                            block.append_operation(
+                                OperationBuilder::new("bar", location).build().unwrap(),
+                            );
+
+                            region.append_block(block);
+                            region
+                        }])
+                        .build()
+                        .unwrap(),
+                )
+                .result(0)
+                .unwrap()
+        }
+
+        append(&context, &block, location);
+    }
 }

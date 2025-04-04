@@ -20,10 +20,7 @@ use super::{
     print_string_callback, OperationPrintingFlags, OperationRef, OperationRefMut, OperationResult,
 };
 
-pub trait OperationLike<'c: 'a, 'a>: Display
-where
-    Self: 'a,
-{
+pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     /// Converts a value into a raw value.
     fn to_raw(&self) -> MlirOperation;
 
