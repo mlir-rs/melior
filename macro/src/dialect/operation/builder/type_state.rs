@@ -1,5 +1,5 @@
 use quote::format_ident;
-use std::iter::repeat;
+use std::iter::repeat_n;
 use syn::{parse_quote, GenericArgument};
 
 const RESULT_PREFIX: &str = "T";
