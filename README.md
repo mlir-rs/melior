@@ -19,9 +19,8 @@ use melior::{
     Context,
     dialect::{arith, DialectRegistry, func},
     ir::{*, attribute::{StringAttribute, TypeAttribute}, r#type::FunctionType},
-    utility::register_all_dialects,
+    operation::OperationLike, utility::register_all_dialects,
 };
-use melior::ir::operation::OperationLike;
 
 let registry = DialectRegistry::new();
 register_all_dialects(&registry);
