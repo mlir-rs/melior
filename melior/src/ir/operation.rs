@@ -5,8 +5,7 @@ mod operation_like;
 mod printing_flags;
 mod result;
 
-pub use operation_like::{OperationLike, OperationMutLike};
-
+pub use self::operation_like::{OperationLike, OperationMutLike};
 pub use self::{
     builder::OperationBuilder, printing_flags::OperationPrintingFlags, result::OperationResult,
 };
@@ -187,6 +186,7 @@ impl<'c, 'a> OperationLike<'c, 'a> for OperationRef<'c, 'a> {
         self.raw
     }
 }
+
 impl<'c> Deref for OperationRef<'c, '_> {
     type Target = Operation<'c>;
 

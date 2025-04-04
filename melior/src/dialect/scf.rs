@@ -239,8 +239,6 @@ mod tests {
     }
 
     mod r#if {
-        use crate::ir::operation::OperationLike;
-
         use super::*;
 
         #[test]
