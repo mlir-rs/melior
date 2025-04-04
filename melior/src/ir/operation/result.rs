@@ -61,7 +61,11 @@ impl<'c, 'a> TryFrom<Value<'c, 'a>> for OperationResult<'c, 'a> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ir::{block::BlockLike, operation::OperationBuilder, Block, Location, Type},
+        ir::{
+            block::BlockLike,
+            operation::{operation_like::OperationLike, OperationBuilder},
+            Block, Location, Type,
+        },
         test::create_test_context,
     };
 

@@ -175,6 +175,7 @@ mod tests {
         ir::{
             attribute::{StringAttribute, TypeAttribute},
             block::BlockLike,
+            operation::OperationLike,
             r#type::FunctionType,
             Attribute, Block, Location, Module, Region, RegionLike, Type,
         },

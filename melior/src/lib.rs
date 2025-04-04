@@ -31,6 +31,7 @@ pub use melior_macro::dialect;
 
 #[cfg(test)]
 mod tests {
+    use crate::ir::operation::OperationLike;
     use crate::{
         context::Context,
         dialect::{self, arith, func, scf},

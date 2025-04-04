@@ -99,6 +99,9 @@ fn generate_dialect_module(
     Ok(quote! {
         #[doc = #doc]
         pub mod #name {
+            use melior::ir::operation::OperationLike;
+            use melior::ir::operation::OperationMutLike;
+
             #(#operations)*
         }
     })

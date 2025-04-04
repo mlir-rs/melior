@@ -102,6 +102,7 @@ unsafe extern "C" fn callback_clone<'a, T: RunExternalPass<'a>>(pass: *mut T) ->
 ///     pass::{ExternalPass, RunExternalPass},
 ///     ContextRef,
 /// };
+/// use melior::ir::operation::OperationLike;
 ///
 /// #[derive(Clone, Debug)]
 /// struct ExamplePass;
@@ -145,6 +146,7 @@ impl<'c, F: FnMut(OperationRef<'c, '_>, ExternalPass<'_>) + Clone> RunExternalPa
 ///     ir::{r#type::TypeId, OperationRef},
 ///     pass::{create_external, ExternalPass},
 /// };
+/// use melior::ir::operation::OperationLike;
 ///
 /// #[repr(align(8))]
 /// struct PassId;
@@ -217,6 +219,7 @@ mod tests {
         ir::{
             attribute::{StringAttribute, TypeAttribute},
             block::BlockLike,
+            operation::OperationLike,
             r#type::FunctionType,
             Block, Identifier, Location, Module, Region, RegionLike,
         },
