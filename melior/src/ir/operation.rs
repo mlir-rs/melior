@@ -5,9 +5,11 @@ mod operation_like;
 mod printing_flags;
 mod result;
 
-pub use self::operation_like::{OperationLike, OperationMutLike};
 pub use self::{
-    builder::OperationBuilder, printing_flags::OperationPrintingFlags, result::OperationResult,
+    builder::OperationBuilder,
+    operation_like::{OperationLike, OperationMutLike},
+    printing_flags::OperationPrintingFlags,
+    result::OperationResult,
 };
 use crate::{
     context::Context,

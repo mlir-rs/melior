@@ -31,13 +31,12 @@ pub use melior_macro::dialect;
 
 #[cfg(test)]
 mod tests {
-    use crate::ir::operation::OperationLike;
     use crate::{
         context::Context,
         dialect::{self, arith, func, scf},
         ir::{
             attribute::{IntegerAttribute, StringAttribute, TypeAttribute},
-            operation::OperationBuilder,
+            operation::{OperationBuilder, OperationLike},
             r#type::{FunctionType, IntegerType},
             Block, BlockLike, Location, Module, Region, RegionLike, Type, Value,
         },

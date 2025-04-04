@@ -54,7 +54,8 @@ pub fn parse_pass_pipeline(manager: pass::OperationPassManager, source: &str) ->
     }
 }
 
-/// Loads all IRDL dialects in the provided module, registering the dialects in the module's associated context.
+/// Loads all IRDL dialects in the provided module, registering the dialects in
+/// the module's associated context.
 pub fn load_irdl_dialects(module: &Module) -> bool {
     unsafe { mlirLoadIRDLDialects(module.to_raw()).value == 1 }
 }

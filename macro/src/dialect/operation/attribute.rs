@@ -5,8 +5,7 @@ use crate::dialect::{
 };
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use std::collections::HashMap;
-use std::sync::LazyLock;
+use std::{collections::HashMap, sync::LazyLock};
 use syn::{parse_quote, Ident, Type};
 use tblgen::{error::TableGenError, Record};
 

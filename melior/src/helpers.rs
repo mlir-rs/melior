@@ -1,4 +1,5 @@
-//! Traits that extends the [`Block`](crate::ir::Block) type to aid in code generation and consistency.
+//! Traits that extends the [`Block`](crate::ir::Block) type to aid in code
+//! generation and consistency.
 
 mod arith;
 mod builtin;

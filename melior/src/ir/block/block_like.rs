@@ -62,7 +62,8 @@ pub trait BlockLike<'c, 'a>: Display + 'a {
     }
 
     /// Returns a parent region.
-    // TODO Store lifetime of regions in blocks, or create another type like `InsertedBlockRef`?
+    // TODO Store lifetime of regions in blocks, or create another type like
+    // `InsertedBlockRef`?
     fn parent_region(&self) -> Option<RegionRef<'c, 'a>> {
         unsafe { RegionRef::from_option_raw(mlirBlockGetParentRegion(self.to_raw())) }
     }
