@@ -5,7 +5,7 @@ use mlir_sys::{
 };
 
 /// A region-like trait.
-pub trait RegionLike<'c, 'a> {
+pub trait RegionLike<'c, 'a>: 'a {
     /// Converts a region into a raw object.
     fn to_raw(&self) -> MlirRegion;
 
