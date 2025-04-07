@@ -488,6 +488,8 @@ pub fn constant<'a>(
         .unwrap()
 }
 
+/// Creates an `llvm.call` operation in Melior.
+/// Used for calling functions declared through LLVM dialect.
 pub fn call<'a>(
     context: &'a Context,
     callee: &str,
@@ -506,6 +508,9 @@ pub fn call<'a>(
         .unwrap()
 }
 
+/// Creates an `llvm.call` operation in Melior.
+/// 
+/// This can call any function from a pointer value.
 pub fn indirect_call<'a>(
     callee: Value<'a, '_>,
     args: &[Value<'a, '_>],
