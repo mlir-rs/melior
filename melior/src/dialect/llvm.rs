@@ -371,10 +371,11 @@ pub fn zext<'c>(
 
 /// Creates an `llvm.icmp` operation in Melior.
 /// This is used to create integer AND pointer comparisons, unlike arith::icmp.
-/// The predicate is an enum that specifies the type of comparison to be performed.
-/// The result type is always a 1-bit integer (boolean).
+/// The predicate is an enum that specifies the type of comparison to be
+/// performed. The result type is always a 1-bit integer (boolean).
 /// The `lhs` and `rhs` operands are the values to be compared.
-/// The `location` parameter specifies the location of the operation in the source code.
+/// The `location` parameter specifies the location of the operation in the
+/// source code.
 pub fn icmp<'a>(
     context: &'a Context,
     predicate: ICmpPredicate,
@@ -393,7 +394,8 @@ pub fn icmp<'a>(
         .unwrap()
 }
 
-/// Creates an `llvm.mlir.addressof` operation to get a pointer to a global variable.
+/// Creates an `llvm.mlir.addressof` operation to get a pointer to a global
+/// variable.
 pub fn addressof<'a>(
     context: &'a Context,
     global_name: &str,
@@ -509,7 +511,7 @@ pub fn call<'a>(
 }
 
 /// Creates an `llvm.call` operation in Melior.
-/// 
+///
 /// This can call any function from a pointer value.
 pub fn indirect_call<'a>(
     callee: Value<'a, '_>,
@@ -1445,7 +1447,12 @@ mod tests {
             &context,
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(
-                FunctionType::new(&context, &[integer_type, integer_type], &[IntegerType::new(&context, 1).into()]).into(),
+                FunctionType::new(
+                    &context,
+                    &[integer_type, integer_type],
+                    &[IntegerType::new(&context, 1).into()],
+                )
+                .into(),
             ),
             {
                 let block = Block::new(&[(integer_type, location), (integer_type, location)]);
@@ -1506,12 +1513,7 @@ mod tests {
                 let block = Block::new(&[]);
 
                 let res = block
-                    .append_operation(addressof(
-                        &context,
-                        "my_global",
-                        ptr_type,
-                        location,
-                    ))
+                    .append_operation(addressof(&context, "my_global", ptr_type, location))
                     .result(0)
                     .unwrap()
                     .into();
@@ -1667,7 +1669,9 @@ mod tests {
         module.body().append_operation(func::func(
             &context,
             StringAttribute::new(&context, "caller"),
-            TypeAttribute::new(FunctionType::new(&context, &[integer_type], &[integer_type]).into()),
+            TypeAttribute::new(
+                FunctionType::new(&context, &[integer_type], &[integer_type]).into(),
+            ),
             {
                 let block = Block::new(&[(integer_type, location)]);
 
@@ -1712,7 +1716,9 @@ mod tests {
         module.body().append_operation(func::func(
             &context,
             StringAttribute::new(&context, "call_fn_ptr"),
-            TypeAttribute::new(FunctionType::new(&context, &[fn_ptr_type, integer_type], &[integer_type]).into()),
+            TypeAttribute::new(
+                FunctionType::new(&context, &[fn_ptr_type, integer_type], &[integer_type]).into(),
+            ),
             {
                 let block = Block::new(&[(fn_ptr_type, location), (integer_type, location)]);
 
@@ -1754,7 +1760,9 @@ mod tests {
         module.body().append_operation(func::func(
             &context,
             StringAttribute::new(&context, "use_intrinsic"),
-            TypeAttribute::new(FunctionType::new(&context, &[integer_type], &[integer_type]).into()),
+            TypeAttribute::new(
+                FunctionType::new(&context, &[integer_type], &[integer_type]).into(),
+            ),
             {
                 let block = Block::new(&[(integer_type, location)]);
 

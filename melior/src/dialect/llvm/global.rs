@@ -1,4 +1,7 @@
-use crate::{dialect::llvm::attributes::Linkage, ir::{Attribute, Region}};
+use crate::{
+    dialect::llvm::attributes::Linkage,
+    ir::{Attribute, Region},
+};
 
 pub enum GlobalValue<'c> {
     /// A global variable.
