@@ -260,7 +260,8 @@ pub fn call_intrinsic<'c>(
             ),
             (
                 Identifier::new(context, "op_bundle_sizes"),
-                // Total sizes: First segment (callee) has 1 operand, second segment (args) has args.len() operands
+                // Total sizes: First segment (callee) has 1 operand, second segment (args) has
+                // args.len() operands
                 DenseI32ArrayAttribute::new(context, &[]).into(),
             ),
         ])
@@ -532,7 +533,8 @@ pub fn call<'a>(
             ),
             (
                 Identifier::new(context, "op_bundle_sizes"),
-                // Total sizes: First segment (callee) has 1 operand, second segment (args) has args.len() operands
+                // Total sizes: First segment (callee) has 1 operand, second segment (args) has
+                // args.len() operands
                 DenseI32ArrayAttribute::new(context, &[]).into(),
             ),
         ])
@@ -565,7 +567,8 @@ pub fn indirect_call<'a>(
             ),
             (
                 Identifier::new(context, "op_bundle_sizes"),
-                // Total sizes: First segment (callee) has 1 operand, second segment (args) has args.len() operands
+                // Total sizes: First segment (callee) has 1 operand, second segment (args) has
+                // args.len() operands
                 DenseI32ArrayAttribute::new(context, &[]).into(),
             ),
         ]) // Default calling convention
