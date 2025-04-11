@@ -249,6 +249,21 @@ pub fn call_intrinsic<'c>(
     OperationBuilder::new("llvm.call_intrinsic", location)
         .add_operands(args)
         .add_attributes(&[(Identifier::new(context, "intrin"), intrin.into())])
+        .add_attributes(&[
+            // required for LLVM 20 https://github.com/llvm/llvm-project/pull/108933
+            // LLVM 19 does not.
+            // I don't understand any of this. There are NO DOCS or examples!
+            // only this! https://github.com/llvm/llvm-project/blob/656289ffa0a67a69f2cd6f356b965c489aeb6a13/mlir/lib/Conversion/FuncToLLVM/FuncToLLVM.cpp#L544-L554
+            (
+                Identifier::new(context, "operand_segment_sizes"),
+                DenseI32ArrayAttribute::new(context, &[args.len() as i32, 0]).into(),
+            ),
+            (
+                Identifier::new(context, "op_bundle_sizes"),
+                // Total sizes: First segment (callee) has 1 operand, second segment (args) has args.len() operands
+                DenseI32ArrayAttribute::new(context, &[]).into(),
+            ),
+        ])
         .add_results(results)
         .build()
         .expect("valid operation")
@@ -506,6 +521,21 @@ pub fn call<'a>(
         )])
         .add_operands(args)
         .add_results(results)
+        .add_attributes(&[
+            // required for LLVM 20 https://github.com/llvm/llvm-project/pull/108933
+            // LLVM 19 does not.
+            // I don't understand any of this. There are NO DOCS or examples!
+            // only this! https://github.com/llvm/llvm-project/blob/656289ffa0a67a69f2cd6f356b965c489aeb6a13/mlir/lib/Conversion/FuncToLLVM/FuncToLLVM.cpp#L544-L554
+            (
+                Identifier::new(context, "operand_segment_sizes"),
+                DenseI32ArrayAttribute::new(context, &[args.len() as i32, 0]).into(),
+            ),
+            (
+                Identifier::new(context, "op_bundle_sizes"),
+                // Total sizes: First segment (callee) has 1 operand, second segment (args) has args.len() operands
+                DenseI32ArrayAttribute::new(context, &[]).into(),
+            ),
+        ])
         .build()
         .unwrap()
 }
@@ -514,6 +544,7 @@ pub fn call<'a>(
 ///
 /// This can call any function from a pointer value.
 pub fn indirect_call<'a>(
+    context: &'a Context,
     callee: Value<'a, '_>,
     args: &[Value<'a, '_>],
     results: &[Type<'a>],
@@ -523,6 +554,21 @@ pub fn indirect_call<'a>(
         .add_operands(&[callee])
         .add_operands(args)
         .add_results(results)
+        .add_attributes(&[
+            // required for LLVM 20 https://github.com/llvm/llvm-project/pull/108933
+            // LLVM 19 does not.
+            // I don't understand any of this. There are NO DOCS or examples!
+            // only this! https://github.com/llvm/llvm-project/blob/656289ffa0a67a69f2cd6f356b965c489aeb6a13/mlir/lib/Conversion/FuncToLLVM/FuncToLLVM.cpp#L544-L554
+            (
+                Identifier::new(context, "operand_segment_sizes"),
+                DenseI32ArrayAttribute::new(context, &[args.len() as i32 + 1, 0]).into(),
+            ),
+            (
+                Identifier::new(context, "op_bundle_sizes"),
+                // Total sizes: First segment (callee) has 1 operand, second segment (args) has args.len() operands
+                DenseI32ArrayAttribute::new(context, &[]).into(),
+            ),
+        ]) // Default calling convention
         .build()
         .unwrap()
 }
@@ -553,6 +599,7 @@ mod tests {
     fn convert_module<'c>(context: &'c Context, module: &mut Module<'c>) {
         let pass_manager = PassManager::new(context);
 
+        pass_manager.enable_verifier(true);
         pass_manager.add_pass(pass::conversion::create_func_to_llvm());
         pass_manager
             .nested_under("func.func")
@@ -1724,6 +1771,7 @@ mod tests {
 
                 let res = block
                     .append_operation(indirect_call(
+                        &context,
                         block.argument(0).unwrap().into(),
                         &[block.argument(1).unwrap().into()],
                         &[integer_type],
