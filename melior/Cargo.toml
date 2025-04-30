@@ -20,5 +20,5 @@ mlir-sys = "0.5.0"
 
 [dev-dependencies]
 indoc = "2.0.6"
-insta = "1.43.0"
+insta = "1.43.1"
 pretty_assertions = "1.4.1"
