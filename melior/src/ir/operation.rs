@@ -647,25 +647,30 @@ mod tests {
 
         let operation = block.append_operation(
             OperationBuilder::new("parent", location)
-               .add_results(&[Type::index(&context)])
-               .add_regions([{
-                   let region = Region::new();
+                .add_results(&[Type::index(&context)])
+                .add_regions([{
+                    let region = Region::new();
 
-                   let block = Block::new(&[]);
-                   block.append_operation(OperationBuilder::new("child1", location).build().unwrap());
-                   block.append_operation(OperationBuilder::new("child2", location).build().unwrap());
+                    let block = Block::new(&[]);
+                    block.append_operation(
+                        OperationBuilder::new("child1", location).build().unwrap(),
+                    );
+                    block.append_operation(
+                        OperationBuilder::new("child2", location).build().unwrap(),
+                    );
 
-                   region.append_block(block);
-                   region
+                    region.append_block(block);
+                    region
                 }])
-               .build()
-               .unwrap(),
+                .build()
+                .unwrap(),
         );
 
         // test advance
         let mut result: Vec<String> = Vec::new();
         operation.walk_pre(|op| {
-            let name = op.name()
+            let name = op
+                .name()
                 .as_string_ref()
                 .as_str()
                 .expect("valid str")
@@ -678,7 +683,8 @@ mod tests {
         // test interrupt
         result.clear();
         operation.walk_pre(|op| {
-            let name = op.name()
+            let name = op
+                .name()
                 .as_string_ref()
                 .as_str()
                 .expect("valid str")
@@ -694,7 +700,8 @@ mod tests {
         // test skip
         result.clear();
         operation.walk_pre(|op| {
-            let name = op.name()
+            let name = op
+                .name()
                 .as_string_ref()
                 .as_str()
                 .expect("valid str")
@@ -715,32 +722,35 @@ mod tests {
 
         let operation = block.append_operation(
             OperationBuilder::new("grandparent", location)
-               .add_regions([{
-                   let region = Region::new();
-                   let block = Block::new(&[]);
-                   block.append_operation(
-                       OperationBuilder::new("parent", location)
-                           .add_regions([{
-                               let region = Region::new();
-                               let block = Block::new(&[]);
-                               block.append_operation(OperationBuilder::new("child", location).build().unwrap());
-                               region.append_block(block);
-                               region
-                           }])
-                           .build()
-                           .unwrap(),
-                   );
-                   region.append_block(block);
-                   region
+                .add_regions([{
+                    let region = Region::new();
+                    let block = Block::new(&[]);
+                    block.append_operation(
+                        OperationBuilder::new("parent", location)
+                            .add_regions([{
+                                let region = Region::new();
+                                let block = Block::new(&[]);
+                                block.append_operation(
+                                    OperationBuilder::new("child", location).build().unwrap(),
+                                );
+                                region.append_block(block);
+                                region
+                            }])
+                            .build()
+                            .unwrap(),
+                    );
+                    region.append_block(block);
+                    region
                 }])
-               .build()
-               .unwrap(),
+                .build()
+                .unwrap(),
         );
 
         // test advance
         let mut result: Vec<String> = Vec::new();
         operation.walk_post(|op| {
-            let name = op.name()
+            let name = op
+                .name()
                 .as_string_ref()
                 .as_str()
                 .expect("valid str")
@@ -753,7 +763,8 @@ mod tests {
         // test interrupt
         result.clear();
         operation.walk_post(|op| {
-            let name = op.name()
+            let name = op
+                .name()
                 .as_string_ref()
                 .as_str()
                 .expect("valid str")
@@ -771,7 +782,8 @@ mod tests {
         //     because walk_post visits children before a parent
         result.clear();
         operation.walk_post(|op| {
-            let name = op.name()
+            let name = op
+                .name()
                 .as_string_ref()
                 .as_str()
                 .expect("valid str")

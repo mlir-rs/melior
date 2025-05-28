@@ -8,9 +8,10 @@ use mlir_sys::{
     mlirOperationGetOperand, mlirOperationGetParentOperation, mlirOperationGetRegion,
     mlirOperationGetResult, mlirOperationGetSuccessor, mlirOperationPrintWithFlags,
     mlirOperationRemoveAttributeByName, mlirOperationRemoveFromParent,
-    mlirOperationSetAttributeByName, mlirOperationVerify, MlirOperation,
-    mlirOperationWalk, MlirWalkOrder_MlirWalkPreOrder, MlirWalkOrder_MlirWalkPostOrder,
-    MlirWalkResult, MlirWalkResult_MlirWalkResultAdvance, MlirWalkResult_MlirWalkResultInterrupt, MlirWalkResult_MlirWalkResultSkip,
+    mlirOperationSetAttributeByName, mlirOperationVerify, mlirOperationWalk, MlirOperation,
+    MlirWalkOrder_MlirWalkPostOrder, MlirWalkOrder_MlirWalkPreOrder, MlirWalkResult,
+    MlirWalkResult_MlirWalkResultAdvance, MlirWalkResult_MlirWalkResultInterrupt,
+    MlirWalkResult_MlirWalkResultSkip,
 };
 
 use crate::{
@@ -27,7 +28,7 @@ use super::{
 #[repr(u32)]
 pub enum WalkOrder {
     /// Visit the operation before its nested regions.
-    PreOrder  = MlirWalkOrder_MlirWalkPreOrder,
+    PreOrder = MlirWalkOrder_MlirWalkPreOrder,
     /// Visit the operation after its nested regions.
     PostOrder = MlirWalkOrder_MlirWalkPostOrder,
 }
@@ -37,11 +38,11 @@ pub enum WalkOrder {
 #[repr(u32)]
 pub enum WalkResult {
     /// Continue into this operation’s children.
-    Advance   = MlirWalkResult_MlirWalkResultAdvance,
+    Advance = MlirWalkResult_MlirWalkResultAdvance,
     /// Terminate the entire walk immediately.
     Interrupt = MlirWalkResult_MlirWalkResultInterrupt,
     /// Don’t visit this operation’s children, but keep walking siblings.
-    Skip      = MlirWalkResult_MlirWalkResultSkip,
+    Skip = MlirWalkResult_MlirWalkResultSkip,
 }
 
 pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
@@ -269,7 +270,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     /// `WalkResult::Advance`/`Skip`/`Interrupt` you control the traversal.
     fn walk<F>(&self, order: WalkOrder, mut callback: F)
     where
-        F: for<'x,'y> FnMut(OperationRef<'x,'y>) -> WalkResult,
+        F: for<'x, 'y> FnMut(OperationRef<'x, 'y>) -> WalkResult,
     {
         // trampoline from C to Rust
         unsafe extern "C" fn tramp<F>(
@@ -277,7 +278,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
             user_data: *mut std::os::raw::c_void,
         ) -> MlirWalkResult
         where
-            F: for<'x,'y> FnMut(OperationRef<'x,'y>) -> WalkResult,
+            F: for<'x, 'y> FnMut(OperationRef<'x, 'y>) -> WalkResult,
         {
             let cb: &mut F = &mut *(user_data as *mut F);
             let op = OperationRef::from_raw(raw);
@@ -286,19 +287,14 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
 
         let data = &mut callback as *mut _ as *mut std::os::raw::c_void;
         unsafe {
-            mlirOperationWalk(
-                self.to_raw(),
-                Some(tramp::<F>),
-                data,
-                order as _,
-            );
+            mlirOperationWalk(self.to_raw(), Some(tramp::<F>), data, order as _);
         }
     }
 
     /// Convenience for a pre-order walk.
     fn walk_pre<F>(&self, callback: F)
     where
-        F: for<'x,'y> FnMut(OperationRef<'x,'y>) -> WalkResult,
+        F: for<'x, 'y> FnMut(OperationRef<'x, 'y>) -> WalkResult,
     {
         self.walk(WalkOrder::PreOrder, callback)
     }
@@ -306,7 +302,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     /// Convenience for a post-order walk.
     fn walk_post<F>(&self, callback: F)
     where
-        F: for<'x,'y> FnMut(OperationRef<'x,'y>) -> WalkResult,
+        F: for<'x, 'y> FnMut(OperationRef<'x, 'y>) -> WalkResult,
     {
         self.walk(WalkOrder::PostOrder, callback)
     }
