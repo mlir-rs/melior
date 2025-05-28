@@ -636,4 +636,149 @@ mod tests {
 
         append(&context, &block, location);
     }
+
+    #[test]
+    fn walk_pre() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+
+        let location = Location::unknown(&context);
+        let block = Block::new(&[]);
+
+        let operation = block.append_operation(
+            OperationBuilder::new("parent", location)
+               .add_results(&[Type::index(&context)])
+               .add_regions([{
+                   let region = Region::new();
+
+                   let block = Block::new(&[]);
+                   block.append_operation(OperationBuilder::new("child1", location).build().unwrap());
+                   block.append_operation(OperationBuilder::new("child2", location).build().unwrap());
+
+                   region.append_block(block);
+                   region
+                }])
+               .build()
+               .unwrap(),
+        );
+
+        // test advance
+        let mut result: Vec<String> = Vec::new();
+        operation.walk_pre(|op| {
+            let name = op.name()
+                .as_string_ref()
+                .as_str()
+                .expect("valid str")
+                .to_string();
+            result.push(name);
+            operation_like::WalkAction::Advance
+        });
+        assert_eq!(vec!["parent", "child1", "child2"], result);
+
+        // test interrupt
+        result.clear();
+        operation.walk_pre(|op| {
+            let name = op.name()
+                .as_string_ref()
+                .as_str()
+                .expect("valid str")
+                .to_string();
+            result.push(name.clone());
+            match name.as_str() {
+                "parent" => operation_like::WalkAction::Advance,
+                _ => operation_like::WalkAction::Interrupt,
+            }
+        });
+        assert_eq!(vec!["parent", "child1"], result);
+
+        // test skip
+        result.clear();
+        operation.walk_pre(|op| {
+            let name = op.name()
+                .as_string_ref()
+                .as_str()
+                .expect("valid str")
+                .to_string();
+            result.push(name.clone());
+            operation_like::WalkAction::Skip
+        });
+        assert_eq!(vec!["parent"], result);
+    }
+
+    #[test]
+    fn walk_post() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+
+        let location = Location::unknown(&context);
+        let block = Block::new(&[]);
+
+        let operation = block.append_operation(
+            OperationBuilder::new("grandparent", location)
+               .add_regions([{
+                   let region = Region::new();
+                   let block = Block::new(&[]);
+                   block.append_operation(
+                       OperationBuilder::new("parent", location)
+                           .add_regions([{
+                               let region = Region::new();
+                               let block = Block::new(&[]);
+                               block.append_operation(OperationBuilder::new("child", location).build().unwrap());
+                               region.append_block(block);
+                               region
+                           }])
+                           .build()
+                           .unwrap(),
+                   );
+                   region.append_block(block);
+                   region
+                }])
+               .build()
+               .unwrap(),
+        );
+
+        // test advance
+        let mut result: Vec<String> = Vec::new();
+        operation.walk_post(|op| {
+            let name = op.name()
+                .as_string_ref()
+                .as_str()
+                .expect("valid str")
+                .to_string();
+            result.push(name);
+            operation_like::WalkAction::Advance
+        });
+        assert_eq!(vec!["child", "parent", "grandparent"], result);
+
+        // test interrupt
+        result.clear();
+        operation.walk_post(|op| {
+            let name = op.name()
+                .as_string_ref()
+                .as_str()
+                .expect("valid str")
+                .to_string();
+            result.push(name.clone());
+            match name.as_str() {
+                "child" => operation_like::WalkAction::Advance,
+                _ => operation_like::WalkAction::Interrupt,
+            }
+        });
+        assert_eq!(vec!["child", "parent"], result);
+
+        // test skip
+        // XXX it doesn't seem like there's a meaningful way to test skip with walk_post
+        //     because walk_post visits children before a parent
+        result.clear();
+        operation.walk_post(|op| {
+            let name = op.name()
+                .as_string_ref()
+                .as_str()
+                .expect("valid str")
+                .to_string();
+            result.push(name.clone());
+            operation_like::WalkAction::Skip
+        });
+        assert_eq!(vec!["child", "parent", "grandparent"], result);
+    }
 }
