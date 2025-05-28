@@ -35,7 +35,7 @@ pub enum WalkOrder {
 /// Control flow action returned by the walk callback.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u32)]
-pub enum WalkAction {
+pub enum WalkResult {
     /// Continue into this operation’s children.
     Advance   = MlirWalkResult_MlirWalkResultAdvance,
     /// Terminate the entire walk immediately.
@@ -266,10 +266,10 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     /// Walk this operation (and all nested operations) in either pre- or post-order.
     ///
     /// The closure is called once per operation; by returning
-    /// `WalkAction::Advance`/`Skip`/`Interrupt` you control the traversal.
+    /// `WalkResult::Advance`/`Skip`/`Interrupt` you control the traversal.
     fn walk<F>(&self, order: WalkOrder, mut callback: F)
     where
-        F: for<'x,'y> FnMut(OperationRef<'x,'y>) -> WalkAction,
+        F: for<'x,'y> FnMut(OperationRef<'x,'y>) -> WalkResult,
     {
         // trampoline from C to Rust
         unsafe extern "C" fn tramp<F>(
@@ -277,7 +277,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
             user_data: *mut std::os::raw::c_void,
         ) -> MlirWalkResult
         where
-            F: for<'x,'y> FnMut(OperationRef<'x,'y>) -> WalkAction,
+            F: for<'x,'y> FnMut(OperationRef<'x,'y>) -> WalkResult,
         {
             let cb: &mut F = &mut *(user_data as *mut F);
             let op = OperationRef::from_raw(raw);
@@ -298,7 +298,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     /// Convenience for a pre-order walk.
     fn walk_pre<F>(&self, callback: F)
     where
-        F: for<'x,'y> FnMut(OperationRef<'x,'y>) -> WalkAction,
+        F: for<'x,'y> FnMut(OperationRef<'x,'y>) -> WalkResult,
     {
         self.walk(WalkOrder::PreOrder, callback)
     }
@@ -306,7 +306,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     /// Convenience for a post-order walk.
     fn walk_post<F>(&self, callback: F)
     where
-        F: for<'x,'y> FnMut(OperationRef<'x,'y>) -> WalkAction,
+        F: for<'x,'y> FnMut(OperationRef<'x,'y>) -> WalkResult,
     {
         self.walk(WalkOrder::PostOrder, callback)
     }

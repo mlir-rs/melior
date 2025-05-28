@@ -671,7 +671,7 @@ mod tests {
                 .expect("valid str")
                 .to_string();
             result.push(name);
-            operation_like::WalkAction::Advance
+            operation_like::WalkResult::Advance
         });
         assert_eq!(vec!["parent", "child1", "child2"], result);
 
@@ -685,8 +685,8 @@ mod tests {
                 .to_string();
             result.push(name.clone());
             match name.as_str() {
-                "parent" => operation_like::WalkAction::Advance,
-                _ => operation_like::WalkAction::Interrupt,
+                "parent" => operation_like::WalkResult::Advance,
+                _ => operation_like::WalkResult::Interrupt,
             }
         });
         assert_eq!(vec!["parent", "child1"], result);
@@ -700,7 +700,7 @@ mod tests {
                 .expect("valid str")
                 .to_string();
             result.push(name.clone());
-            operation_like::WalkAction::Skip
+            operation_like::WalkResult::Skip
         });
         assert_eq!(vec!["parent"], result);
     }
@@ -746,7 +746,7 @@ mod tests {
                 .expect("valid str")
                 .to_string();
             result.push(name);
-            operation_like::WalkAction::Advance
+            operation_like::WalkResult::Advance
         });
         assert_eq!(vec!["child", "parent", "grandparent"], result);
 
@@ -760,8 +760,8 @@ mod tests {
                 .to_string();
             result.push(name.clone());
             match name.as_str() {
-                "child" => operation_like::WalkAction::Advance,
-                _ => operation_like::WalkAction::Interrupt,
+                "child" => operation_like::WalkResult::Advance,
+                _ => operation_like::WalkResult::Interrupt,
             }
         });
         assert_eq!(vec!["child", "parent"], result);
@@ -777,7 +777,7 @@ mod tests {
                 .expect("valid str")
                 .to_string();
             result.push(name.clone());
-            operation_like::WalkAction::Skip
+            operation_like::WalkResult::Skip
         });
         assert_eq!(vec!["child", "parent", "grandparent"], result);
     }
