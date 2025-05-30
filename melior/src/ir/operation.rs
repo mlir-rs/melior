@@ -639,6 +639,7 @@ mod tests {
 
     #[test]
     fn walk_pre() {
+        let pre = operation_like::WalkOrder::PreOrder;
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
 
@@ -668,7 +669,7 @@ mod tests {
 
         // test advance
         let mut result: Vec<String> = Vec::new();
-        operation.walk_pre(|op| {
+        operation.walk(pre, |op| {
             let name = op
                 .name()
                 .as_string_ref()
@@ -682,7 +683,7 @@ mod tests {
 
         // test interrupt
         result.clear();
-        operation.walk_pre(|op| {
+        operation.walk(pre, |op| {
             let name = op
                 .name()
                 .as_string_ref()
@@ -699,7 +700,7 @@ mod tests {
 
         // test skip
         result.clear();
-        operation.walk_pre(|op| {
+        operation.walk(pre, |op| {
             let name = op
                 .name()
                 .as_string_ref()
@@ -714,6 +715,7 @@ mod tests {
 
     #[test]
     fn walk_post() {
+        let post = operation_like::WalkOrder::PostOrder;
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
 
@@ -748,7 +750,7 @@ mod tests {
 
         // test advance
         let mut result: Vec<String> = Vec::new();
-        operation.walk_post(|op| {
+        operation.walk(post, |op| {
             let name = op
                 .name()
                 .as_string_ref()
@@ -762,7 +764,7 @@ mod tests {
 
         // test interrupt
         result.clear();
-        operation.walk_post(|op| {
+        operation.walk(post, |op| {
             let name = op
                 .name()
                 .as_string_ref()
@@ -778,10 +780,10 @@ mod tests {
         assert_eq!(vec!["child", "parent"], result);
 
         // test skip
-        // XXX it doesn't seem like there's a meaningful way to test skip with walk_post
-        //     because walk_post visits children before a parent
+        // XXX it doesn't seem like there's a meaningful way to test skip with post
+        //     because a post order walk visits children before a parent
         result.clear();
-        operation.walk_post(|op| {
+        operation.walk(post, |op| {
             let name = op
                 .name()
                 .as_string_ref()

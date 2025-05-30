@@ -290,22 +290,6 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
             mlirOperationWalk(self.to_raw(), Some(tramp::<F>), data, order as _);
         }
     }
-
-    /// Convenience for a pre-order walk.
-    fn walk_pre<F>(&self, callback: F)
-    where
-        F: for<'x, 'y> FnMut(OperationRef<'x, 'y>) -> WalkResult,
-    {
-        self.walk(WalkOrder::PreOrder, callback)
-    }
-
-    /// Convenience for a post-order walk.
-    fn walk_post<F>(&self, callback: F)
-    where
-        F: for<'x, 'y> FnMut(OperationRef<'x, 'y>) -> WalkResult,
-    {
-        self.walk(WalkOrder::PostOrder, callback)
-    }
 }
 
 pub trait OperationMutLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
