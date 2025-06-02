@@ -264,7 +264,8 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
         Ok(data.0)
     }
 
-    /// Walk this operation (and all nested operations) in either pre- or post-order.
+    /// Walk this operation (and all nested operations) in either pre- or
+    /// post-order.
     ///
     /// The closure is called once per operation; by returning
     /// `WalkResult::Advance`/`Skip`/`Interrupt` you control the traversal.
