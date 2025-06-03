@@ -275,11 +275,11 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     {
         // trampoline from C to Rust
         unsafe extern "C" fn tramp<'c: 'a, 'a, F: FnMut(OperationRef<'c, 'a>) -> WalkResult>(
-            raw: MlirOperation,
-            user_data: *mut c_void,
+            operation: MlirOperation,
+            data: *mut c_void,
         ) -> MlirWalkResult {
-            let callback: &mut F = &mut *(user_data as *mut F);
-            let operation = OperationRef::from_raw(raw);
+            let callback: &mut F = &mut *(data as *mut F);
+            let operation = OperationRef::from_raw(operation);
 
             (callback)(operation) as _
         }
