@@ -208,7 +208,7 @@ checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
 name = "melior"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "indoc",
  "insta",
@@ -219,7 +219,7 @@ dependencies = [
 
 [[package]]
 name = "melior-macro"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "comrak",
  "convert_case",
