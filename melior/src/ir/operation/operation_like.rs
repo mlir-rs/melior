@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{ffi::c_void, fmt::Display};
 
 use mlir_sys::{
     mlirOperationDump, mlirOperationGetAttribute, mlirOperationGetAttributeByName,
@@ -274,21 +274,23 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
         F: for<'x, 'y> FnMut(OperationRef<'x, 'y>) -> WalkResult,
     {
         // trampoline from C to Rust
-        unsafe extern "C" fn tramp<F>(
+        unsafe extern "C" fn tramp<'c: 'a, 'a, F: FnMut(OperationRef<'c, 'a>) -> WalkResult>(
             raw: MlirOperation,
-            user_data: *mut std::os::raw::c_void,
-        ) -> MlirWalkResult
-        where
-            F: for<'x, 'y> FnMut(OperationRef<'x, 'y>) -> WalkResult,
-        {
-            let cb: &mut F = &mut *(user_data as *mut F);
-            let op = OperationRef::from_raw(raw);
-            (cb)(op) as MlirWalkResult
+            user_data: *mut c_void,
+        ) -> MlirWalkResult {
+            let callback: &mut F = &mut *(user_data as *mut F);
+            let operation = OperationRef::from_raw(raw);
+
+            (callback)(operation) as _
         }
 
-        let data = &mut callback as *mut _ as *mut std::os::raw::c_void;
         unsafe {
-            mlirOperationWalk(self.to_raw(), Some(tramp::<F>), data, order as _);
+            mlirOperationWalk(
+                self.to_raw(),
+                Some(tramp::<'c, 'a, F>),
+                &mut callback as *mut _ as *mut _,
+                order as _,
+            );
         }
     }
 }
