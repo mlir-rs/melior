@@ -277,7 +277,7 @@ mod tests {
         let context = Context::new();
 
         let id = context.attach_diagnostic_handler(|diagnostic| {
-            println!("{}", diagnostic);
+            println!("{diagnostic}");
             true
         });
 

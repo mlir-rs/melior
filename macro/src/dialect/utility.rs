@@ -31,7 +31,7 @@ fn sanitize_name(name: &str) -> Result<Ident, Error> {
             .ok_or_else(|| Error::InvalidIdentifier(name.clone()))?
             .is_numeric()
     {
-        name = format!("_{}", name);
+        name = format!("_{name}");
     }
 
     // Try to parse the string as an ident, and prefix the identifier
