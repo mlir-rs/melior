@@ -3,7 +3,7 @@ use std::{env, error::Error, path::Path, process::Command, str};
 const LLVM_MAJOR_VERSION: usize = 20;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let version_variable = format!("MLIR_SYS_{}0_PREFIX", LLVM_MAJOR_VERSION);
+    let version_variable = format!("MLIR_SYS_{LLVM_MAJOR_VERSION}0_PREFIX");
 
     println!("cargo:rerun-if-env-changed={version_variable}");
     println!(

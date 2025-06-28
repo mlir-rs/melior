@@ -15,7 +15,7 @@ pub fn create_test_context() -> Context {
     let context = Context::new();
 
     context.attach_diagnostic_handler(|diagnostic| {
-        eprintln!("{}", diagnostic);
+        eprintln!("{diagnostic}");
         true
     });
 

@@ -18,7 +18,7 @@ pub fn generate(
         let pass_name = extract_pass_name(foreign_name);
 
         let function_name = create_function_name("create", &pass_name, name.span());
-        let document = format!(" Creates a `{}` pass.", pass_name);
+        let document = format!(" Creates a `{pass_name}` pass.");
 
         stream.extend(TokenStream::from(quote! {
             #[doc = #document]
@@ -30,7 +30,7 @@ pub fn generate(
         let foreign_function_name =
             Ident::new(&("mlirRegister".to_owned() + foreign_name), name.span());
         let function_name = create_function_name("register", &pass_name, name.span());
-        let document = format!(" Registers a `{}` pass.", pass_name);
+        let document = format!(" Registers a `{pass_name}` pass.");
 
         stream.extend(TokenStream::from(quote! {
             #[doc = #document]

@@ -42,7 +42,7 @@ impl Parse for InputField {
                 Punctuated::<LitStr, Token![,]>::parse_terminated(&content)?,
             ))
         } else {
-            Err(input.error(format!("invalid field {}", ident)))
+            Err(input.error(format!("invalid field {ident}")))
         }
     }
 }

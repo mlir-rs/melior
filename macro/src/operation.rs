@@ -123,5 +123,5 @@ fn create_document(dialect: &Ident, name: &Ident) -> String {
 }
 
 fn create_operation_name(dialect: &Ident, name: &Ident) -> String {
-    format!("{}.{}", dialect, name)
+    format!("{dialect}.{name}")
 }

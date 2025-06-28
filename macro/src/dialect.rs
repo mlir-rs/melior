@@ -108,5 +108,5 @@ fn generate_dialect_module(
 }
 
 fn create_syn_error(error: impl Display) -> syn::Error {
-    syn::Error::new(Span::call_site(), format!("{}", error))
+    syn::Error::new(Span::call_site(), format!("{error}"))
 }
