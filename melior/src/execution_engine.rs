@@ -1,8 +1,8 @@
-use crate::{Error, ir::Module, logical_result::LogicalResult, string_ref::StringRef};
+use crate::{ir::Module, logical_result::LogicalResult, string_ref::StringRef, Error};
 use mlir_sys::{
-    MlirExecutionEngine, mlirExecutionEngineCreate, mlirExecutionEngineDestroy,
-    mlirExecutionEngineDumpToObjectFile, mlirExecutionEngineInvokePacked,
-    mlirExecutionEngineLookup, mlirExecutionEngineRegisterSymbol,
+    mlirExecutionEngineCreate, mlirExecutionEngineDestroy, mlirExecutionEngineDumpToObjectFile,
+    mlirExecutionEngineInvokePacked, mlirExecutionEngineLookup, mlirExecutionEngineRegisterSymbol,
+    MlirExecutionEngine,
 };
 
 /// An execution engine.
