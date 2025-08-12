@@ -27,7 +27,7 @@ jobs:
       - uses: homebrew/actions/setup-homebrew@master
       - run: tools/setup.sh
       - run: cargo test --all-features
-  sanitizer:
+  sanitize:
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: -Zsanitizer=address
