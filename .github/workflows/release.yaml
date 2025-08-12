@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'release' || 'test' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: swatinem/rust-cache@v2
       - uses: homebrew/actions/setup-homebrew@master
       - run: tools/setup.sh
