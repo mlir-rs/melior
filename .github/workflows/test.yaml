@@ -34,7 +34,7 @@ jobs:
       RUSTDOCFLAGS: -Zsanitizer=address
     steps:
       - uses: actions/checkout@v4
-      - uses: raviqqe/cargo-cache@v2
+      - uses: raviqqe/cargo-cache@v1
       - uses: homebrew/actions/setup-homebrew@master
       - run: tools/setup.sh
       - run: cargo test -Zbuild-std --target x86_64-unknown-linux-gnu
