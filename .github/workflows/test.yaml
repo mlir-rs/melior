@@ -27,6 +27,17 @@ jobs:
       - uses: homebrew/actions/setup-homebrew@master
       - run: tools/setup.sh
       - run: cargo test --all-features
+  sanitizer:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -Zsanitizer=address
+      RUSTDOCFLAGS: -Zsanitizer=address
+    steps:
+      - uses: actions/checkout@v4
+      - uses: raviqqe/cargo-cache@v2
+      - uses: homebrew/actions/setup-homebrew@master
+      - run: tools/setup.sh
+      - run: cargo test -Zbuild-std --target x86_64-unknown-linux-gnu
   bench:
     runs-on: ubuntu-latest
     steps:
