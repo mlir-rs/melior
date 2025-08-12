@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: swatinem/rust-cache@v2
+      - uses: raviqqe/cargo-cache@v1
       - uses: homebrew/actions/setup-homebrew@master
       - run: tools/setup.sh
       - run: cargo build --all-features
@@ -23,7 +23,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: swatinem/rust-cache@v2
+      - uses: raviqqe/cargo-cache@v1
       - uses: homebrew/actions/setup-homebrew@master
       - run: tools/setup.sh
       - run: cargo test --all-features
@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: swatinem/rust-cache@v2
+      - uses: raviqqe/cargo-cache@v1
       - uses: homebrew/actions/setup-homebrew@master
       - run: tools/setup.sh
       - run: cargo bench
@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: swatinem/rust-cache@v2
+      - uses: raviqqe/cargo-cache@v1
       - uses: homebrew/actions/setup-homebrew@master
       - run: tools/setup.sh
       - run: cargo install cargo-expand
