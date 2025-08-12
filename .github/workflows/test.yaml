@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: raviqqe/cargo-cache@v1
       - uses: homebrew/actions/setup-homebrew@master
-      - run: rustup default nightly
+      - run: sed -i s/stable/nightly/ rust-toolchain.toml
       - run: tools/setup.sh
       - run: cargo test -Zbuild-std --target x86_64-unknown-linux-gnu
   bench:
