@@ -1,7 +1,7 @@
 use super::TypeId;
 use mlir_sys::{
-    MlirTypeIDAllocator, mlirTypeIDAllocatorAllocateTypeID, mlirTypeIDAllocatorCreate,
-    mlirTypeIDAllocatorDestroy,
+    mlirTypeIDAllocatorAllocateTypeID, mlirTypeIDAllocatorCreate, mlirTypeIDAllocatorDestroy,
+    MlirTypeIDAllocator,
 };
 
 /// A type ID allocator.
