@@ -1,6 +1,6 @@
 use std::{env, error::Error, path::Path, process::Command, str};
 
-const LLVM_MAJOR_VERSION: usize = 20;
+const LLVM_MAJOR_VERSION: usize = 21;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let version_variable = format!("MLIR_SYS_{LLVM_MAJOR_VERSION}0_PREFIX");
