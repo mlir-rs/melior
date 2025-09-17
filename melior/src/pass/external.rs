@@ -229,7 +229,7 @@ mod tests {
     #[repr(align(8))]
     struct PassId;
 
-    fn create_module(context: &Context) -> Module {
+    fn create_module<'c>(context: &'c Context) -> Module<'c> {
         let location = Location::unknown(context);
         let module = Module::new(location);
 

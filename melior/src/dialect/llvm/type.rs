@@ -37,12 +37,12 @@ pub fn function<'c>(
     since = "0.11.0",
     note = "please use the pointer method, all pointers are opaque in LLVM 19"
 )]
-pub fn opaque_pointer(context: &Context) -> Type {
+pub fn opaque_pointer<'c>(context: &'c Context) -> Type<'c> {
     pointer(context, 0)
 }
 
 /// Creates an LLVM pointer type in the given address space.
-pub fn pointer(context: &Context, address_space: u32) -> Type {
+pub fn pointer<'c>(context: &'c Context, address_space: u32) -> Type<'c> {
     unsafe { Type::from_raw(mlirLLVMPointerTypeGet(context.to_raw(), address_space)) }
 }
 
@@ -59,7 +59,7 @@ pub fn r#struct<'c>(context: &'c Context, fields: &[Type<'c>], packed: bool) -> 
 }
 
 /// Creates an LLVM void type.
-pub fn void(context: &Context) -> Type {
+pub fn void(context: &Context) -> Type<'_> {
     unsafe { Type::from_raw(mlirLLVMVoidTypeGet(context.to_raw())) }
 }
 

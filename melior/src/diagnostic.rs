@@ -22,7 +22,7 @@ pub struct Diagnostic<'c> {
 }
 
 impl Diagnostic<'_> {
-    pub fn location(&self) -> Location {
+    pub fn location(&self) -> Location<'_> {
         unsafe { Location::from_raw(mlirDiagnosticGetLocation(self.raw)) }
     }
 
