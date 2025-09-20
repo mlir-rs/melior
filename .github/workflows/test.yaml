@@ -9,9 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: raviqqe/cargo-cache@v1
-      - uses: homebrew/actions/setup-homebrew@master
-      - run: tools/setup.sh
       - run: cargo build --all-features
   test:
     strategy:
@@ -23,9 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: raviqqe/cargo-cache@v1
-      - uses: homebrew/actions/setup-homebrew@master
-      - run: tools/setup.sh
+      - uses: ./.github/actions/setup
       - run: cargo test --all-features
   sanitize:
     runs-on: ubuntu-latest
@@ -34,27 +29,21 @@ jobs:
       RUSTDOCFLAGS: -Zsanitizer=address
     steps:
       - uses: actions/checkout@v4
-      - uses: raviqqe/cargo-cache@v1
-      - uses: homebrew/actions/setup-homebrew@master
+      - uses: ./.github/actions/setup
       - run: sed -i s/stable/nightly/ rust-toolchain.toml
-      - run: tools/setup.sh
       - run: cargo test -Zbuild-std --target x86_64-unknown-linux-gnu
   bench:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: raviqqe/cargo-cache@v1
-      - uses: homebrew/actions/setup-homebrew@master
-      - run: tools/setup.sh
+      - uses: ./.github/actions/setup
       - run: cargo bench
   dialect_build:
     # TODO Remove this job when refactoring of dialect macros is done.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: raviqqe/cargo-cache@v1
-      - uses: homebrew/actions/setup-homebrew@master
-      - run: tools/setup.sh
+      - uses: ./.github/actions/setup
       - run: cargo install cargo-expand
       - run: cd melior && cargo expand --all-features dialect::ods > ~/current.rs
       - uses: actions/checkout@v4

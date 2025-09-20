@@ -2,8 +2,14 @@
 
 set -e
 
+[ -n "$CI" ]
+
 llvm_version=20
 
-brew install llvm@$llvm_version
+if [ $(uname) = Darwin ]; then
+  brew install llvm@$llvm_version
 
-echo PATH=$(brew --prefix)/opt/llvm@$llvm_version/bin:$PATH >>$GITHUB_ENV
+  echo PATH=$(brew --prefix)/opt/llvm@$llvm_version/bin:$PATH >>$GITHUB_ENV
+else
+  curl -fsSL https://apt.llvm.org/llvm.sh | bash $llvm_version
+fi
