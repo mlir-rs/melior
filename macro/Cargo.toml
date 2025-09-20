@@ -17,7 +17,7 @@ comrak = { version = "0.41.1", default-features = false }
 convert_case = "0.8.0"
 proc-macro2 = "1"
 quote = "1"
-regex = "1.11.1"
+regex = "1.11.2"
 syn = { version = "2", features = ["full"] }
 tblgen = { version = "0.6.0", features = [
   "llvm20-0",
