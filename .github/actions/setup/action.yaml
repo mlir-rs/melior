@@ -9,8 +9,8 @@ runs:
     - uses: swatinem/rust-cache@v2
     - uses: homebrew/actions/setup-homebrew@master
       if: runner.os == 'macOS'
-    - run: tools/setup.sh
-      shell: bash
     # spell-checker: disable-next-line
     - run: echo PATH=/home/linuxbrew/.linuxbrew/bin/brew:$PATH >> ${{ github.env }}
+      shell: bash
+    - run: tools/setup.sh
       shell: bash
