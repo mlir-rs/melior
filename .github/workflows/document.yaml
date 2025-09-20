@@ -17,7 +17,7 @@ jobs:
       - uses: ./.github/actions/setup
       - run: cargo doc --all-features
       - run: rm target/doc/.lock
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: target/doc
       - uses: actions/deploy-pages@v4
