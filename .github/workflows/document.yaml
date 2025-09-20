@@ -14,9 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - uses: swatinem/rust-cache@v2
-      - uses: homebrew/actions/setup-homebrew@master
-      - run: tools/setup.sh
+      - uses: ./.github/actions/setup
       - run: cargo doc --all-features
       - run: rm target/doc/.lock
       - uses: actions/upload-pages-artifact@v3

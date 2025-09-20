@@ -5,13 +5,11 @@ on:
       - main
   pull_request:
 jobs:
-  lint:
+  clippy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: Swatinem/rust-cache@v2
-      - uses: Homebrew/actions/setup-homebrew@master
-      - run: tools/setup.sh
+      - uses: ./.github/actions/setup
       - run: cargo clippy --all-features -- -D warnings
   format:
     runs-on: ubuntu-latest
@@ -33,3 +31,13 @@ jobs:
       - uses: lycheeverse/lychee-action@v2
         with:
           fail: true
+  lint:
+    needs:
+      - clippy
+      - format
+      - spell-check
+      - readme
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: for result in ${{ join(needs.*.result, ' ') }}; do [ $result = success ]; done
