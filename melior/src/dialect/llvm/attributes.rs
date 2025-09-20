@@ -13,7 +13,7 @@ pub enum Linkage {
 }
 
 /// Creates an LLVM linkage attribute.
-pub fn linkage(context: &Context, linkage: Linkage) -> Attribute {
+pub fn linkage(context: &Context, linkage: Linkage) -> Attribute<'_> {
     let linkage = match linkage {
         Linkage::Private => "private",
         Linkage::Internal => "internal",

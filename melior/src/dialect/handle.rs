@@ -77,7 +77,7 @@ impl DialectHandle {
     }
 
     /// Returns a namespace.
-    pub fn namespace(&self) -> StringRef {
+    pub fn namespace(&self) -> StringRef<'_> {
         unsafe { StringRef::from_raw(mlirDialectHandleGetNamespace(self.raw)) }
     }
 

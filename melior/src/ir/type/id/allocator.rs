@@ -17,7 +17,7 @@ impl Allocator {
         }
     }
 
-    pub fn allocate_type_id(&mut self) -> TypeId {
+    pub fn allocate_type_id(&mut self) -> TypeId<'_> {
         unsafe { TypeId::from_raw(mlirTypeIDAllocatorAllocateTypeID(self.raw)) }
     }
 }

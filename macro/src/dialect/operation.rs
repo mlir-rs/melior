@@ -189,7 +189,7 @@ impl<'a> Operation<'a> {
         self.attributes().chain(&self.derived_attributes)
     }
 
-    pub fn required_results(&self) -> impl Iterator<Item = &OperationResult> {
+    pub fn required_results(&self) -> impl Iterator<Item = &'_ OperationResult<'_>> {
         if self.can_infer_type {
             Default::default()
         } else {
@@ -198,19 +198,19 @@ impl<'a> Operation<'a> {
         .filter(|field| !field.is_optional())
     }
 
-    pub fn required_operands(&self) -> impl Iterator<Item = &Operand> {
+    pub fn required_operands(&self) -> impl Iterator<Item = &'_ Operand<'_>> {
         self.operands.iter().filter(|field| !field.is_optional())
     }
 
-    pub fn required_regions(&self) -> impl Iterator<Item = &Region> {
+    pub fn required_regions(&self) -> impl Iterator<Item = &'_ Region<'_>> {
         self.regions.iter().filter(|field| !field.is_optional())
     }
 
-    pub fn required_successors(&self) -> impl Iterator<Item = &Successor> {
+    pub fn required_successors(&self) -> impl Iterator<Item = &'_ Successor<'_>> {
         self.successors.iter().filter(|field| !field.is_optional())
     }
 
-    pub fn required_attributes(&self) -> impl Iterator<Item = &Attribute> {
+    pub fn required_attributes(&self) -> impl Iterator<Item = &'_ Attribute<'_>> {
         self.attributes.iter().filter(|field| !field.is_optional())
     }
 

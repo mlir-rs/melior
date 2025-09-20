@@ -21,7 +21,7 @@ impl<'c> TupleType<'c> {
     }
 
     /// Returns a field at a position.
-    pub fn r#type(&self, index: usize) -> Result<Type, Error> {
+    pub fn r#type(&self, index: usize) -> Result<Type<'c>, Error> {
         if index < self.type_count() {
             unsafe {
                 Ok(Type::from_raw(mlirTupleTypeGetType(

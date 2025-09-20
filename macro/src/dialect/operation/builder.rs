@@ -20,7 +20,7 @@ impl<'a> OperationBuilder<'a> {
         }
     }
 
-    pub const fn operation(&self) -> &Operation {
+    pub const fn operation(&self) -> &Operation<'_> {
         self.operation
     }
 

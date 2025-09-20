@@ -12,6 +12,7 @@
     "bufferize",
     "canonicalize",
     "canonicalizer",
+    "clippy",
     "cmpi",
     "codegen",
     "commonmark",
@@ -41,6 +42,7 @@
     "linalg",
     "llvmir",
     "llvmspv",
+    "lycheeverse",
     "matmul",
     "melior",
     "memref",
@@ -53,6 +55,7 @@
     "repr",
     "rocdl",
     "rustc",
+    "rustup",
     "sccp",
     "shli",
     "shrsi",
@@ -72,6 +75,7 @@
     "trunci",
     "unranked",
     "vulkan",
-    "xori"
+    "xori",
+    "zstd"
   ]
 }

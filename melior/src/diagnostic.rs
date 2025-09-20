@@ -21,8 +21,8 @@ pub struct Diagnostic<'c> {
     phantom: PhantomData<&'c ()>,
 }
 
-impl Diagnostic<'_> {
-    pub fn location(&self) -> Location {
+impl<'c> Diagnostic<'c> {
+    pub fn location(&self) -> Location<'c> {
         unsafe { Location::from_raw(mlirDiagnosticGetLocation(self.raw)) }
     }
 
