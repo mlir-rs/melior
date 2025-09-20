@@ -52,3 +52,4 @@ jobs:
           ref: main
       - run: cd melior && cargo expand --all-features dialect::ods > ~/main.rs
       - run: diff ~/main.rs ~/current.rs
+      - uses: actions/checkout@v4
