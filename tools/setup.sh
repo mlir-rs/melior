@@ -6,11 +6,11 @@ set -e
 
 llvm_version=20
 
-if [ $(uname) = Darwin ]; then
-  brew reinstall zstd
-  brew install llvm@$llvm_version
-
-  echo PATH=$(brew --prefix)/opt/llvm@$llvm_version/bin:$PATH >>$GITHUB_ENV
-else
-  curl -fsSL https://apt.llvm.org/llvm.sh | sudo bash -s $llvm_version
+if [ $(uname) = Linux ]; then
+  curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | bash -s
 fi
+
+brew reinstall zstd
+brew install llvm@$llvm_version
+
+echo PATH=$(brew --prefix)/opt/llvm@$llvm_version/bin:$PATH >>$GITHUB_ENV
