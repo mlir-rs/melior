@@ -12,5 +12,5 @@ if [ $(uname) = Darwin ]; then
 
   echo PATH=$(brew --prefix)/opt/llvm@$llvm_version/bin:$PATH >>$GITHUB_ENV
 else
-  curl -fsSL https://apt.llvm.org/llvm.sh | bash -- $llvm_version
+  curl -fsSL https://apt.llvm.org/llvm.sh | bash -s $llvm_version
 fi
