@@ -10,6 +10,7 @@ if [ $(uname) = Linux ]; then
   curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | bash -s
 fi
 
+# TODO Remove this if Homebrew is fixed.
 if [ $(uname) = Darwin ]; then
   brew uninstall --ignore-dependencies zstd
   brew install -s zstd
