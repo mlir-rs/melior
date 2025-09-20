@@ -5,7 +5,7 @@ on:
       - main
   pull_request:
 jobs:
-  lint:
+  clippy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,3 +31,13 @@ jobs:
       - uses: lycheeverse/lychee-action@v2
         with:
           fail: true
+  lint:
+    needs:
+      - clippy
+      - format
+      - spell-check
+      - readme
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: for result in ${{ join(needs.*.result, ' ') }}; do [ $result = success ]; done
