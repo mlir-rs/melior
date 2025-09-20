@@ -9,9 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: Swatinem/rust-cache@v2
-      - uses: Homebrew/actions/setup-homebrew@master
-      - run: tools/setup.sh
+      - uses: ./.github/actions/setup
       - run: cargo clippy --all-features -- -D warnings
   format:
     runs-on: ubuntu-latest
