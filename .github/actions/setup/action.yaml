@@ -14,5 +14,3 @@ runs:
       shell: bash
     - run: tools/setup.sh
       shell: bash
-    - run: echo LD_LIBRARY_PATH=$(brew --prefix zstd)/lib >> ${{ github.env }}
-      shell: bash
