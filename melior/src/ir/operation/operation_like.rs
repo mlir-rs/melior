@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{ffi::c_void, fmt::Display};
 
 use mlir_sys::{
     mlirOperationDump, mlirOperationGetAttribute, mlirOperationGetAttributeByName,
@@ -8,7 +8,10 @@ use mlir_sys::{
     mlirOperationGetOperand, mlirOperationGetParentOperation, mlirOperationGetRegion,
     mlirOperationGetResult, mlirOperationGetSuccessor, mlirOperationPrintWithFlags,
     mlirOperationRemoveAttributeByName, mlirOperationRemoveFromParent,
-    mlirOperationSetAttributeByName, mlirOperationVerify, MlirOperation,
+    mlirOperationSetAttributeByName, mlirOperationVerify, mlirOperationWalk, MlirOperation,
+    MlirWalkOrder_MlirWalkPostOrder, MlirWalkOrder_MlirWalkPreOrder, MlirWalkResult,
+    MlirWalkResult_MlirWalkResultAdvance, MlirWalkResult_MlirWalkResultInterrupt,
+    MlirWalkResult_MlirWalkResultSkip,
 };
 
 use crate::{
@@ -19,6 +22,28 @@ use crate::{
 use super::{
     print_string_callback, OperationPrintingFlags, OperationRef, OperationRefMut, OperationResult,
 };
+
+/// Order in which to traverse an operation tree.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u32)]
+pub enum WalkOrder {
+    /// Visit the operation before its nested regions.
+    PreOrder = MlirWalkOrder_MlirWalkPreOrder,
+    /// Visit the operation after its nested regions.
+    PostOrder = MlirWalkOrder_MlirWalkPostOrder,
+}
+
+/// Control flow action returned by the walk callback.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u32)]
+pub enum WalkResult {
+    /// Continue into this operation’s children.
+    Advance = MlirWalkResult_MlirWalkResultAdvance,
+    /// Terminate the entire walk immediately.
+    Interrupt = MlirWalkResult_MlirWalkResultInterrupt,
+    /// Don’t visit this operation’s children, but keep walking siblings.
+    Skip = MlirWalkResult_MlirWalkResultSkip,
+}
 
 pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     /// Converts a value into a raw value.
@@ -237,6 +262,36 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
         data.1?;
 
         Ok(data.0)
+    }
+
+    /// Walk this operation (and all nested operations) in either pre- or
+    /// post-order.
+    ///
+    /// The closure is called once per operation; by returning
+    /// `WalkResult::Advance`/`Skip`/`Interrupt` you control the traversal.
+    fn walk<F>(&self, order: WalkOrder, mut callback: F)
+    where
+        F: for<'x, 'y> FnMut(OperationRef<'x, 'y>) -> WalkResult,
+    {
+        // trampoline from C to Rust
+        unsafe extern "C" fn tramp<'c: 'a, 'a, F: FnMut(OperationRef<'c, 'a>) -> WalkResult>(
+            operation: MlirOperation,
+            data: *mut c_void,
+        ) -> MlirWalkResult {
+            let callback: &mut F = &mut *(data as *mut F);
+            let operation = OperationRef::from_raw(operation);
+
+            (callback)(operation) as _
+        }
+
+        unsafe {
+            mlirOperationWalk(
+                self.to_raw(),
+                Some(tramp::<'c, 'a, F>),
+                &mut callback as *mut _ as *mut _,
+                order as _,
+            );
+        }
     }
 }
 

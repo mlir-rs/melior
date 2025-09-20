@@ -19,7 +19,7 @@ pub trait AttributeLike<'c> {
     }
 
     /// Returns a type.
-    fn r#type(&self) -> Type {
+    fn r#type(&self) -> Type<'c> {
         unsafe { Type::from_raw(mlirAttributeGetType(self.to_raw())) }
     }
 

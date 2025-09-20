@@ -42,7 +42,7 @@ impl Context {
     }
 
     /// Returns or loads a dialect.
-    pub fn get_or_load_dialect(&self, name: &str) -> Dialect {
+    pub fn get_or_load_dialect<'c>(&'c self, name: &str) -> Dialect<'c> {
         let name = StringRef::new(name);
 
         unsafe { Dialect::from_raw(mlirContextGetOrLoadDialect(self.raw, name.to_raw())) }
@@ -116,7 +116,7 @@ impl Context {
         unsafe { mlirContextDetachDiagnosticHandler(self.to_raw(), id.to_raw()) }
     }
 
-    pub(crate) fn to_ref(&self) -> ContextRef {
+    pub(crate) fn to_ref(&self) -> ContextRef<'_> {
         unsafe { ContextRef::from_raw(self.to_raw()) }
     }
 }
@@ -277,7 +277,7 @@ mod tests {
         let context = Context::new();
 
         let id = context.attach_diagnostic_handler(|diagnostic| {
-            println!("{}", diagnostic);
+            println!("{diagnostic}");
             true
         });
 

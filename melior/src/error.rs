@@ -62,7 +62,7 @@ impl Display for Error {
                 write!(formatter, "operation result expected: {value}")
             }
             Self::ParsePassPipeline(message) => {
-                write!(formatter, "failed to parse pass pipeline:\n{}", message)
+                write!(formatter, "failed to parse pass pipeline:\n{message}")
             }
             Self::PositionOutOfBounds { name, value, index } => {
                 write!(formatter, "{name} position {index} out of bounds: {value}")
@@ -78,7 +78,7 @@ impl Display for Error {
                 write!(formatter, "unknown diagnostic severity: {severity}")
             }
             Self::Utf8(error) => {
-                write!(formatter, "{}", error)
+                write!(formatter, "{error}")
             }
         }
     }
