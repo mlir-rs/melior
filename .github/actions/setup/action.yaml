@@ -7,5 +7,6 @@ runs:
   steps:
     - uses: swatinem/rust-cache@v2
     - uses: homebrew/actions/setup-homebrew@master
+      if: runner.os == 'macOS'
     - run: tools/setup.sh
       shell: bash
