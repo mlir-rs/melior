@@ -6,9 +6,10 @@ on:
   pull_request:
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
       - run: cargo build --all-features
   test:
     strategy:
@@ -23,7 +24,7 @@ jobs:
       - uses: ./.github/actions/setup
       - run: cargo test --all-features
   sanitize:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     env:
       RUSTFLAGS: -Zsanitizer=address
       RUSTDOCFLAGS: -Zsanitizer=address
@@ -33,14 +34,14 @@ jobs:
       - run: sed -i s/stable/nightly/ rust-toolchain.toml
       - run: cargo test -Zbuild-std --target x86_64-unknown-linux-gnu
   bench:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - run: cargo bench
   dialect_build:
     # TODO Remove this job when refactoring of dialect macros is done.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
