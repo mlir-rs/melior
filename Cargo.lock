@@ -32,6 +32,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "bindgen"
+version = "0.72.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "993776b509cfb49c750f11b8f07a46fa23e0a1386ffc01fb1e7d343efc387895"
+dependencies = [
+ "bitflags",
+ "cexpr",
+ "clang-sys",
+ "itertools",
+ "log",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "rustc-hash",
+ "shlex",
+ "syn",
+]
+
+[[package]]
 name = "bitflags"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -252,7 +272,7 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e9348dd263d2680d657635d9dd084cdcd785d7486a41332ffa4c926d5882b54"
 dependencies = [
- "bindgen",
+ "bindgen 0.71.1",
 ]
 
 [[package]]
@@ -391,11 +411,11 @@ dependencies = [
 
 [[package]]
 name = "tblgen"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "836472eafcc544aa0167f880c0998d4a77b422d22100186e67fc6daf35cab94c"
+checksum = "a2ae6beef5d68cd672d3dc8e07146425209865eb6d3cb81cb9621e168d45458d"
 dependencies = [
- "bindgen",
+ "bindgen 0.72.1",
  "cc",
  "paste",
  "thiserror",
