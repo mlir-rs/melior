@@ -12,16 +12,16 @@ pub use self::{
     result::OperationResult,
 };
 use crate::{
-    Error,
     context::Context,
     utility::{print_callback, print_string_callback},
+    Error,
 };
 use core::{
     fmt,
     mem::{forget, transmute},
 };
 use mlir_sys::{
-    MlirOperation, mlirOperationClone, mlirOperationDestroy, mlirOperationEqual, mlirOperationPrint,
+    mlirOperationClone, mlirOperationDestroy, mlirOperationEqual, mlirOperationPrint, MlirOperation,
 };
 use std::{
     ffi::c_void,
@@ -303,8 +303,8 @@ mod tests {
     use crate::{
         context::Context,
         ir::{
-            Block, BlockLike, Identifier, Location, Region, RegionLike, Type, Value,
-            attribute::StringAttribute,
+            attribute::StringAttribute, Block, BlockLike, Identifier, Location, Region, RegionLike,
+            Type, Value,
         },
         test::create_test_context,
     };
