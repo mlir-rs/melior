@@ -21,7 +21,7 @@ pub struct PassManager<'c> {
     _context: PhantomData<&'c Context>,
 }
 
-impl PassManager<'_> {
+impl<'c> PassManager<'c> {
     /// Creates a pass manager.
     pub fn new(context: &Context) -> Self {
         Self {
@@ -32,7 +32,7 @@ impl PassManager<'_> {
 
     /// Returns an operation pass manager for nested operations corresponding to
     /// a given name.
-    pub fn nested_under(&self, name: &str) -> OperationPassManager {
+    pub fn nested_under(&self, name: &str) -> OperationPassManager<'c, '_> {
         let name = StringRef::new(name);
 
         unsafe {
@@ -83,7 +83,7 @@ impl PassManager<'_> {
     }
 
     /// Converts a pass manager to an operation pass manager.
-    pub fn as_operation_pass_manager(&self) -> OperationPassManager {
+    pub fn as_operation_pass_manager(&self) -> OperationPassManager<'c, '_> {
         unsafe { OperationPassManager::from_raw(mlirPassManagerGetAsOpPassManager(self.raw)) }
     }
 

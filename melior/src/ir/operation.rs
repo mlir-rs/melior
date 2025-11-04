@@ -7,7 +7,7 @@ mod result;
 
 pub use self::{
     builder::OperationBuilder,
-    operation_like::{OperationLike, OperationMutLike},
+    operation_like::{OperationLike, OperationMutLike, WalkOrder, WalkResult},
     printing_flags::OperationPrintingFlags,
     result::OperationResult,
 };
