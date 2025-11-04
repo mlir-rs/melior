@@ -397,9 +397,9 @@ dependencies = [
 
 [[package]]
 name = "tblgen"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2ae6beef5d68cd672d3dc8e07146425209865eb6d3cb81cb9621e168d45458d"
+checksum = "388023f0a5f3caadc8393283d87d19c8a9ec95f8833977825c6a126915c9691e"
 dependencies = [
  "bindgen 0.72.1",
  "cc",
