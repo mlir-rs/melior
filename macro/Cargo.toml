@@ -1,13 +1,13 @@
 [package]
 name = "melior-macro"
-description = "Internal macros for Melior"
 version = "0.18.1"
 edition = "2021"
-license = "Apache-2.0"
-repository = "https://github.com/mlir-rs/melior"
+description = "Internal macros for Melior"
 documentation = "https://mlir-rs.github.io/melior/melior/"
 readme = "../README.md"
-keywords = ["mlir", "llvm"]
+repository = "https://github.com/mlir-rs/melior"
+license = "Apache-2.0"
+keywords = ["llvm", "mlir"]
 
 [lib]
 proc-macro = true
@@ -19,12 +19,12 @@ proc-macro2 = "1"
 quote = "1"
 regex = "1.12.2"
 syn = { version = "2", features = ["full"] }
-tblgen = { version = "0.7.0", features = [
-  "llvm20-0",
-], default-features = false }
+tblgen = { version = "0.7.2", default-features = false, features = [
+  "llvm21-0",
+] }
 unindent = "0.2.4"
 
 [dev-dependencies]
 melior = { path = "../melior", features = ["ods-dialects"] }
-mlir-sys = "0.5.0"
+mlir-sys = "210.0.0"
 pretty_assertions = "1.4.1"

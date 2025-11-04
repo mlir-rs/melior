@@ -3,11 +3,11 @@
 melior_macro::passes!(
     "Async",
     [
-        mlirCreateAsyncAsyncFuncToAsyncRuntime,
-        mlirCreateAsyncAsyncParallelFor,
-        mlirCreateAsyncAsyncRuntimePolicyBasedRefCounting,
-        mlirCreateAsyncAsyncRuntimeRefCounting,
-        mlirCreateAsyncAsyncRuntimeRefCountingOpt,
-        mlirCreateAsyncAsyncToAsyncRuntime,
+        mlirCreateAsyncAsyncFuncToAsyncRuntimePass,
+        mlirCreateAsyncAsyncParallelForPass,
+        mlirCreateAsyncAsyncRuntimePolicyBasedRefCountingPass,
+        mlirCreateAsyncAsyncRuntimeRefCountingPass,
+        mlirCreateAsyncAsyncRuntimeRefCountingOptPass,
+        mlirCreateAsyncAsyncToAsyncRuntimePass,
     ]
 );
