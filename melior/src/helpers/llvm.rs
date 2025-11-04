@@ -7,7 +7,7 @@ use crate::{
         },
         block::BlockLike,
         r#type::IntegerType,
-        Attribute, Block, Location, Type, Value, ValueLike,
+        Block, Location, Type, Value, ValueLike,
     },
     Context, Error,
 };
@@ -308,7 +308,7 @@ impl<'c> LlvmBlockExt<'c> for Block<'c> {
             }
         }
 
-        let mut operation = ods::llvm::getelementptr(
+        let operation = ods::llvm::getelementptr(
             context,
             r#type::pointer(context, 0),
             pointer,
@@ -317,7 +317,6 @@ impl<'c> LlvmBlockExt<'c> for Block<'c> {
             TypeAttribute::new(element_type),
             location,
         );
-        operation.set_inbounds(Attribute::unit(context));
 
         self.append_op_result(operation.into())
     }
