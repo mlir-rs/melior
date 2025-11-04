@@ -70,7 +70,8 @@ pub struct Attribute<'a> {
 
 impl<'a> Attribute<'a> {
     pub fn new(name: &'a str, record: Record<'a>) -> Result<Self, Error> {
-        let storage_type_string = record.string_value("storageType")?;
+        // TODO Handle `?` attribute initializers properly.
+        let storage_type_string = record.string_value("storageType").unwrap_or_default();
 
         Ok(Self {
             name,
