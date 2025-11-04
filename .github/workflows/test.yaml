@@ -16,9 +16,9 @@ jobs:
       fail-fast: false
       matrix:
         os:
+          - ubuntu-24.04
           - ubuntu-24.04-arm
-          # TODO Enable macOS.
-          # - macos-15
+          - macos-15
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
