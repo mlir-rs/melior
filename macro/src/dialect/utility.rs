@@ -58,11 +58,11 @@ pub fn sanitize_documentation(string: &str) -> Result<String, Error> {
         }
     }
 
-    let mut buffer = Vec::with_capacity(string.len());
+    let mut buffer = String::with_capacity(string.len());
 
     format_commonmark(node, &Default::default(), &mut buffer)?;
 
-    Ok(String::from_utf8(buffer)?)
+    Ok(buffer)
 }
 
 pub fn capitalize_string(string: &str) -> String {
