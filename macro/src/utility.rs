@@ -11,6 +11,7 @@ pub fn map_name(name: &str) -> String {
         .replace_all(name, |captures: &Captures| {
             captures.get(0).unwrap().as_str().replace('_', "")
         })
+        .trim_end_matches('_')
         .into()
 }
 
