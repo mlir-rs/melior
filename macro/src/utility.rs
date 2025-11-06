@@ -12,6 +12,8 @@ pub fn map_name(name: &str) -> String {
             captures.get(0).unwrap().as_str().replace('_', "")
         })
         .to_string()
+        .trim_end_matches('_')
+        .into()
 }
 
 #[cfg(test)]
