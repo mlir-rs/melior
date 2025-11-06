@@ -14,7 +14,8 @@ pub fn generate(identifiers: &[Ident]) -> Result<TokenStream, Box<dyn Error>> {
                 .to_string()
                 .strip_prefix("mlirAttributeIsA")
                 .unwrap()
-                .to_case(Case::Snake),
+                .to_case(Case::Snake)
+                .trim_end_matches('_'),
         );
 
         let function_name = Ident::new(&format!("is_{}", &name), identifier.span());
