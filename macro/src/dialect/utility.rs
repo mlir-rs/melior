@@ -21,7 +21,7 @@ pub fn sanitize_snake_case_identifier(name: &str) -> Result<Ident, Error> {
 
 fn sanitize_name(name: &str) -> Result<Ident, Error> {
     // Replace any "." with "_".
-    let mut name = name.replace('.', "_");
+    let mut name = name.replace('.', "_").trim_end_matches('_').to_string();
 
     // Add "_" suffix to avoid conflicts with existing methods.
     if RESERVED_NAMES.contains(&name.as_str())
