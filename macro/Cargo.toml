@@ -26,5 +26,5 @@ unindent = "0.2.4"
 
 [dev-dependencies]
 melior = { path = "../melior", features = ["ods-dialects"] }
-mlir-sys = "210.0.0"
+mlir-sys = "210.0.1"
 pretty_assertions = "1.4.1"
