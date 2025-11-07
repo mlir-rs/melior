@@ -3,7 +3,6 @@ use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::quote;
-
 use std::error::Error;
 
 pub fn generate(identifiers: &[Ident]) -> Result<TokenStream, Box<dyn Error>> {
