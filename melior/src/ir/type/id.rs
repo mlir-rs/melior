@@ -83,8 +83,8 @@ mod tests {
     #[test]
     #[should_panic]
     fn reject_invalid_alignment() {
-        static VALUES: [u8; 2] = [1u8; 2];
+        let values: (u32, u8) = Default::default();
 
-        TypeId::create(&VALUES[1]);
+        TypeId::create(&values.1);
     }
 }
