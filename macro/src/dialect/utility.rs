@@ -106,7 +106,7 @@ mod tests {
     fn sanitize_code_block() {
         assert_eq!(
             &sanitize_documentation("```\nfoo\n```\n").unwrap(),
-            "``` text\nfoo\n```\n"
+            "```text\nfoo\n```\n"
         );
     }
 
@@ -114,7 +114,7 @@ mod tests {
     fn sanitize_code_blocks() {
         assert_eq!(
             &sanitize_documentation("```\nfoo\n```\n\n```\nbar\n```\n").unwrap(),
-            "``` text\nfoo\n```\n\n``` text\nbar\n```\n"
+            "```text\nfoo\n```\n\n``` text\nbar\n```\n"
         );
     }
 
