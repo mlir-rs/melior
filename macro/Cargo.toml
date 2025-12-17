@@ -13,8 +13,8 @@ keywords = ["llvm", "mlir"]
 proc-macro = true
 
 [dependencies]
-comrak = { version = "0.47.0", default-features = false }
-convert_case = "0.9.0"
+comrak = { version = "0.49.0", default-features = false }
+convert_case = "0.10.0"
 proc-macro2 = "1"
 quote = "1"
 regex = "1.12.2"
@@ -26,5 +26,5 @@ unindent = "0.2.4"
 
 [dev-dependencies]
 melior = { path = "../melior", features = ["ods-dialects"] }
-mlir-sys = "210.0.0"
+mlir-sys = "210.0.1"
 pretty_assertions = "1.4.1"
