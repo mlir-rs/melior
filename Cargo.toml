@@ -1,6 +1,6 @@
 [workspace]
-members = ["macro", "melior"]
 resolver = "2"
+members = ["macro", "melior"]
 
 [profile.release]
 lto = true
