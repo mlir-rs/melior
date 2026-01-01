@@ -5,7 +5,7 @@ use mlir_sys::{
 };
 
 /// A dense i64 array attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct DenseI64ArrayAttribute<'c> {
     attribute: Attribute<'c>,
 }

@@ -9,7 +9,7 @@ use mlir_sys::{
 };
 
 /// A mem-ref type.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash)]
 pub struct MemRefType<'c> {
     r#type: Type<'c>,
 }

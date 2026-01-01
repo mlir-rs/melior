@@ -5,7 +5,7 @@ use mlir_sys::{
 };
 
 /// A dense i32 array attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct DenseI32ArrayAttribute<'c> {
     attribute: Attribute<'c>,
 }

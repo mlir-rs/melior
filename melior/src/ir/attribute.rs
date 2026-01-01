@@ -124,6 +124,13 @@ impl Debug for Attribute<'_> {
     }
 }
 
+impl std::hash::Hash for Attribute<'_> {
+    // Hashes the attribute's pointer since they are unique w.r.t. the MLIR context.
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.raw.ptr.hash(state);
+    }
+}
+
 from_subtypes!(
     Attribute,
     ArrayAttribute,

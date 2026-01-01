@@ -9,7 +9,7 @@ use mlir_sys::{
 };
 
 /// A ranked tensor type.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash)]
 pub struct RankedTensorType<'c> {
     r#type: Type<'c>,
 }

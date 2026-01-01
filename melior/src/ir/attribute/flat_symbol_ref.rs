@@ -3,7 +3,7 @@ use crate::{Context, Error, StringRef};
 use mlir_sys::{mlirFlatSymbolRefAttrGet, mlirFlatSymbolRefAttrGetValue, MlirAttribute};
 
 /// A flat symbol ref attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct FlatSymbolRefAttribute<'c> {
     attribute: Attribute<'c>,
 }

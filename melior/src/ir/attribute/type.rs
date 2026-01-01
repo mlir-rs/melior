@@ -6,7 +6,7 @@ use crate::{
 use mlir_sys::{mlirTypeAttrGet, mlirTypeAttrGetValue, MlirAttribute};
 
 /// A type attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct TypeAttribute<'c> {
     attribute: Attribute<'c>,
 }

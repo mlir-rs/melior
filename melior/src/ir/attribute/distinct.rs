@@ -2,7 +2,7 @@ use super::Attribute;
 use mlir_sys::{mlirDisctinctAttrCreate, MlirAttribute};
 
 /// A disctinct attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct DisctinctAttribute<'c> {
     attribute: Attribute<'c>,
 }

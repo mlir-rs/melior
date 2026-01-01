@@ -3,7 +3,7 @@ use crate::{ir::Type, Context, Error};
 use mlir_sys::{mlirTupleTypeGet, mlirTupleTypeGetNumTypes, mlirTupleTypeGetType, MlirType};
 
 /// A tuple type.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash)]
 pub struct TupleType<'c> {
     r#type: Type<'c>,
 }

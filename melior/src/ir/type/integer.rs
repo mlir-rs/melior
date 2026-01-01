@@ -7,7 +7,7 @@ use mlir_sys::{
 };
 
 /// A integer type.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash)]
 pub struct IntegerType<'c> {
     r#type: Type<'c>,
 }

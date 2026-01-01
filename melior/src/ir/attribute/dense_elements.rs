@@ -9,7 +9,7 @@ use mlir_sys::{
 };
 
 /// A dense elements attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct DenseElementsAttribute<'c> {
     attribute: Attribute<'c>,
 }

@@ -5,7 +5,7 @@ use mlir_sys::{
 };
 
 /// An array attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct ArrayAttribute<'c> {
     attribute: Attribute<'c>,
 }

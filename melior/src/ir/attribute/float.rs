@@ -6,7 +6,7 @@ use crate::{
 use mlir_sys::{mlirFloatAttrDoubleGet, mlirFloatAttrGetValueDouble, MlirAttribute};
 
 /// A float attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct FloatAttribute<'c> {
     attribute: Attribute<'c>,
 }

@@ -9,7 +9,7 @@ use mlir_sys::{
 };
 
 /// An integer attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct IntegerAttribute<'c> {
     attribute: Attribute<'c>,
 }

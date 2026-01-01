@@ -169,6 +169,13 @@ impl Debug for Type<'_> {
     }
 }
 
+impl std::hash::Hash for Type<'_> {
+    // Hashes the type's pointer since they are unique w.r.t. the MLIR context.
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.raw.ptr.hash(state);
+    }
+}
+
 from_subtypes!(
     Type,
     FunctionType,

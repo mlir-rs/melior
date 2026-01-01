@@ -6,7 +6,7 @@ use mlir_sys::{
 };
 
 /// A function type.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash)]
 pub struct FunctionType<'c> {
     r#type: Type<'c>,
 }
