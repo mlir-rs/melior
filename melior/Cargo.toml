@@ -1,24 +1,24 @@
 [package]
 name = "melior"
-description = "The rustic MLIR bindings in Rust"
-version = "0.26.0"
+version = "0.26.1"
 edition = "2021"
-license = "Apache-2.0"
-repository = "https://github.com/mlir-rs/melior"
+description = "The rustic MLIR bindings in Rust"
 documentation = "https://mlir-rs.github.io/melior/melior/"
-keywords = ["mlir", "llvm"]
+repository = "https://github.com/mlir-rs/melior"
+license = "Apache-2.0"
+keywords = ["llvm", "mlir"]
 categories = ["api-bindings"]
 
-[features]
-ods-dialects = []
-# Enable the BlockExt trait (requires ods feature)
-helpers = ["ods-dialects"]
-
 [dependencies]
-melior-macro = { version = "0.19.0", path = "../macro" }
+melior-macro = { path = "../macro", version = "0.19.0" }
 mlir-sys = "210.0.1"
 
 [dev-dependencies]
 indoc = "2.0.7"
 insta = "1.45.1"
 pretty_assertions = "1.4.1"
+
+[features]
+# Enable the BlockExt trait (requires ods feature)
+helpers = ["ods-dialects"]
+ods-dialects = []
