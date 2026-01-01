@@ -1,12 +1,12 @@
 use super::{Attribute, AttributeLike};
 use crate::{
-    ir::{Type, TypeLike},
     Context, Error,
+    ir::{Type, TypeLike},
 };
-use mlir_sys::{mlirFloatAttrDoubleGet, mlirFloatAttrGetValueDouble, MlirAttribute};
+use mlir_sys::{MlirAttribute, mlirFloatAttrDoubleGet, mlirFloatAttrGetValueDouble};
 
 /// A float attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct FloatAttribute<'c> {
     attribute: Attribute<'c>,
 }

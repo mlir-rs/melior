@@ -1,15 +1,15 @@
 use super::{Attribute, AttributeLike};
 use crate::{
-    ir::{Type, TypeLike},
     Error,
+    ir::{Type, TypeLike},
 };
 use mlir_sys::{
-    mlirDenseElementsAttrGet, mlirDenseElementsAttrGetInt32Value,
-    mlirDenseElementsAttrGetInt64Value, mlirElementsAttrGetNumElements, MlirAttribute,
+    MlirAttribute, mlirDenseElementsAttrGet, mlirDenseElementsAttrGetInt32Value,
+    mlirDenseElementsAttrGetInt64Value, mlirElementsAttrGetNumElements,
 };
 
 /// A dense elements attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct DenseElementsAttribute<'c> {
     attribute: Attribute<'c>,
 }

@@ -19,9 +19,9 @@ pub use self::{
 use super::Location;
 use crate::{context::Context, string_ref::StringRef, utility::print_callback};
 use mlir_sys::{
-    mlirBF16TypeGet, mlirF16TypeGet, mlirF32TypeGet, mlirF64TypeGet, mlirIndexTypeGet,
+    MlirType, mlirBF16TypeGet, mlirF16TypeGet, mlirF32TypeGet, mlirF64TypeGet, mlirIndexTypeGet,
     mlirNoneTypeGet, mlirTypeEqual, mlirTypeParseGet, mlirTypePrint, mlirVectorTypeGet,
-    mlirVectorTypeGetChecked, MlirType,
+    mlirVectorTypeGetChecked,
 };
 use std::{
     ffi::c_void,
@@ -166,6 +166,13 @@ impl Debug for Type<'_> {
         write!(formatter, "Type(")?;
         Display::fmt(self, formatter)?;
         write!(formatter, ")")
+    }
+}
+
+impl std::hash::Hash for Type<'_> {
+    // Hashes the type's pointer since they are unique w.r.t. the MLIR context.
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.raw.ptr.hash(state);
     }
 }
 

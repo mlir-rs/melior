@@ -1,11 +1,11 @@
 use super::{Attribute, AttributeLike};
 use crate::{Context, Error};
 use mlir_sys::{
-    mlirDenseArrayGetNumElements, mlirDenseI32ArrayGet, mlirDenseI32ArrayGetElement, MlirAttribute,
+    MlirAttribute, mlirDenseArrayGetNumElements, mlirDenseI32ArrayGet, mlirDenseI32ArrayGetElement,
 };
 
 /// A dense i32 array attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct DenseI32ArrayAttribute<'c> {
     attribute: Attribute<'c>,
 }

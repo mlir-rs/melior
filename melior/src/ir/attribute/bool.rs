@@ -1,9 +1,9 @@
 use super::{Attribute, AttributeLike};
 use crate::{Context, Error};
-use mlir_sys::{mlirBoolAttrGet, mlirBoolAttrGetValue, MlirAttribute};
+use mlir_sys::{MlirAttribute, mlirBoolAttrGet, mlirBoolAttrGetValue};
 
 /// A bool attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct BoolAttribute<'c> {
     attribute: Attribute<'c>,
 }

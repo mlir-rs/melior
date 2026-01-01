@@ -1,11 +1,11 @@
 use super::{Attribute, AttributeLike};
 use crate::{Context, Error};
 use mlir_sys::{
-    mlirArrayAttrGet, mlirArrayAttrGetElement, mlirArrayAttrGetNumElements, MlirAttribute,
+    MlirAttribute, mlirArrayAttrGet, mlirArrayAttrGetElement, mlirArrayAttrGetNumElements,
 };
 
 /// An array attribute.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Hash)]
 pub struct ArrayAttribute<'c> {
     attribute: Attribute<'c>,
 }
@@ -56,7 +56,7 @@ attribute_traits!(ArrayAttribute, is_dense_i64_array, "dense i64 array");
 #[cfg(test)]
 mod tests {
     use crate::{
-        ir::{attribute::IntegerAttribute, r#type::IntegerType, Type},
+        ir::{Type, attribute::IntegerAttribute, r#type::IntegerType},
         test::create_test_context,
     };
 
