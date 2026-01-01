@@ -1,11 +1,11 @@
 use super::{Attribute, AttributeLike};
 use crate::{
-    Error,
     ir::{Type, TypeLike},
+    Error,
 };
 use mlir_sys::{
-    MlirAttribute, mlirIntegerAttrGet, mlirIntegerAttrGetValueInt, mlirIntegerAttrGetValueSInt,
-    mlirIntegerAttrGetValueUInt,
+    mlirIntegerAttrGet, mlirIntegerAttrGetValueInt, mlirIntegerAttrGetValueSInt,
+    mlirIntegerAttrGetValueUInt, MlirAttribute,
 };
 
 /// An integer attribute.

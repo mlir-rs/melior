@@ -1,7 +1,7 @@
 use super::{Attribute, AttributeLike};
 use crate::{Context, Error};
 use mlir_sys::{
-    MlirAttribute, mlirDenseArrayGetNumElements, mlirDenseI32ArrayGet, mlirDenseI32ArrayGetElement,
+    mlirDenseArrayGetNumElements, mlirDenseI32ArrayGet, mlirDenseI32ArrayGetElement, MlirAttribute,
 };
 
 /// A dense i32 array attribute.

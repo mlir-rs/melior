@@ -1,9 +1,9 @@
 use super::{Attribute, AttributeLike};
 use crate::{
-    Context, Error,
     ir::{Type, TypeLike},
+    Context, Error,
 };
-use mlir_sys::{MlirAttribute, mlirFloatAttrDoubleGet, mlirFloatAttrGetValueDouble};
+use mlir_sys::{mlirFloatAttrDoubleGet, mlirFloatAttrGetValueDouble, MlirAttribute};
 
 /// A float attribute.
 #[derive(Clone, Copy, Hash)]

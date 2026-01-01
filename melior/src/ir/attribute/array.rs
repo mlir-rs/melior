@@ -1,7 +1,7 @@
 use super::{Attribute, AttributeLike};
 use crate::{Context, Error};
 use mlir_sys::{
-    MlirAttribute, mlirArrayAttrGet, mlirArrayAttrGetElement, mlirArrayAttrGetNumElements,
+    mlirArrayAttrGet, mlirArrayAttrGetElement, mlirArrayAttrGetNumElements, MlirAttribute,
 };
 
 /// An array attribute.
@@ -56,7 +56,7 @@ attribute_traits!(ArrayAttribute, is_dense_i64_array, "dense i64 array");
 #[cfg(test)]
 mod tests {
     use crate::{
-        ir::{Type, attribute::IntegerAttribute, r#type::IntegerType},
+        ir::{attribute::IntegerAttribute, r#type::IntegerType, Type},
         test::create_test_context,
     };
 

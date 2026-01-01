@@ -1,11 +1,11 @@
-use super::{TypeLike, shaped_type_like::ShapedTypeLike};
+use super::{shaped_type_like::ShapedTypeLike, TypeLike};
 use crate::{
+    ir::{attribute::AttributeLike, Attribute, Location, Type},
     Error,
-    ir::{Attribute, Location, Type, attribute::AttributeLike},
 };
 use mlir_sys::{
-    MlirType, mlirRankedTensorTypeGet, mlirRankedTensorTypeGetChecked,
-    mlirRankedTensorTypeGetEncoding,
+    mlirRankedTensorTypeGet, mlirRankedTensorTypeGetChecked, mlirRankedTensorTypeGetEncoding,
+    MlirType,
 };
 
 /// A ranked tensor type.

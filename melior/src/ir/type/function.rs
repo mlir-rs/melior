@@ -1,8 +1,8 @@
 use super::TypeLike;
-use crate::{Context, Error, ir::Type};
+use crate::{ir::Type, Context, Error};
 use mlir_sys::{
-    MlirType, mlirFunctionTypeGet, mlirFunctionTypeGetInput, mlirFunctionTypeGetNumInputs,
-    mlirFunctionTypeGetNumResults, mlirFunctionTypeGetResult,
+    mlirFunctionTypeGet, mlirFunctionTypeGetInput, mlirFunctionTypeGetNumInputs,
+    mlirFunctionTypeGetNumResults, mlirFunctionTypeGetResult, MlirType,
 };
 
 /// A function type.

@@ -1,11 +1,11 @@
-use super::{TypeLike, shaped_type_like::ShapedTypeLike};
+use super::{shaped_type_like::ShapedTypeLike, TypeLike};
 use crate::{
+    ir::{affine_map::AffineMap, attribute::AttributeLike, Attribute, Location, Type},
     Error,
-    ir::{Attribute, Location, Type, affine_map::AffineMap, attribute::AttributeLike},
 };
 use mlir_sys::{
-    MlirType, mlirMemRefTypeGet, mlirMemRefTypeGetAffineMap, mlirMemRefTypeGetChecked,
-    mlirMemRefTypeGetLayout, mlirMemRefTypeGetMemorySpace,
+    mlirMemRefTypeGet, mlirMemRefTypeGetAffineMap, mlirMemRefTypeGetChecked,
+    mlirMemRefTypeGetLayout, mlirMemRefTypeGetMemorySpace, MlirType,
 };
 
 /// A mem-ref type.

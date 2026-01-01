@@ -1,9 +1,9 @@
 use super::{Attribute, AttributeLike};
 use crate::{
-    Error,
     ir::{Type, TypeLike},
+    Error,
 };
-use mlir_sys::{MlirAttribute, mlirTypeAttrGet, mlirTypeAttrGetValue};
+use mlir_sys::{mlirTypeAttrGet, mlirTypeAttrGetValue, MlirAttribute};
 
 /// A type attribute.
 #[derive(Clone, Copy, Hash)]

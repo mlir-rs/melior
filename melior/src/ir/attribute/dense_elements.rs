@@ -1,11 +1,11 @@
 use super::{Attribute, AttributeLike};
 use crate::{
-    Error,
     ir::{Type, TypeLike},
+    Error,
 };
 use mlir_sys::{
-    MlirAttribute, mlirDenseElementsAttrGet, mlirDenseElementsAttrGetInt32Value,
-    mlirDenseElementsAttrGetInt64Value, mlirElementsAttrGetNumElements,
+    mlirDenseElementsAttrGet, mlirDenseElementsAttrGetInt32Value,
+    mlirDenseElementsAttrGetInt64Value, mlirElementsAttrGetNumElements, MlirAttribute,
 };
 
 /// A dense elements attribute.

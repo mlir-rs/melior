@@ -1,5 +1,5 @@
 use super::Attribute;
-use mlir_sys::{MlirAttribute, mlirDisctinctAttrCreate};
+use mlir_sys::{mlirDisctinctAttrCreate, MlirAttribute};
 
 /// A disctinct attribute.
 #[derive(Clone, Copy, Hash)]

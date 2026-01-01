@@ -1,9 +1,9 @@
 use super::TypeLike;
-use crate::{Context, Error, ir::Type};
+use crate::{ir::Type, Context, Error};
 use mlir_sys::{
-    MlirType, mlirIntegerTypeGet, mlirIntegerTypeGetWidth, mlirIntegerTypeIsSigned,
+    mlirIntegerTypeGet, mlirIntegerTypeGetWidth, mlirIntegerTypeIsSigned,
     mlirIntegerTypeIsSignless, mlirIntegerTypeIsUnsigned, mlirIntegerTypeSignedGet,
-    mlirIntegerTypeUnsignedGet,
+    mlirIntegerTypeUnsignedGet, MlirType,
 };
 
 /// A integer type.

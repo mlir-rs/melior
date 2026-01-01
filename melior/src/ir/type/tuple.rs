@@ -1,6 +1,6 @@
 use super::TypeLike;
-use crate::{Context, Error, ir::Type};
-use mlir_sys::{MlirType, mlirTupleTypeGet, mlirTupleTypeGetNumTypes, mlirTupleTypeGetType};
+use crate::{ir::Type, Context, Error};
+use mlir_sys::{mlirTupleTypeGet, mlirTupleTypeGetNumTypes, mlirTupleTypeGetType, MlirType};
 
 /// A tuple type.
 #[derive(Clone, Copy, Debug, Hash)]
