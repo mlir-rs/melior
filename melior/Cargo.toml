@@ -1,12 +1,13 @@
 [package]
 name = "melior"
 version = "0.26.2"
-edition = "2021"
+edition.workspace = true
 description = "The rustic MLIR bindings in Rust"
 documentation = "https://mlir-rs.github.io/melior/melior/"
-repository = "https://github.com/mlir-rs/melior"
-license = "Apache-2.0"
-keywords = ["llvm", "mlir"]
+readme.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
 categories = ["api-bindings"]
 
 [dependencies]
