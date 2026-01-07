@@ -11,14 +11,14 @@ pub struct OperationResult<'c, 'a> {
     value: Value<'c, 'a>,
 }
 
-impl<'c> OperationResult<'c, '_> {
+impl<'c, 'a> OperationResult<'c, 'a> {
     /// Returns a result number.
     pub fn result_number(&self) -> usize {
         unsafe { mlirOpResultGetResultNumber(self.value.to_raw()) as usize }
     }
 
     /// Returns an owner operation.
-    pub fn owner(&self) -> OperationRef<'c, '_> {
+    pub fn owner(&self) -> OperationRef<'c, 'a> {
         unsafe { OperationRef::from_raw(mlirOpResultGetOwner(self.value.to_raw())) }
     }
 
@@ -62,9 +62,8 @@ impl<'c, 'a> TryFrom<Value<'c, 'a>> for OperationResult<'c, 'a> {
 mod tests {
     use crate::{
         ir::{
-            block::BlockLike,
             operation::{operation_like::OperationLike, OperationBuilder},
-            Block, Location, Type,
+            Location, Type,
         },
         test::create_test_context,
     };
@@ -86,9 +85,15 @@ mod tests {
     #[test]
     fn owner() {
         let context = create_test_context();
-        let r#type = Type::parse(&context, "index").unwrap();
-        let block = Block::new(&[(r#type, Location::unknown(&context))]);
+        context.set_allow_unregistered_dialects(true);
 
-        assert_eq!(&*block.argument(0).unwrap().owner(), &block);
+        let r#type = Type::parse(&context, "index").unwrap();
+        let operation = OperationBuilder::new("foo", Location::unknown(&context))
+            .add_results(&[r#type])
+            .build()
+            .unwrap();
+
+        let op_ref = operation.result(0).unwrap().owner();
+        assert_eq!(*op_ref, operation);
     }
 }
