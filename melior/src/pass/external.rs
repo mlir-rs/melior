@@ -43,25 +43,25 @@ impl ExternalPass<'_> {
 }
 
 unsafe extern "C" fn callback_construct<'a, T: RunExternalPass<'a>>(pass: *mut T) {
-    pass.as_mut()
+    unsafe { pass.as_mut() }
         .expect("pass should be valid when called")
         .construct();
 }
 
 unsafe extern "C" fn callback_destruct<'a, T: RunExternalPass<'a>>(pass: *mut T) {
-    pass.as_mut()
+    unsafe { pass.as_mut() }
         .expect("pass should be valid when called")
         .destruct();
-    drop_in_place(pass);
+    unsafe { drop_in_place(pass) };
 }
 
 unsafe extern "C" fn callback_initialize<'a, T: RunExternalPass<'a>>(
     context: MlirContext,
     pass: *mut T,
 ) -> MlirLogicalResult {
-    pass.as_mut()
+    unsafe { pass.as_mut() }
         .expect("pass should be valid when called")
-        .initialize(ContextRef::from_raw(context));
+        .initialize(unsafe { ContextRef::from_raw(context) });
 
     MlirLogicalResult { value: 1 }
 }
@@ -71,17 +71,16 @@ unsafe extern "C" fn callback_run<'a, T: RunExternalPass<'a>>(
     mlir_pass: MlirExternalPass,
     pass: *mut T,
 ) {
-    pass.as_mut()
+    unsafe { pass.as_mut() }
         .expect("pass should be valid when called")
-        .run(
-            OperationRef::from_raw(operation),
-            ExternalPass::from_raw(mlir_pass),
-        )
+        .run(unsafe { OperationRef::from_raw(operation) }, unsafe {
+            ExternalPass::from_raw(mlir_pass)
+        })
 }
 
 unsafe extern "C" fn callback_clone<'a, T: RunExternalPass<'a>>(pass: *mut T) -> *mut T {
     Box::<T>::into_raw(Box::new(
-        pass.as_mut()
+        unsafe { pass.as_mut() }
             .expect("pass should be valid when called")
             .clone(),
     ))

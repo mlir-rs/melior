@@ -53,9 +53,9 @@ impl<'c> Block<'c> {
     // TODO Implement this for BlockRefMut instead and mark it safe.
     pub unsafe fn detach(&self) -> Option<Block<'c>> {
         if self.parent_region().is_some() {
-            mlirBlockDetach(self.raw);
+            unsafe { mlirBlockDetach(self.raw) };
 
-            Some(Block::from_raw(self.raw))
+            Some(unsafe { Block::from_raw(self.raw) })
         } else {
             None
         }
@@ -161,7 +161,7 @@ impl BlockRef<'_, '_> {
         if raw.ptr.is_null() {
             None
         } else {
-            Some(Self::from_raw(raw))
+            Some(unsafe { Self::from_raw(raw) })
         }
     }
 }

@@ -29,7 +29,7 @@ impl<'c, 'a> OperationResult<'c, 'a> {
     /// A raw object must be valid.
     pub unsafe fn from_raw(value: MlirValue) -> Self {
         Self {
-            value: Value::from_raw(value),
+            value: unsafe { Value::from_raw(value) },
         }
     }
 }

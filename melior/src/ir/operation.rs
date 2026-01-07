@@ -58,7 +58,7 @@ impl Operation<'_> {
         if raw.ptr.is_null() {
             None
         } else {
-            Some(Self::from_raw(raw))
+            Some(unsafe { Self::from_raw(raw) })
         }
     }
 
@@ -149,7 +149,7 @@ impl<'c, 'a> OperationRef<'c, 'a> {
         // As we can't deref OperationRef<'a> into `&'a Operation`, we forcibly cast its
         // lifetime here to extend it from the lifetime of `ObjectRef<'a>` itself into
         // `'a`.
-        transmute(self)
+        unsafe { transmute(self) }
     }
 
     /// Converts an operation reference into a raw object.
@@ -178,7 +178,7 @@ impl<'c, 'a> OperationRef<'c, 'a> {
         if raw.ptr.is_null() {
             None
         } else {
-            Some(Self::from_raw(raw))
+            Some(unsafe { Self::from_raw(raw) })
         }
     }
 }
@@ -251,7 +251,7 @@ impl OperationRefMut<'_, '_> {
         if raw.ptr.is_null() {
             None
         } else {
-            Some(Self::from_raw(raw))
+            Some(unsafe { Self::from_raw(raw) })
         }
     }
 }

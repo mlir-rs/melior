@@ -178,13 +178,13 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     /// Returns a attribute at a position.
     fn attribute_at(&self, index: usize) -> Result<(Identifier<'c>, Attribute<'c>), Error> {
         if index < self.attribute_count() {
-            unsafe {
-                let named_attribute = mlirOperationGetAttribute(self.to_raw(), index as isize);
-                Ok((
-                    Identifier::from_raw(named_attribute.name),
-                    Attribute::from_raw(named_attribute.attribute),
-                ))
-            }
+            let named_attribute =
+                unsafe { mlirOperationGetAttribute(self.to_raw(), index as isize) };
+
+            Ok((
+                unsafe { Identifier::from_raw(named_attribute.name) },
+                unsafe { Attribute::from_raw(named_attribute.attribute) },
+            ))
         } else {
             Err(Error::PositionOutOfBounds {
                 name: "attribute",
@@ -278,8 +278,8 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
             operation: MlirOperation,
             data: *mut c_void,
         ) -> MlirWalkResult {
-            let callback: &mut F = &mut *(data as *mut F);
-            let operation = OperationRef::from_raw(operation);
+            let callback: &mut F = unsafe { &mut *(data as *mut F) };
+            let operation = unsafe { OperationRef::from_raw(operation) };
 
             (callback)(operation) as _
         }
