@@ -62,9 +62,8 @@ impl<'c, 'a> TryFrom<Value<'c, 'a>> for OperationResult<'c, 'a> {
 mod tests {
     use crate::{
         ir::{
-            block::BlockLike,
             operation::{operation_like::OperationLike, OperationBuilder},
-            Block, Location, Type,
+            Location, Type,
         },
         test::create_test_context,
     };
@@ -86,9 +85,15 @@ mod tests {
     #[test]
     fn owner() {
         let context = create_test_context();
-        let r#type = Type::parse(&context, "index").unwrap();
-        let block = Block::new(&[(r#type, Location::unknown(&context))]);
+        context.set_allow_unregistered_dialects(true);
 
-        assert_eq!(&*block.argument(0).unwrap().owner(), &block);
+        let r#type = Type::parse(&context, "index").unwrap();
+        let operation = OperationBuilder::new("foo", Location::unknown(&context))
+            .add_results(&[r#type])
+            .build()
+            .unwrap();
+
+        let op_ref = operation.result(0).unwrap().owner();
+        assert_eq!(*op_ref, operation);
     }
 }
