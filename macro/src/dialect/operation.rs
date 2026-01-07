@@ -23,7 +23,7 @@ use crate::dialect::{
 pub use operation_field::OperationField;
 use std::collections::HashSet;
 use syn::Ident;
-use tblgen::{error::WithLocation, record::Record, TypedInit};
+use tblgen::{TypedInit, error::WithLocation, record::Record};
 
 // spell-checker: disable-next-line
 const VOWELS: &str = "aeiou";

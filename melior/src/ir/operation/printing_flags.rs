@@ -1,7 +1,7 @@
 use mlir_sys::{
-    mlirOpPrintingFlagsCreate, mlirOpPrintingFlagsDestroy,
+    MlirOpPrintingFlags, mlirOpPrintingFlagsCreate, mlirOpPrintingFlagsDestroy,
     mlirOpPrintingFlagsElideLargeElementsAttrs, mlirOpPrintingFlagsEnableDebugInfo,
-    mlirOpPrintingFlagsPrintGenericOpForm, mlirOpPrintingFlagsUseLocalScope, MlirOpPrintingFlags,
+    mlirOpPrintingFlagsPrintGenericOpForm, mlirOpPrintingFlagsUseLocalScope,
 };
 
 /// Operation printing flags.

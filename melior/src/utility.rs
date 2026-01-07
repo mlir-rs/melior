@@ -1,12 +1,12 @@
 //! Utility functions.
 
 use crate::{
-    context::Context, dialect::DialectRegistry, ir::Module, logical_result::LogicalResult, pass,
-    string_ref::StringRef, Error,
+    Error, context::Context, dialect::DialectRegistry, ir::Module, logical_result::LogicalResult,
+    pass, string_ref::StringRef,
 };
 use mlir_sys::{
-    mlirLoadIRDLDialects, mlirParsePassPipeline, mlirRegisterAllDialects,
-    mlirRegisterAllLLVMTranslations, mlirRegisterAllPasses, MlirStringRef,
+    MlirStringRef, mlirLoadIRDLDialects, mlirParsePassPipeline, mlirRegisterAllDialects,
+    mlirRegisterAllLLVMTranslations, mlirRegisterAllPasses,
 };
 use std::{
     ffi::c_void,
@@ -61,18 +61,20 @@ pub fn load_irdl_dialects(module: &Module) -> bool {
 }
 
 unsafe extern "C" fn handle_parse_error(raw_string: MlirStringRef, data: *mut c_void) {
-    let string = StringRef::from_raw(raw_string);
-    let data = &mut *(data as *mut Option<String>);
+    unsafe {
+        let string = StringRef::from_raw(raw_string);
+        let data = &mut *(data as *mut Option<String>);
 
-    if let Some(message) = data {
-        message.extend(string.as_str())
-    } else {
-        *data = string.as_str().map(String::from).ok();
+        if let Some(message) = data {
+            message.extend(string.as_str())
+        } else {
+            *data = string.as_str().map(String::from).ok();
+        }
     }
 }
 
 pub(crate) unsafe extern "C" fn print_callback(string: MlirStringRef, data: *mut c_void) {
-    let (formatter, result) = &mut *(data as *mut (&mut Formatter, fmt::Result));
+    let (formatter, result) = unsafe { &mut *(data as *mut (&mut Formatter, fmt::Result)) };
 
     if result.is_err() {
         return;
@@ -82,7 +84,7 @@ pub(crate) unsafe extern "C" fn print_callback(string: MlirStringRef, data: *mut
         write!(
             formatter,
             "{}",
-            StringRef::from_raw(string)
+            unsafe { StringRef::from_raw(string) }
                 .as_str()
                 .map_err(|_| fmt::Error)?
         )
@@ -90,14 +92,14 @@ pub(crate) unsafe extern "C" fn print_callback(string: MlirStringRef, data: *mut
 }
 
 pub(crate) unsafe extern "C" fn print_string_callback(string: MlirStringRef, data: *mut c_void) {
-    let (writer, result) = &mut *(data as *mut (String, Result<(), Error>));
+    let (writer, result) = unsafe { &mut *(data as *mut (String, Result<(), Error>)) };
 
     if result.is_err() {
         return;
     }
 
     *result = (|| {
-        writer.push_str(StringRef::from_raw(string).as_str()?);
+        writer.push_str(unsafe { StringRef::from_raw(string) }.as_str()?);
 
         Ok(())
     })();

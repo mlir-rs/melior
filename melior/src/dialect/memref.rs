@@ -1,16 +1,16 @@
 //! `memref` dialect.
 
 use crate::{
+    Context,
     ir::{
+        Attribute, Identifier, Location, Operation, Value,
         attribute::{
             DenseI32ArrayAttribute, DenseI64ArrayAttribute, FlatSymbolRefAttribute,
             IntegerAttribute, StringAttribute, TypeAttribute,
         },
         operation::OperationBuilder,
         r#type::MemRefType,
-        Attribute, Identifier, Location, Operation, Value,
     },
-    Context,
 };
 
 /// Create a `memref.alloc` operation.
@@ -323,11 +323,11 @@ mod tests {
     use crate::{
         dialect::{func, index},
         ir::{
+            Block, Module, Region, RegionLike, Type,
             attribute::{DenseElementsAttribute, StringAttribute, TypeAttribute},
             block::BlockLike,
             operation::OperationLike,
             r#type::{FunctionType, IntegerType, RankedTensorType},
-            Block, Module, Region, RegionLike, Type,
         },
         test::create_test_context,
     };

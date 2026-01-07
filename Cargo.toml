@@ -2,5 +2,12 @@
 resolver = "2"
 members = ["macro", "melior"]
 
+[workspace.package]
+edition = "2024"
+readme = "README.md"
+repository = "https://github.com/mlir-rs/melior"
+license = "Apache-2.0"
+keywords = ["llvm", "mlir"]
+
 [profile.release]
 lto = true

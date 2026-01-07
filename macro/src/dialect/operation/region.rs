@@ -5,7 +5,7 @@ use crate::dialect::{
 };
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{parse_quote, Ident, Type};
+use syn::{Ident, Type, parse_quote};
 
 #[derive(Debug)]
 pub struct Region<'a> {

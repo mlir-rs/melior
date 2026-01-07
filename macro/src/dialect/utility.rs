@@ -1,9 +1,9 @@
 use super::error::Error;
-use comrak::{arena_tree::NodeEdge, format_commonmark, nodes::NodeValue, parse_document, Arena};
+use comrak::{Arena, arena_tree::NodeEdge, format_commonmark, nodes::NodeValue, parse_document};
 use convert_case::{Case, Casing};
 use proc_macro2::Ident;
 use quote::format_ident;
-use syn::{parse_quote, Type};
+use syn::{Type, parse_quote};
 
 const RESERVED_NAMES: &[&str] = &["name", "operation", "builder"];
 

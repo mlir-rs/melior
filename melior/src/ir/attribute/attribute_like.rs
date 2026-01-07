@@ -1,11 +1,11 @@
 use crate::{
-    ir::{r#type::TypeId, Type},
     ContextRef,
+    ir::{Type, r#type::TypeId},
 };
 use melior_macro::attribute_check_functions;
 use mlir_sys::{
-    mlirAttributeDump, mlirAttributeGetContext, mlirAttributeGetType, mlirAttributeGetTypeID,
-    MlirAttribute,
+    MlirAttribute, mlirAttributeDump, mlirAttributeGetContext, mlirAttributeGetType,
+    mlirAttributeGetTypeID,
 };
 
 /// A trait for attribute-like types.

@@ -1,8 +1,8 @@
 use crate::{
-    ir::{OperationRef, Value, ValueLike},
     Error,
+    ir::{OperationRef, Value, ValueLike},
 };
-use mlir_sys::{mlirOpResultGetOwner, mlirOpResultGetResultNumber, MlirValue};
+use mlir_sys::{MlirValue, mlirOpResultGetOwner, mlirOpResultGetResultNumber};
 use std::fmt::{self, Display, Formatter};
 
 /// An operation result.
@@ -29,7 +29,7 @@ impl<'c, 'a> OperationResult<'c, 'a> {
     /// A raw object must be valid.
     pub unsafe fn from_raw(value: MlirValue) -> Self {
         Self {
-            value: Value::from_raw(value),
+            value: unsafe { Value::from_raw(value) },
         }
     }
 }
@@ -62,8 +62,8 @@ impl<'c, 'a> TryFrom<Value<'c, 'a>> for OperationResult<'c, 'a> {
 mod tests {
     use crate::{
         ir::{
-            operation::{operation_like::OperationLike, OperationBuilder},
             Location, Type,
+            operation::{OperationBuilder, operation_like::OperationLike},
         },
         test::create_test_context,
     };

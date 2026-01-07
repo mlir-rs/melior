@@ -201,16 +201,15 @@ melior_macro::dialect! {
 mod tests {
     use super::*;
     use crate::{
-        dialect,
+        Context, dialect,
         ir::{
+            Block, BlockLike, Location, Module, Region, RegionLike, Type,
             attribute::{IntegerAttribute, StringAttribute, TypeAttribute},
             operation::OperationLike,
             r#type::{FunctionType, IntegerType},
-            Block, BlockLike, Location, Module, Region, RegionLike, Type,
         },
         pass::{self, PassManager},
         test::create_test_context,
-        Context,
     };
 
     fn convert_module<'c>(context: &'c Context, module: &mut Module<'c>) {

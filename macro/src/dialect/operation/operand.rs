@@ -6,7 +6,7 @@ use crate::dialect::{
 };
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
-use syn::{parse_quote, Type};
+use syn::{Type, parse_quote};
 
 #[derive(Debug)]
 pub struct Operand<'a> {

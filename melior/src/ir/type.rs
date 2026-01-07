@@ -19,9 +19,9 @@ pub use self::{
 use super::Location;
 use crate::{context::Context, string_ref::StringRef, utility::print_callback};
 use mlir_sys::{
-    mlirBF16TypeGet, mlirF16TypeGet, mlirF32TypeGet, mlirF64TypeGet, mlirIndexTypeGet,
+    MlirType, mlirBF16TypeGet, mlirF16TypeGet, mlirF32TypeGet, mlirF64TypeGet, mlirIndexTypeGet,
     mlirNoneTypeGet, mlirTypeEqual, mlirTypeParseGet, mlirTypePrint, mlirVectorTypeGet,
-    mlirVectorTypeGetChecked, MlirType,
+    mlirVectorTypeGetChecked,
 };
 use std::{
     ffi::c_void,
@@ -126,7 +126,7 @@ impl<'c> Type<'c> {
         if raw.ptr.is_null() {
             None
         } else {
-            Some(Self::from_raw(raw))
+            Some(unsafe { Self::from_raw(raw) })
         }
     }
 }

@@ -1,26 +1,26 @@
 use std::{ffi::c_void, fmt::Display};
 
 use mlir_sys::{
-    mlirOperationDump, mlirOperationGetAttribute, mlirOperationGetAttributeByName,
-    mlirOperationGetBlock, mlirOperationGetContext, mlirOperationGetLocation, mlirOperationGetName,
-    mlirOperationGetNextInBlock, mlirOperationGetNumAttributes, mlirOperationGetNumOperands,
-    mlirOperationGetNumRegions, mlirOperationGetNumResults, mlirOperationGetNumSuccessors,
-    mlirOperationGetOperand, mlirOperationGetParentOperation, mlirOperationGetRegion,
-    mlirOperationGetResult, mlirOperationGetSuccessor, mlirOperationPrintWithFlags,
-    mlirOperationRemoveAttributeByName, mlirOperationRemoveFromParent,
-    mlirOperationSetAttributeByName, mlirOperationVerify, mlirOperationWalk, MlirOperation,
-    MlirWalkOrder_MlirWalkPostOrder, MlirWalkOrder_MlirWalkPreOrder, MlirWalkResult,
+    MlirOperation, MlirWalkOrder_MlirWalkPostOrder, MlirWalkOrder_MlirWalkPreOrder, MlirWalkResult,
     MlirWalkResult_MlirWalkResultAdvance, MlirWalkResult_MlirWalkResultInterrupt,
-    MlirWalkResult_MlirWalkResultSkip,
+    MlirWalkResult_MlirWalkResultSkip, mlirOperationDump, mlirOperationGetAttribute,
+    mlirOperationGetAttributeByName, mlirOperationGetBlock, mlirOperationGetContext,
+    mlirOperationGetLocation, mlirOperationGetName, mlirOperationGetNextInBlock,
+    mlirOperationGetNumAttributes, mlirOperationGetNumOperands, mlirOperationGetNumRegions,
+    mlirOperationGetNumResults, mlirOperationGetNumSuccessors, mlirOperationGetOperand,
+    mlirOperationGetParentOperation, mlirOperationGetRegion, mlirOperationGetResult,
+    mlirOperationGetSuccessor, mlirOperationPrintWithFlags, mlirOperationRemoveAttributeByName,
+    mlirOperationRemoveFromParent, mlirOperationSetAttributeByName, mlirOperationVerify,
+    mlirOperationWalk,
 };
 
 use crate::{
-    ir::{Attribute, AttributeLike, BlockRef, Identifier, Location, RegionRef, Value},
     ContextRef, Error, StringRef,
+    ir::{Attribute, AttributeLike, BlockRef, Identifier, Location, RegionRef, Value},
 };
 
 use super::{
-    print_string_callback, OperationPrintingFlags, OperationRef, OperationRefMut, OperationResult,
+    OperationPrintingFlags, OperationRef, OperationRefMut, OperationResult, print_string_callback,
 };
 
 /// Order in which to traverse an operation tree.
@@ -178,13 +178,13 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     /// Returns a attribute at a position.
     fn attribute_at(&self, index: usize) -> Result<(Identifier<'c>, Attribute<'c>), Error> {
         if index < self.attribute_count() {
-            unsafe {
-                let named_attribute = mlirOperationGetAttribute(self.to_raw(), index as isize);
-                Ok((
-                    Identifier::from_raw(named_attribute.name),
-                    Attribute::from_raw(named_attribute.attribute),
-                ))
-            }
+            let named_attribute =
+                unsafe { mlirOperationGetAttribute(self.to_raw(), index as isize) };
+
+            Ok((
+                unsafe { Identifier::from_raw(named_attribute.name) },
+                unsafe { Attribute::from_raw(named_attribute.attribute) },
+            ))
         } else {
             Err(Error::PositionOutOfBounds {
                 name: "attribute",
@@ -278,8 +278,8 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
             operation: MlirOperation,
             data: *mut c_void,
         ) -> MlirWalkResult {
-            let callback: &mut F = &mut *(data as *mut F);
-            let operation = OperationRef::from_raw(operation);
+            let callback: &mut F = unsafe { &mut *(data as *mut F) };
+            let operation = unsafe { OperationRef::from_raw(operation) };
 
             (callback)(operation) as _
         }

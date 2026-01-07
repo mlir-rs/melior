@@ -2,7 +2,7 @@ mod region_like;
 
 pub use self::region_like::RegionLike;
 use super::Block;
-use mlir_sys::{mlirRegionCreate, mlirRegionDestroy, mlirRegionEqual, MlirRegion};
+use mlir_sys::{MlirRegion, mlirRegionCreate, mlirRegionDestroy, mlirRegionEqual};
 use std::{
     marker::PhantomData,
     mem::{forget, transmute},
@@ -90,7 +90,7 @@ impl RegionRef<'_, '_> {
         if raw.ptr.is_null() {
             None
         } else {
-            Some(Self::from_raw(raw))
+            Some(unsafe { Self::from_raw(raw) })
         }
     }
 }

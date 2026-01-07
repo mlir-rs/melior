@@ -3,8 +3,8 @@ use crate::{
     utility::print_callback,
 };
 use mlir_sys::{
-    mlirAffineMapDump, mlirAffineMapEqual, mlirAffineMapGetContext, mlirAffineMapPrint,
-    MlirAffineMap,
+    MlirAffineMap, mlirAffineMapDump, mlirAffineMapEqual, mlirAffineMapGetContext,
+    mlirAffineMapPrint,
 };
 use std::{
     ffi::c_void,

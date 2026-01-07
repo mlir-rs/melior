@@ -5,12 +5,13 @@ use crate::{
     string_ref::StringRef,
 };
 use mlir_sys::{
-    mlirContextAppendDialectRegistry, mlirContextAttachDiagnosticHandler, mlirContextCreate,
-    mlirContextDestroy, mlirContextDetachDiagnosticHandler, mlirContextEnableMultithreading,
-    mlirContextEqual, mlirContextGetAllowUnregisteredDialects, mlirContextGetNumLoadedDialects,
+    MlirContext, MlirDiagnostic, MlirLogicalResult, mlirContextAppendDialectRegistry,
+    mlirContextAttachDiagnosticHandler, mlirContextCreate, mlirContextDestroy,
+    mlirContextDetachDiagnosticHandler, mlirContextEnableMultithreading, mlirContextEqual,
+    mlirContextGetAllowUnregisteredDialects, mlirContextGetNumLoadedDialects,
     mlirContextGetNumRegisteredDialects, mlirContextGetOrLoadDialect,
     mlirContextIsRegisteredOperation, mlirContextLoadAllAvailableDialects,
-    mlirContextSetAllowUnregisteredDialects, MlirContext, MlirDiagnostic, MlirLogicalResult,
+    mlirContextSetAllowUnregisteredDialects,
 };
 use std::{ffi::c_void, marker::PhantomData, mem::transmute};
 
@@ -94,11 +95,16 @@ impl Context {
             diagnostic: MlirDiagnostic,
             user_data: *mut c_void,
         ) -> MlirLogicalResult {
-            LogicalResult::from((*(user_data as *mut F))(Diagnostic::from_raw(diagnostic))).to_raw()
+            LogicalResult::from(unsafe {
+                (*(user_data as *mut F))(Diagnostic::from_raw(diagnostic))
+            })
+            .to_raw()
         }
 
         unsafe extern "C" fn destroy<F: FnMut(Diagnostic) -> bool>(user_data: *mut c_void) {
-            drop(Box::from_raw(user_data as *mut F));
+            unsafe {
+                drop(Box::from_raw(user_data as *mut F));
+            }
         }
 
         unsafe {
@@ -180,7 +186,7 @@ impl<'c> ContextRef<'c> {
         // As we can't deref ContextRef<'a> into `&'a Context`, we forcibly cast its
         // lifetime here to extend it from the lifetime of `ObjectRef<'a>` itself into
         // `'a`.
-        transmute(self)
+        unsafe { transmute(self) }
     }
 }
 

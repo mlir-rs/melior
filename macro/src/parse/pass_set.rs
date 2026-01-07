@@ -1,9 +1,8 @@
 use super::IdentifierList;
 use proc_macro2::Ident;
 use syn::{
-    bracketed,
+    LitStr, Result, Token, bracketed,
     parse::{Parse, ParseStream},
-    LitStr, Result, Token,
 };
 
 pub struct PassSet {

@@ -1,14 +1,14 @@
 use super::builtin::BuiltinBlockExt;
 use crate::{
+    Context, Error,
     dialect::{
         arith::{
-            addi, andi, cmpi, divsi, divui, extsi, extui, muli, ori, shli, shrsi, shrui, subi,
-            trunci, xori, CmpiPredicate,
+            CmpiPredicate, addi, andi, cmpi, divsi, divui, extsi, extui, muli, ori, shli, shrsi,
+            shrui, subi, trunci, xori,
         },
         ods,
     },
-    ir::{r#type::IntegerType, Attribute, Block, Location, Type, Value},
-    Context, Error,
+    ir::{Attribute, Block, Location, Type, Value, r#type::IntegerType},
 };
 use core::fmt::Display;
 

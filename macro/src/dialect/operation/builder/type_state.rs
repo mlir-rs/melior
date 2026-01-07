@@ -1,6 +1,6 @@
 use quote::format_ident;
 use std::iter::repeat_n;
-use syn::{parse_quote, GenericArgument};
+use syn::{GenericArgument, parse_quote};
 
 const RESULT_PREFIX: &str = "T";
 const OPERAND_PREFIX: &str = "O";

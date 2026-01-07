@@ -1,11 +1,11 @@
 //! `scf` dialect.
 
 use crate::{
-    ir::{
-        attribute::DenseI64ArrayAttribute, operation::OperationBuilder, Identifier, Location,
-        Operation, Region, Type, Value,
-    },
     Context,
+    ir::{
+        Identifier, Location, Operation, Region, Type, Value, attribute::DenseI64ArrayAttribute,
+        operation::OperationBuilder,
+    },
 };
 
 /// Creates a `scf.condition` operation.
@@ -111,16 +111,16 @@ pub fn r#yield<'c>(values: &[Value<'c, '_>], location: Location<'c>) -> Operatio
 mod tests {
     use super::*;
     use crate::{
+        Context,
         dialect::{arith, func},
         ir::{
+            Attribute, Block, Module, RegionLike,
             attribute::{FloatAttribute, IntegerAttribute, StringAttribute, TypeAttribute},
             block::BlockLike,
             operation::OperationLike,
             r#type::{FunctionType, IntegerType, Type},
-            Attribute, Block, Module, RegionLike,
         },
         test::load_all_dialects,
-        Context,
     };
 
     #[test]

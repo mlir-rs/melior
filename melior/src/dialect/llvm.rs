@@ -1,16 +1,16 @@
 //! `llvm` dialect.
 
 use crate::{
+    Context,
     ir::{
+        Attribute, Identifier, Location, Operation, Region, Type, Value,
         attribute::{
             DenseI32ArrayAttribute, DenseI64ArrayAttribute, IntegerAttribute, StringAttribute,
             TypeAttribute,
         },
         operation::OperationBuilder,
         r#type::IntegerType,
-        Attribute, Identifier, Location, Operation, Region, Type, Value,
     },
-    Context,
 };
 pub use alloca_options::*;
 pub use load_store_options::*;
@@ -373,16 +373,16 @@ mod tests {
         dialect::{
             arith, func,
             llvm::{
-                attributes::{linkage, Linkage},
+                attributes::{Linkage, linkage},
                 r#type::function,
             },
         },
         ir::{
+            Block, Module, Region, RegionLike,
             attribute::{IntegerAttribute, StringAttribute, TypeAttribute},
             block::BlockLike,
             operation::OperationLike,
             r#type::{FunctionType, IntegerType},
-            Block, Module, Region, RegionLike,
         },
         pass::{self, PassManager},
         test::create_test_context,

@@ -1,8 +1,8 @@
 use proc_macro2::Ident;
 use syn::{
+    Result, Token,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    Result, Token,
 };
 
 pub struct IdentifierList {

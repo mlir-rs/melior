@@ -1,16 +1,16 @@
 //! `cf` dialect.
 
 use crate::{
+    Context, Error,
     ir::{
+        Block, Identifier, Location, Operation, Type, Value,
         attribute::{
             DenseElementsAttribute, DenseI32ArrayAttribute, IntegerAttribute, StringAttribute,
         },
         block::BlockLike,
         operation::OperationBuilder,
         r#type::RankedTensorType,
-        Block, Identifier, Location, Operation, Type, Value,
     },
-    Context, Error,
 };
 
 /// Creates a `cf.assert` operation.
@@ -148,18 +148,18 @@ pub fn switch<'c>(
 mod tests {
     use super::*;
     use crate::{
+        Context,
         dialect::{
             arith::{self, CmpiPredicate},
             func, index,
         },
         ir::{
+            Block, Module, Region, RegionLike,
             attribute::{IntegerAttribute, StringAttribute, TypeAttribute},
             operation::OperationLike,
             r#type::{FunctionType, IntegerType, Type},
-            Block, Module, Region, RegionLike,
         },
         test::load_all_dialects,
-        Context,
     };
 
     #[test]

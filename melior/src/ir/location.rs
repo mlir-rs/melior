@@ -5,9 +5,9 @@ use crate::{
     utility::print_callback,
 };
 use mlir_sys::{
-    mlirLocationCallSiteGet, mlirLocationEqual, mlirLocationFileLineColGet, mlirLocationFusedGet,
-    mlirLocationGetContext, mlirLocationNameGet, mlirLocationPrint, mlirLocationUnknownGet,
-    MlirLocation,
+    MlirLocation, mlirLocationCallSiteGet, mlirLocationEqual, mlirLocationFileLineColGet,
+    mlirLocationFusedGet, mlirLocationGetContext, mlirLocationNameGet, mlirLocationPrint,
+    mlirLocationUnknownGet,
 };
 use std::{
     ffi::c_void,

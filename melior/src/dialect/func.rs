@@ -1,13 +1,13 @@
 //! `func` dialect.
 
 use crate::{
+    Context,
     ir::{
+        Attribute, Identifier, Location, Operation, Region, Type, Value,
         attribute::{FlatSymbolRefAttribute, StringAttribute, TypeAttribute},
         operation::OperationBuilder,
         r#type::FunctionType,
-        Attribute, Identifier, Location, Operation, Region, Type, Value,
     },
-    Context,
 };
 
 /// Create a `func.call` operation.
@@ -87,7 +87,7 @@ pub fn r#return<'c>(operands: &[Value<'c, '_>], location: Location<'c>) -> Opera
 mod tests {
     use super::*;
     use crate::{
-        ir::{block::BlockLike, operation::OperationLike, Block, Module, RegionLike, Type},
+        ir::{Block, Module, RegionLike, Type, block::BlockLike, operation::OperationLike},
         test::create_test_context,
     };
 

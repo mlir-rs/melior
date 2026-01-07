@@ -1,11 +1,11 @@
 //! `arith` dialect.
 
 use crate::{
-    ir::{
-        attribute::IntegerAttribute, operation::OperationBuilder, r#type::IntegerType, Attribute,
-        Identifier, Location, Operation, Value, ValueLike,
-    },
     Context,
+    ir::{
+        Attribute, Identifier, Location, Operation, Value, ValueLike, attribute::IntegerAttribute,
+        operation::OperationBuilder, r#type::IntegerType,
+    },
 };
 
 // spell-checker: disable
@@ -171,16 +171,16 @@ melior_macro::typed_unary_operations!(
 mod tests {
     use super::*;
     use crate::{
+        Context,
         dialect::func,
         ir::{
+            Attribute, Block, Location, Module, Region, RegionLike, Type,
             attribute::{StringAttribute, TypeAttribute},
             block::BlockLike,
             operation::OperationLike,
             r#type::FunctionType,
-            Attribute, Block, Location, Module, Region, RegionLike, Type,
         },
         test::load_all_dialects,
-        Context,
     };
 
     fn create_context() -> Context {

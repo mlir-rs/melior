@@ -1,15 +1,15 @@
 use super::{arith::ArithBlockExt, builtin::BuiltinBlockExt};
 use crate::{
+    Context, Error,
     dialect::{llvm::r#type, ods},
     ir::{
+        Block, Location, Type, Value, ValueLike,
         attribute::{
             DenseI32ArrayAttribute, DenseI64ArrayAttribute, IntegerAttribute, TypeAttribute,
         },
         block::BlockLike,
         r#type::IntegerType,
-        Block, Location, Type, Value, ValueLike,
     },
-    Context, Error,
 };
 
 /// An index for an `llvm.getelementptr` instruction.

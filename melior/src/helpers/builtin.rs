@@ -1,6 +1,6 @@
 use crate::{
-    ir::{block::BlockLike, Block, Operation, Value},
     Error,
+    ir::{Block, Operation, Value, block::BlockLike},
 };
 
 /// A block extension for a `builtin` dialect and constructs.

@@ -4,10 +4,10 @@ mod handler_id;
 mod severity;
 
 pub use self::{handler_id::DiagnosticHandlerId, severity::DiagnosticSeverity};
-use crate::{ir::Location, utility::print_callback, Error};
+use crate::{Error, ir::Location, utility::print_callback};
 use mlir_sys::{
-    mlirDiagnosticGetLocation, mlirDiagnosticGetNote, mlirDiagnosticGetNumNotes,
-    mlirDiagnosticGetSeverity, mlirDiagnosticPrint, MlirDiagnostic,
+    MlirDiagnostic, mlirDiagnosticGetLocation, mlirDiagnosticGetNote, mlirDiagnosticGetNumNotes,
+    mlirDiagnosticGetSeverity, mlirDiagnosticPrint,
 };
 use std::{
     ffi::c_void,
@@ -78,7 +78,7 @@ impl Display for Diagnostic<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ir::Module, Context};
+    use crate::{Context, ir::Module};
 
     #[test]
     fn handle_diagnostic() {

@@ -1,8 +1,8 @@
 use super::PassManager;
 use crate::{pass::Pass, string_ref::StringRef};
 use mlir_sys::{
-    mlirOpPassManagerAddOwnedPass, mlirOpPassManagerGetNestedUnder, mlirPrintPassPipeline,
-    MlirOpPassManager, MlirStringRef,
+    MlirOpPassManager, MlirStringRef, mlirOpPassManagerAddOwnedPass,
+    mlirOpPassManagerGetNestedUnder, mlirPrintPassPipeline,
 };
 use std::{
     ffi::c_void,
@@ -54,12 +54,12 @@ impl Display for OperationPassManager<'_, '_> {
         let mut data = (formatter, Ok(()));
 
         unsafe extern "C" fn callback(string: MlirStringRef, data: *mut c_void) {
-            let data = &mut *(data as *mut (&mut Formatter, fmt::Result));
+            let data = unsafe { &mut *(data as *mut (&mut Formatter, fmt::Result)) };
             let result = (|| -> fmt::Result {
                 write!(
                     data.0,
                     "{}",
-                    StringRef::from_raw(string)
+                    unsafe { StringRef::from_raw(string) }
                         .as_str()
                         .map_err(|_| fmt::Error)?
                 )

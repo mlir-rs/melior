@@ -1,8 +1,8 @@
-use crate::{ir::Module, logical_result::LogicalResult, string_ref::StringRef, Error};
+use crate::{Error, ir::Module, logical_result::LogicalResult, string_ref::StringRef};
 use mlir_sys::{
-    mlirExecutionEngineCreate, mlirExecutionEngineDestroy, mlirExecutionEngineDumpToObjectFile,
-    mlirExecutionEngineInvokePacked, mlirExecutionEngineLookup, mlirExecutionEngineRegisterSymbol,
-    MlirExecutionEngine,
+    MlirExecutionEngine, mlirExecutionEngineCreate, mlirExecutionEngineDestroy,
+    mlirExecutionEngineDumpToObjectFile, mlirExecutionEngineInvokePacked,
+    mlirExecutionEngineLookup, mlirExecutionEngineRegisterSymbol,
 };
 
 /// An execution engine.
@@ -49,11 +49,13 @@ impl ExecutionEngine {
     /// argument. If those pointers are invalid or misaligned, calling this
     /// function might result in undefined behavior.
     pub unsafe fn invoke_packed(&self, name: &str, arguments: &mut [*mut ()]) -> Result<(), Error> {
-        let result = LogicalResult::from_raw(mlirExecutionEngineInvokePacked(
-            self.raw,
-            StringRef::new(name).to_raw(),
-            arguments.as_mut_ptr() as _,
-        ));
+        let result = LogicalResult::from_raw(unsafe {
+            mlirExecutionEngineInvokePacked(
+                self.raw,
+                StringRef::new(name).to_raw(),
+                arguments.as_mut_ptr() as _,
+            )
+        });
 
         if result.is_success() {
             Ok(())
@@ -70,7 +72,9 @@ impl ExecutionEngine {
     /// given pointer is invalid or misaligned, calling this function might
     /// result in undefined behavior.
     pub unsafe fn register_symbol(&self, name: &str, ptr: *mut ()) {
-        mlirExecutionEngineRegisterSymbol(self.raw, StringRef::new(name).to_raw(), ptr as _);
+        unsafe {
+            mlirExecutionEngineRegisterSymbol(self.raw, StringRef::new(name).to_raw(), ptr as _);
+        }
     }
 
     /// Dumps a module to an object file.

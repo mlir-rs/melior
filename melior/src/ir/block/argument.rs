@@ -1,10 +1,10 @@
 use super::Value;
 use crate::{
-    ir::{BlockRef, Type, TypeLike, ValueLike},
     Error,
+    ir::{BlockRef, Type, TypeLike, ValueLike},
 };
 use mlir_sys::{
-    mlirBlockArgumentGetArgNumber, mlirBlockArgumentGetOwner, mlirBlockArgumentSetType, MlirValue,
+    MlirValue, mlirBlockArgumentGetArgNumber, mlirBlockArgumentGetOwner, mlirBlockArgumentSetType,
 };
 use std::fmt::{self, Display, Formatter};
 
@@ -37,7 +37,7 @@ impl<'c> BlockArgument<'c, '_> {
     /// A raw object must be valid.
     pub unsafe fn from_raw(value: MlirValue) -> Self {
         Self {
-            value: Value::from_raw(value),
+            value: unsafe { Value::from_raw(value) },
         }
     }
 }
@@ -71,7 +71,7 @@ mod tests {
     use super::*;
     use crate::{
         context::Context,
-        ir::{block::BlockLike, Block, Location},
+        ir::{Block, Location, block::BlockLike},
     };
 
     #[test]

@@ -22,7 +22,7 @@ use std::{
     path::{Component, Path},
     str,
 };
-use tblgen::{record::Record, record_keeper::RecordKeeper, TableGenParser};
+use tblgen::{TableGenParser, record::Record, record_keeper::RecordKeeper};
 
 const LLVM_INCLUDE_DIRECTORY: &str = env!("LLVM_INCLUDE_DIRECTORY");
 

@@ -1,11 +1,11 @@
-use super::{shaped_type_like::ShapedTypeLike, TypeLike};
+use super::{TypeLike, shaped_type_like::ShapedTypeLike};
 use crate::{
-    ir::{affine_map::AffineMap, attribute::AttributeLike, Attribute, Location, Type},
     Error,
+    ir::{Attribute, Location, Type, affine_map::AffineMap, attribute::AttributeLike},
 };
 use mlir_sys::{
-    mlirMemRefTypeGet, mlirMemRefTypeGetAffineMap, mlirMemRefTypeGetChecked,
-    mlirMemRefTypeGetLayout, mlirMemRefTypeGetMemorySpace, MlirType,
+    MlirType, mlirMemRefTypeGet, mlirMemRefTypeGetAffineMap, mlirMemRefTypeGetChecked,
+    mlirMemRefTypeGetLayout, mlirMemRefTypeGetMemorySpace,
 };
 
 /// A mem-ref type.
@@ -72,7 +72,7 @@ impl<'c> MemRefType<'c> {
         if raw.ptr.is_null() {
             None
         } else {
-            Some(Self::from_raw(raw))
+            Some(unsafe { Self::from_raw(raw) })
         }
     }
 }

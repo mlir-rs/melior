@@ -2,11 +2,11 @@
 
 use super::arith::CmpiPredicate;
 use crate::{
-    ir::{
-        attribute::IntegerAttribute, operation::OperationBuilder, Attribute, Identifier, Location,
-        Operation, Value,
-    },
     Context,
+    ir::{
+        Attribute, Identifier, Location, Operation, Value, attribute::IntegerAttribute,
+        operation::OperationBuilder,
+    },
 };
 
 // spell-checker: disable
@@ -72,16 +72,16 @@ melior_macro::typed_unary_operations!(index, [casts, castu]);
 mod tests {
     use super::*;
     use crate::{
+        Context,
         dialect::func,
         ir::{
+            Block, Location, Module, Region, RegionLike, Type,
             attribute::{StringAttribute, TypeAttribute},
             block::BlockLike,
             operation::OperationLike,
             r#type::{FunctionType, IntegerType},
-            Block, Location, Module, Region, RegionLike, Type,
         },
         test::load_all_dialects,
-        Context,
     };
 
     fn create_context() -> Context {

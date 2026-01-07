@@ -12,16 +12,16 @@ pub use self::{
     result::OperationResult,
 };
 use crate::{
+    Error,
     context::Context,
     utility::{print_callback, print_string_callback},
-    Error,
 };
 use core::{
     fmt,
     mem::{forget, transmute},
 };
 use mlir_sys::{
-    mlirOperationClone, mlirOperationDestroy, mlirOperationEqual, mlirOperationPrint, MlirOperation,
+    MlirOperation, mlirOperationClone, mlirOperationDestroy, mlirOperationEqual, mlirOperationPrint,
 };
 use std::{
     ffi::c_void,
@@ -58,7 +58,7 @@ impl Operation<'_> {
         if raw.ptr.is_null() {
             None
         } else {
-            Some(Self::from_raw(raw))
+            Some(unsafe { Self::from_raw(raw) })
         }
     }
 
@@ -149,7 +149,7 @@ impl<'c, 'a> OperationRef<'c, 'a> {
         // As we can't deref OperationRef<'a> into `&'a Operation`, we forcibly cast its
         // lifetime here to extend it from the lifetime of `ObjectRef<'a>` itself into
         // `'a`.
-        transmute(self)
+        unsafe { transmute(self) }
     }
 
     /// Converts an operation reference into a raw object.
@@ -178,7 +178,7 @@ impl<'c, 'a> OperationRef<'c, 'a> {
         if raw.ptr.is_null() {
             None
         } else {
-            Some(Self::from_raw(raw))
+            Some(unsafe { Self::from_raw(raw) })
         }
     }
 }
@@ -251,7 +251,7 @@ impl OperationRefMut<'_, '_> {
         if raw.ptr.is_null() {
             None
         } else {
-            Some(Self::from_raw(raw))
+            Some(unsafe { Self::from_raw(raw) })
         }
     }
 }
@@ -303,8 +303,8 @@ mod tests {
     use crate::{
         context::Context,
         ir::{
-            attribute::StringAttribute, Block, BlockLike, Identifier, Location, Region, RegionLike,
-            Type, Value,
+            Block, BlockLike, Identifier, Location, Region, RegionLike, Type, Value,
+            attribute::StringAttribute,
         },
         test::create_test_context,
     };

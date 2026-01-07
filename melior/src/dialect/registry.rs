@@ -1,4 +1,4 @@
-use mlir_sys::{mlirDialectRegistryCreate, mlirDialectRegistryDestroy, MlirDialectRegistry};
+use mlir_sys::{MlirDialectRegistry, mlirDialectRegistryCreate, mlirDialectRegistryDestroy};
 
 /// A dialect registry.
 #[derive(Debug)]
