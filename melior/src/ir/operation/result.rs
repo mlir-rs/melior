@@ -11,14 +11,14 @@ pub struct OperationResult<'c, 'a> {
     value: Value<'c, 'a>,
 }
 
-impl<'c> OperationResult<'c, '_> {
+impl<'c, 'a> OperationResult<'c, 'a> {
     /// Returns a result number.
     pub fn result_number(&self) -> usize {
         unsafe { mlirOpResultGetResultNumber(self.value.to_raw()) as usize }
     }
 
     /// Returns an owner operation.
-    pub fn owner(&self) -> OperationRef<'c, '_> {
+    pub fn owner(&self) -> OperationRef<'c, 'a> {
         unsafe { OperationRef::from_raw(mlirOpResultGetOwner(self.value.to_raw())) }
     }
 
