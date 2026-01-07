@@ -1,15 +1,15 @@
 use super::{BlockArgument, BlockRef, TypeLike};
 use crate::{
-    ir::{operation::OperationRefMut, Location, Operation, OperationRef, RegionRef, Type, Value},
     Error,
+    ir::{Location, Operation, OperationRef, RegionRef, Type, Value, operation::OperationRefMut},
 };
 use core::fmt::Display;
 use mlir_sys::{
-    mlirBlockAddArgument, mlirBlockAppendOwnedOperation, mlirBlockGetArgument,
+    MlirBlock, mlirBlockAddArgument, mlirBlockAppendOwnedOperation, mlirBlockGetArgument,
     mlirBlockGetFirstOperation, mlirBlockGetNextInRegion, mlirBlockGetNumArguments,
     mlirBlockGetParentOperation, mlirBlockGetParentRegion, mlirBlockGetTerminator,
     mlirBlockInsertOwnedOperation, mlirBlockInsertOwnedOperationAfter,
-    mlirBlockInsertOwnedOperationBefore, MlirBlock,
+    mlirBlockInsertOwnedOperationBefore,
 };
 
 /// A trait for block-like types.

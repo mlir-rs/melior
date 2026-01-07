@@ -1,4 +1,4 @@
-use mlir_sys::{mlirStringRefEqual, MlirStringRef};
+use mlir_sys::{MlirStringRef, mlirStringRefEqual};
 use std::{
     ffi::CStr,
     marker::PhantomData,

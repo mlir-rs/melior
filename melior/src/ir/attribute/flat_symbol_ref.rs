@@ -1,6 +1,6 @@
 use super::{Attribute, AttributeLike};
 use crate::{Context, Error, StringRef};
-use mlir_sys::{mlirFlatSymbolRefAttrGet, mlirFlatSymbolRefAttrGetValue, MlirAttribute};
+use mlir_sys::{MlirAttribute, mlirFlatSymbolRefAttrGet, mlirFlatSymbolRefAttrGetValue};
 
 /// A flat symbol ref attribute.
 #[derive(Clone, Copy, Hash)]

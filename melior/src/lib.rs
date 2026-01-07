@@ -35,10 +35,10 @@ mod tests {
         context::Context,
         dialect::{self, arith, func, scf},
         ir::{
+            Block, BlockLike, Location, Module, Region, RegionLike, Type, Value,
             attribute::{IntegerAttribute, StringAttribute, TypeAttribute},
             operation::{OperationBuilder, OperationLike},
             r#type::{FunctionType, IntegerType},
-            Block, BlockLike, Location, Module, Region, RegionLike, Type, Value,
         },
         test::load_all_dialects,
     };

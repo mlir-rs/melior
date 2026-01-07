@@ -41,8 +41,8 @@ pub trait ShapedTypeLike<'c>: TypeLike<'c> {
 mod tests {
     use super::*;
     use crate::{
-        ir::{r#type::MemRefType, Type},
         Context,
+        ir::{Type, r#type::MemRefType},
     };
 
     #[test]

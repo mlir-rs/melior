@@ -1,12 +1,12 @@
 use super::DialectRegistry;
 use crate::{context::Context, dialect::Dialect, string_ref::StringRef};
 use mlir_sys::{
-    mlirDialectHandleGetNamespace, mlirDialectHandleInsertDialect, mlirDialectHandleLoadDialect,
-    mlirDialectHandleRegisterDialect, mlirGetDialectHandle__async__, mlirGetDialectHandle__cf__,
-    mlirGetDialectHandle__func__, mlirGetDialectHandle__gpu__, mlirGetDialectHandle__linalg__,
-    mlirGetDialectHandle__llvm__, mlirGetDialectHandle__pdl__, mlirGetDialectHandle__quant__,
-    mlirGetDialectHandle__scf__, mlirGetDialectHandle__shape__,
-    mlirGetDialectHandle__sparse_tensor__, mlirGetDialectHandle__tensor__, MlirDialectHandle,
+    MlirDialectHandle, mlirDialectHandleGetNamespace, mlirDialectHandleInsertDialect,
+    mlirDialectHandleLoadDialect, mlirDialectHandleRegisterDialect, mlirGetDialectHandle__async__,
+    mlirGetDialectHandle__cf__, mlirGetDialectHandle__func__, mlirGetDialectHandle__gpu__,
+    mlirGetDialectHandle__linalg__, mlirGetDialectHandle__llvm__, mlirGetDialectHandle__pdl__,
+    mlirGetDialectHandle__quant__, mlirGetDialectHandle__scf__, mlirGetDialectHandle__shape__,
+    mlirGetDialectHandle__sparse_tensor__, mlirGetDialectHandle__tensor__,
 };
 
 /// A dialect handle.

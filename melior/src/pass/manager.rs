@@ -1,17 +1,16 @@
 use super::OperationPassManager;
 use crate::{
+    Error,
     context::Context,
-    ir::{operation::OperationPrintingFlags, Module},
+    ir::{Module, operation::OperationPrintingFlags},
     logical_result::LogicalResult,
     pass::Pass,
     string_ref::StringRef,
-    Error,
 };
 use mlir_sys::{
-    mlirPassManagerAddOwnedPass, mlirPassManagerCreate, mlirPassManagerDestroy,
+    MlirPassManager, mlirPassManagerAddOwnedPass, mlirPassManagerCreate, mlirPassManagerDestroy,
     mlirPassManagerEnableIRPrinting, mlirPassManagerEnableVerifier,
     mlirPassManagerGetAsOpPassManager, mlirPassManagerGetNestedUnder, mlirPassManagerRunOnOp,
-    MlirPassManager,
 };
 use std::{marker::PhantomData, mem::forget, path::PathBuf};
 
@@ -266,12 +265,14 @@ mod tests {
         let context = Context::new();
         let manager = PassManager::new(&context);
 
-        insta::assert_snapshot!(parse_pass_pipeline(
-            manager.as_operation_pass_manager(),
-            "builtin.module(func.func(print-op-stats{json=false}),\
+        insta::assert_snapshot!(
+            parse_pass_pipeline(
+                manager.as_operation_pass_manager(),
+                "builtin.module(func.func(print-op-stats{json=false}),\
                 func.func(print-op-stats{json=false}))"
-        )
-        .unwrap_err());
+            )
+            .unwrap_err()
+        );
 
         register_print_op_stats();
 

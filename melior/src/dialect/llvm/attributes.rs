@@ -1,4 +1,4 @@
-use crate::{ir::Attribute, Context};
+use crate::{Context, ir::Attribute};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Linkage {

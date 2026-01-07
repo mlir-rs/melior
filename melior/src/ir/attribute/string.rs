@@ -1,6 +1,6 @@
 use super::{Attribute, AttributeLike};
 use crate::{Context, Error, StringRef};
-use mlir_sys::{mlirStringAttrGet, mlirStringAttrGetValue, MlirAttribute};
+use mlir_sys::{MlirAttribute, mlirStringAttrGet, mlirStringAttrGetValue};
 
 /// A string attribute.
 #[derive(Clone, Copy, Hash)]

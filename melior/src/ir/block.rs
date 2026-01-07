@@ -7,7 +7,7 @@ pub use self::{argument::BlockArgument, block_like::BlockLike};
 use super::{Location, Type, TypeLike, Value};
 use crate::{context::Context, utility::print_callback};
 use mlir_sys::{
-    mlirBlockCreate, mlirBlockDestroy, mlirBlockDetach, mlirBlockEqual, mlirBlockPrint, MlirBlock,
+    MlirBlock, mlirBlockCreate, mlirBlockDestroy, mlirBlockDetach, mlirBlockEqual, mlirBlockPrint,
 };
 use std::{
     ffi::c_void,
@@ -204,13 +204,13 @@ impl Debug for BlockRef<'_, '_> {
 mod tests {
     use super::*;
     use crate::{
+        Error,
         ir::{
+            Module, Region, RegionLike, ValueLike,
             operation::{OperationBuilder, OperationLike},
             r#type::IntegerType,
-            Module, Region, RegionLike, ValueLike,
         },
         test::create_test_context,
-        Error,
     };
     use pretty_assertions::assert_eq;
 

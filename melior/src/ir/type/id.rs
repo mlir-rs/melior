@@ -3,7 +3,7 @@
 mod allocator;
 
 pub use allocator::Allocator;
-use mlir_sys::{mlirTypeIDCreate, mlirTypeIDEqual, mlirTypeIDHashValue, MlirTypeID};
+use mlir_sys::{MlirTypeID, mlirTypeIDCreate, mlirTypeIDEqual, mlirTypeIDHashValue};
 use std::{
     hash::{Hash, Hasher},
     marker::PhantomData,

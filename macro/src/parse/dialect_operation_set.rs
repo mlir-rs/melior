@@ -1,9 +1,8 @@
 use super::IdentifierList;
 use proc_macro2::Ident;
 use syn::{
-    bracketed,
+    Result, Token, bracketed,
     parse::{Parse, ParseStream},
-    Result, Token,
 };
 
 pub struct DialectOperationSet {

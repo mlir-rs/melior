@@ -1,8 +1,8 @@
 use super::PassManager;
 use crate::{pass::Pass, string_ref::StringRef};
 use mlir_sys::{
-    mlirOpPassManagerAddOwnedPass, mlirOpPassManagerGetNestedUnder, mlirPrintPassPipeline,
-    MlirOpPassManager, MlirStringRef,
+    MlirOpPassManager, MlirStringRef, mlirOpPassManagerAddOwnedPass,
+    mlirOpPassManagerGetNestedUnder, mlirPrintPassPipeline,
 };
 use std::{
     ffi::c_void,

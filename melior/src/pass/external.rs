@@ -2,13 +2,13 @@
 
 use super::Pass;
 use crate::{
-    dialect::DialectHandle,
-    ir::{r#type::TypeId, OperationRef},
     ContextRef, StringRef,
+    dialect::DialectHandle,
+    ir::{OperationRef, r#type::TypeId},
 };
 use mlir_sys::{
-    mlirCreateExternalPass, mlirExternalPassSignalFailure, MlirContext, MlirExternalPass,
-    MlirExternalPassCallbacks, MlirLogicalResult, MlirOperation,
+    MlirContext, MlirExternalPass, MlirExternalPassCallbacks, MlirLogicalResult, MlirOperation,
+    mlirCreateExternalPass, mlirExternalPassSignalFailure,
 };
 use std::{ffi::c_void, marker::PhantomData, mem::transmute, ptr::drop_in_place};
 
@@ -98,9 +98,9 @@ unsafe extern "C" fn callback_clone<'a, T: RunExternalPass<'a>>(pass: *mut T) ->
 ///
 /// ```
 /// use melior::{
-///     ir::{operation::OperationLike, OperationRef},
-///     pass::{ExternalPass, RunExternalPass},
 ///     ContextRef,
+///     ir::{OperationRef, operation::OperationLike},
+///     pass::{ExternalPass, RunExternalPass},
 /// };
 ///
 /// #[derive(Clone, Debug)]
@@ -141,9 +141,9 @@ impl<'c, F: FnMut(OperationRef<'c, '_>, ExternalPass<'_>) + Clone> RunExternalPa
 ///
 /// ```
 /// use melior::{
-///     ir::{operation::OperationLike, r#type::TypeId, OperationRef},
-///     pass::{create_external, ExternalPass},
 ///     Context,
+///     ir::{OperationRef, operation::OperationLike, r#type::TypeId},
+///     pass::{ExternalPass, create_external},
 /// };
 ///
 /// #[repr(align(8))]
@@ -213,17 +213,17 @@ pub fn create_external<'c, T: RunExternalPass<'c>>(
 mod tests {
     use super::*;
     use crate::{
+        Context,
         dialect::func,
         ir::{
+            Block, Identifier, Location, Module, Region, RegionLike,
             attribute::{StringAttribute, TypeAttribute},
             block::BlockLike,
             operation::OperationLike,
             r#type::FunctionType,
-            Block, Identifier, Location, Module, Region, RegionLike,
         },
         pass::PassManager,
         test::create_test_context,
-        Context,
     };
 
     #[repr(align(8))]

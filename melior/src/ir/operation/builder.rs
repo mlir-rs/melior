@@ -1,19 +1,20 @@
 use super::Operation;
 use crate::{
+    Error,
     context::Context,
     ir::{Attribute, AttributeLike, Block, Identifier, Location, Region, Type, Value},
     string_ref::StringRef,
-    Error,
 };
 use mlir_sys::{
-    mlirNamedAttributeGet, mlirOperationCreate, mlirOperationStateAddAttributes,
-    mlirOperationStateAddOperands, mlirOperationStateAddOwnedRegions, mlirOperationStateAddResults,
+    MlirOperationState, mlirNamedAttributeGet, mlirOperationCreate,
+    mlirOperationStateAddAttributes, mlirOperationStateAddOperands,
+    mlirOperationStateAddOwnedRegions, mlirOperationStateAddResults,
     mlirOperationStateAddSuccessors, mlirOperationStateEnableResultTypeInference,
-    mlirOperationStateGet, MlirOperationState,
+    mlirOperationStateGet,
 };
 use std::{
     marker::PhantomData,
-    mem::{forget, transmute, ManuallyDrop},
+    mem::{ManuallyDrop, forget, transmute},
 };
 
 /// An operation builder.
@@ -137,7 +138,7 @@ impl<'c> OperationBuilder<'c> {
 mod tests {
     use super::*;
     use crate::{
-        ir::{block::BlockLike, operation::OperationLike, Block, ValueLike},
+        ir::{Block, ValueLike, block::BlockLike, operation::OperationLike},
         test::create_test_context,
     };
 

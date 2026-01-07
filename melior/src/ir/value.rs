@@ -1,9 +1,9 @@
 mod value_like;
 
 pub use self::value_like::ValueLike;
-use super::{block::BlockArgument, operation::OperationResult, Type};
-use crate::{utility::print_callback, Context};
-use mlir_sys::{mlirValueEqual, mlirValuePrint, MlirValue};
+use super::{Type, block::BlockArgument, operation::OperationResult};
+use crate::{Context, utility::print_callback};
+use mlir_sys::{MlirValue, mlirValueEqual, mlirValuePrint};
 use std::{
     ffi::c_void,
     fmt::{self, Debug, Display, Formatter},
@@ -79,13 +79,13 @@ from_borrowed_subtypes!(Value, BlockArgument, OperationResult);
 mod tests {
     use super::*;
     use crate::{
+        Context,
         ir::{
+            Attribute, Block, Identifier, Location,
             block::BlockLike,
             operation::{OperationBuilder, OperationLike},
-            Attribute, Block, Identifier, Location,
         },
         test::create_test_context,
-        Context,
     };
 
     #[test]

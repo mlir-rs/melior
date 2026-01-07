@@ -2,7 +2,7 @@ mod input_field;
 
 use self::input_field::InputField;
 use std::ops::Deref;
-use syn::{parse::Parse, punctuated::Punctuated, Token};
+use syn::{Token, parse::Parse, punctuated::Punctuated};
 
 pub struct DialectInput {
     name: String,

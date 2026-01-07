@@ -1,6 +1,6 @@
 use super::TypeId;
 use crate::{context::ContextRef, dialect::Dialect};
-use mlir_sys::{mlirTypeDump, mlirTypeGetContext, mlirTypeGetDialect, mlirTypeGetTypeID, MlirType};
+use mlir_sys::{MlirType, mlirTypeDump, mlirTypeGetContext, mlirTypeGetDialect, mlirTypeGetTypeID};
 
 /// A trait for type-like types.
 pub trait TypeLike<'c> {
@@ -83,11 +83,11 @@ pub trait TypeLike<'c> {
 mod tests {
     use super::*;
     use crate::{
-        ir::{
-            r#type::{FunctionType, IntegerType},
-            Type,
-        },
         Context,
+        ir::{
+            Type,
+            r#type::{FunctionType, IntegerType},
+        },
     };
 
     #[test]

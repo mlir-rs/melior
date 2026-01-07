@@ -1,9 +1,9 @@
 use crate::{
-    ir::{
-        attribute::{ArrayAttribute, IntegerAttribute},
-        Attribute, Identifier,
-    },
     Context,
+    ir::{
+        Attribute, Identifier,
+        attribute::{ArrayAttribute, IntegerAttribute},
+    },
 };
 
 const ATTRIBUTE_COUNT: usize = 7;

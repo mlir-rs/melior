@@ -1,7 +1,7 @@
 use crate::{
+    Context,
     dialect::DialectRegistry,
     utility::{register_all_dialects, register_all_llvm_translations},
-    Context,
 };
 
 pub fn load_all_dialects(context: &Context) {

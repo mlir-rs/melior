@@ -6,8 +6,8 @@ use crate::dialect::{
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use std::{collections::HashMap, sync::LazyLock};
-use syn::{parse_quote, Ident, Type};
-use tblgen::{error::TableGenError, Record};
+use syn::{Ident, Type, parse_quote};
+use tblgen::{Record, error::TableGenError};
 
 macro_rules! prefixed_string {
     ($prefix:literal, $name:ident) => {

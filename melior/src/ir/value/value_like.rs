@@ -1,6 +1,6 @@
 use super::Type;
 use mlir_sys::{
-    mlirValueDump, mlirValueGetType, mlirValueIsABlockArgument, mlirValueIsAOpResult, MlirValue,
+    MlirValue, mlirValueDump, mlirValueGetType, mlirValueIsABlockArgument, mlirValueIsAOpResult,
 };
 
 /// A trait for value-like types.

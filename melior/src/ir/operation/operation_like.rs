@@ -1,26 +1,26 @@
 use std::{ffi::c_void, fmt::Display};
 
 use mlir_sys::{
-    mlirOperationDump, mlirOperationGetAttribute, mlirOperationGetAttributeByName,
-    mlirOperationGetBlock, mlirOperationGetContext, mlirOperationGetLocation, mlirOperationGetName,
-    mlirOperationGetNextInBlock, mlirOperationGetNumAttributes, mlirOperationGetNumOperands,
-    mlirOperationGetNumRegions, mlirOperationGetNumResults, mlirOperationGetNumSuccessors,
-    mlirOperationGetOperand, mlirOperationGetParentOperation, mlirOperationGetRegion,
-    mlirOperationGetResult, mlirOperationGetSuccessor, mlirOperationPrintWithFlags,
-    mlirOperationRemoveAttributeByName, mlirOperationRemoveFromParent,
-    mlirOperationSetAttributeByName, mlirOperationVerify, mlirOperationWalk, MlirOperation,
-    MlirWalkOrder_MlirWalkPostOrder, MlirWalkOrder_MlirWalkPreOrder, MlirWalkResult,
+    MlirOperation, MlirWalkOrder_MlirWalkPostOrder, MlirWalkOrder_MlirWalkPreOrder, MlirWalkResult,
     MlirWalkResult_MlirWalkResultAdvance, MlirWalkResult_MlirWalkResultInterrupt,
-    MlirWalkResult_MlirWalkResultSkip,
+    MlirWalkResult_MlirWalkResultSkip, mlirOperationDump, mlirOperationGetAttribute,
+    mlirOperationGetAttributeByName, mlirOperationGetBlock, mlirOperationGetContext,
+    mlirOperationGetLocation, mlirOperationGetName, mlirOperationGetNextInBlock,
+    mlirOperationGetNumAttributes, mlirOperationGetNumOperands, mlirOperationGetNumRegions,
+    mlirOperationGetNumResults, mlirOperationGetNumSuccessors, mlirOperationGetOperand,
+    mlirOperationGetParentOperation, mlirOperationGetRegion, mlirOperationGetResult,
+    mlirOperationGetSuccessor, mlirOperationPrintWithFlags, mlirOperationRemoveAttributeByName,
+    mlirOperationRemoveFromParent, mlirOperationSetAttributeByName, mlirOperationVerify,
+    mlirOperationWalk,
 };
 
 use crate::{
-    ir::{Attribute, AttributeLike, BlockRef, Identifier, Location, RegionRef, Value},
     ContextRef, Error, StringRef,
+    ir::{Attribute, AttributeLike, BlockRef, Identifier, Location, RegionRef, Value},
 };
 
 use super::{
-    print_string_callback, OperationPrintingFlags, OperationRef, OperationRefMut, OperationResult,
+    OperationPrintingFlags, OperationRef, OperationRefMut, OperationResult, print_string_callback,
 };
 
 /// Order in which to traverse an operation tree.

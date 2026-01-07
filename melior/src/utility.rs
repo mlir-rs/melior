@@ -1,12 +1,12 @@
 //! Utility functions.
 
 use crate::{
-    context::Context, dialect::DialectRegistry, ir::Module, logical_result::LogicalResult, pass,
-    string_ref::StringRef, Error,
+    Error, context::Context, dialect::DialectRegistry, ir::Module, logical_result::LogicalResult,
+    pass, string_ref::StringRef,
 };
 use mlir_sys::{
-    mlirLoadIRDLDialects, mlirParsePassPipeline, mlirRegisterAllDialects,
-    mlirRegisterAllLLVMTranslations, mlirRegisterAllPasses, MlirStringRef,
+    MlirStringRef, mlirLoadIRDLDialects, mlirParsePassPipeline, mlirRegisterAllDialects,
+    mlirRegisterAllLLVMTranslations, mlirRegisterAllPasses,
 };
 use std::{
     ffi::c_void,

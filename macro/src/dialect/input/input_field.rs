@@ -1,6 +1,6 @@
 use proc_macro2::Ident;
 use quote::format_ident;
-use syn::{bracketed, parse::Parse, punctuated::Punctuated, LitStr, Token};
+use syn::{LitStr, Token, bracketed, parse::Parse, punctuated::Punctuated};
 
 pub enum InputField {
     Name(LitStr),

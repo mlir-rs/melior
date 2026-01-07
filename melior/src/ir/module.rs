@@ -1,11 +1,11 @@
-use super::{operation::OperationRefMut, BlockRef, Location, Operation, OperationRef};
+use super::{BlockRef, Location, Operation, OperationRef, operation::OperationRefMut};
 use crate::{
     context::{Context, ContextRef},
     string_ref::StringRef,
 };
 use mlir_sys::{
-    mlirModuleCreateEmpty, mlirModuleCreateParse, mlirModuleDestroy, mlirModuleFromOperation,
-    mlirModuleGetBody, mlirModuleGetContext, mlirModuleGetOperation, MlirModule,
+    MlirModule, mlirModuleCreateEmpty, mlirModuleCreateParse, mlirModuleDestroy,
+    mlirModuleFromOperation, mlirModuleGetBody, mlirModuleGetContext, mlirModuleGetOperation,
 };
 use std::{ffi::CString, marker::PhantomData};
 
@@ -99,9 +99,9 @@ mod tests {
     use super::*;
     use crate::{
         ir::{
+            Block, Region, RegionLike,
             attribute::StringAttribute,
             operation::{OperationBuilder, OperationLike, OperationMutLike},
-            Block, Region, RegionLike,
         },
         test::create_test_context,
     };
@@ -149,12 +149,14 @@ mod tests {
     fn from_operation_fail() {
         let context = create_test_context();
 
-        assert!(Module::from_operation(
-            OperationBuilder::new("func.func", Location::unknown(&context),)
-                .build()
-                .unwrap()
-        )
-        .is_none());
+        assert!(
+            Module::from_operation(
+                OperationBuilder::new("func.func", Location::unknown(&context),)
+                    .build()
+                    .unwrap()
+            )
+            .is_none()
+        );
     }
 
     #[test]

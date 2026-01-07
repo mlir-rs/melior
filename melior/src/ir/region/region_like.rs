@@ -1,7 +1,7 @@
 use crate::ir::{Block, BlockRef};
 use mlir_sys::{
-    mlirRegionAppendOwnedBlock, mlirRegionGetFirstBlock, mlirRegionInsertOwnedBlockAfter,
-    mlirRegionInsertOwnedBlockBefore, MlirRegion,
+    MlirRegion, mlirRegionAppendOwnedBlock, mlirRegionGetFirstBlock,
+    mlirRegionInsertOwnedBlockAfter, mlirRegionInsertOwnedBlockBefore,
 };
 
 /// A region-like trait.
