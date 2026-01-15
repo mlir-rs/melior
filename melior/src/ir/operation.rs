@@ -610,6 +610,44 @@ mod tests {
     }
 
     #[test]
+    fn parent_operation_mut() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+
+        let location = Location::unknown(&context);
+        let block = Block::new(&[]);
+
+        let operation = block.append_operation(
+            OperationBuilder::new("foo", location)
+                .add_results(&[Type::index(&context)])
+                .add_regions([{
+                    let region = Region::new();
+                    let block = Block::new(&[]);
+                    block.append_operation(OperationBuilder::new("bar", location).build().unwrap());
+                    region.append_block(block);
+                    region
+                }])
+                .build()
+                .unwrap(),
+        );
+
+        assert_eq!(operation.parent_operation_mut(), None);
+        let mut inner_op = operation
+            .region(0)
+            .unwrap()
+            .first_block()
+            .unwrap()
+            .first_operation_mut()
+            .unwrap();
+        let inner_op_parent = inner_op.parent_operation_mut().unwrap();
+        assert_eq!(inner_op_parent.deref(), operation.deref());
+
+        // Try a mutation to verify we have a mutable reference.
+        inner_op.remove_from_parent();
+        assert_eq!(inner_op.parent_operation_mut(), None);
+    }
+
+    #[test]
     fn operation_ref_lifetime() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
