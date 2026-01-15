@@ -237,7 +237,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Returns a mutable reference to a parent operation.
-    fn parent_operation_mut(&self) -> Option<OperationRefMut<'c, '_>> {
+    fn parent_operation_mut(&self) -> Option<OperationRefMut<'c, 'a>> {
         unsafe { OperationRefMut::from_option_raw(mlirOperationGetParentOperation(self.to_raw())) }
     }
 
