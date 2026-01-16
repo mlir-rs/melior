@@ -617,7 +617,7 @@ mod tests {
         let location = Location::unknown(&context);
         let block = Block::new(&[]);
 
-        let operation = block.append_operation(
+        let mut operation = block.append_operation(
             OperationBuilder::new("foo", location)
                 .add_results(&[Type::index(&context)])
                 .add_regions([{

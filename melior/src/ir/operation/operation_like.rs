@@ -237,7 +237,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Returns a mutable reference to a parent operation.
-    fn parent_operation_mut(&self) -> Option<OperationRefMut<'c, 'a>> {
+    fn parent_operation_mut(&mut self) -> Option<OperationRefMut<'c, 'a>> {
         unsafe { OperationRefMut::from_option_raw(mlirOperationGetParentOperation(self.to_raw())) }
     }
 
@@ -269,7 +269,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
         Ok(data.0)
     }
 
-    /// Walk this operation (and all nested operations) in either pre- or
+    /// Walks this operation (and all nested operations) in either pre- or
     /// post-order.
     ///
     /// The closure is called once per operation; by returning
@@ -324,7 +324,7 @@ pub trait OperationMutLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         unsafe { mlirOperationRemoveFromParent(self.to_raw()) }
     }
 
-    /// Walk this operation (and all nested operations) in either pre- or
+    /// Walks this operation (and all nested operations) in either pre- or
     /// post-order.
     ///
     /// The closure is called once per operation; by returning
@@ -334,7 +334,7 @@ pub trait OperationMutLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         F: for<'x, 'y> FnMut(OperationRefMut<'x, 'y>) -> WalkResult,
     {
         // trampoline from C to Rust
-        extern "C" fn tramp<'c: 'a, 'a, F: FnMut(OperationRefMut<'c, 'a>) -> WalkResult>(
+        unsafe extern "C" fn tramp<'c: 'a, 'a, F: FnMut(OperationRefMut<'c, 'a>) -> WalkResult>(
             operation: MlirOperation,
             data: *mut c_void,
         ) -> MlirWalkResult {
