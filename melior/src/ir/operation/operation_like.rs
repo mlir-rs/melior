@@ -222,17 +222,17 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Returns a mutable reference to the next operation in the same block.
-    fn next_in_block_mut(&self) -> Option<OperationRefMut<'c, '_>> {
+    fn next_in_block_mut(&self) -> Option<OperationRefMut<'c, 'a>> {
         unsafe { OperationRefMut::from_option_raw(mlirOperationGetNextInBlock(self.to_raw())) }
     }
 
     /// Returns a reference to the previous operation in the same block.
-    fn previous_in_block(&self) -> Option<OperationRef<'c, '_>> {
+    fn previous_in_block(&self) -> Option<OperationRef<'c, 'a>> {
         todo!("mlirOperationGetPrevInBlock is not exposed in the C API")
     }
 
     /// Returns a reference to a parent operation.
-    fn parent_operation(&self) -> Option<OperationRef<'c, '_>> {
+    fn parent_operation(&self) -> Option<OperationRef<'c, 'a>> {
         unsafe { OperationRef::from_option_raw(mlirOperationGetParentOperation(self.to_raw())) }
     }
 
