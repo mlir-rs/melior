@@ -16,7 +16,7 @@ mlir-sys = "210.0.1"
 
 [dev-dependencies]
 indoc = "2.0.7"
-insta = "1.46.0"
+insta = "1.46.1"
 pretty_assertions = "1.4.1"
 
 [features]
