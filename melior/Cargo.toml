@@ -1,6 +1,6 @@
 [package]
 name = "melior"
-version = "0.26.2"
+version = "0.26.3"
 edition.workspace = true
 description = "The rustic MLIR bindings in Rust"
 documentation = "https://mlir-rs.github.io/melior/melior/"
