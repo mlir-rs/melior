@@ -610,6 +610,44 @@ mod tests {
     }
 
     #[test]
+    fn parent_operation_mut() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+
+        let location = Location::unknown(&context);
+        let block = Block::new(&[]);
+
+        let mut operation = block.append_operation(
+            OperationBuilder::new("foo", location)
+                .add_results(&[Type::index(&context)])
+                .add_regions([{
+                    let region = Region::new();
+                    let block = Block::new(&[]);
+                    block.append_operation(OperationBuilder::new("bar", location).build().unwrap());
+                    region.append_block(block);
+                    region
+                }])
+                .build()
+                .unwrap(),
+        );
+
+        assert_eq!(operation.parent_operation_mut(), None);
+        let mut inner_op = operation
+            .region(0)
+            .unwrap()
+            .first_block()
+            .unwrap()
+            .first_operation_mut()
+            .unwrap();
+        let inner_op_parent = inner_op.parent_operation_mut().unwrap();
+        assert_eq!(inner_op_parent.deref(), operation.deref());
+
+        // Try a mutation to verify we have a mutable reference.
+        inner_op.remove_from_parent();
+        assert_eq!(inner_op.parent_operation_mut(), None);
+    }
+
+    #[test]
     fn operation_ref_lifetime() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
@@ -784,6 +822,167 @@ mod tests {
         //     because a post order walk visits children before a parent
         result.clear();
         operation.walk(post, |op| {
+            let name = op
+                .name()
+                .as_string_ref()
+                .as_str()
+                .expect("valid str")
+                .to_string();
+            result.push(name.clone());
+            operation_like::WalkResult::Skip
+        });
+        assert_eq!(vec!["child", "parent", "grandparent"], result);
+    }
+
+    #[test]
+    fn walk_pre_mut() {
+        let pre = operation_like::WalkOrder::PreOrder;
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+
+        let location = Location::unknown(&context);
+        let block = Block::new(&[]);
+
+        let operation = block.append_operation(
+            OperationBuilder::new("parent", location)
+                .add_results(&[Type::index(&context)])
+                .add_regions([{
+                    let region = Region::new();
+
+                    let block = Block::new(&[]);
+                    block.append_operation(
+                        OperationBuilder::new("child1", location).build().unwrap(),
+                    );
+                    block.append_operation(
+                        OperationBuilder::new("child2", location).build().unwrap(),
+                    );
+
+                    region.append_block(block);
+                    region
+                }])
+                .build()
+                .unwrap(),
+        );
+        let mut operation = unsafe { OperationRefMut::from_raw(operation.to_raw()) };
+
+        // test advance
+        let mut result: Vec<String> = Vec::new();
+        operation.walk_mut(pre, |op| {
+            let name = op
+                .name()
+                .as_string_ref()
+                .as_str()
+                .expect("valid str")
+                .to_string();
+            result.push(name);
+            operation_like::WalkResult::Advance
+        });
+        assert_eq!(vec!["parent", "child1", "child2"], result);
+
+        // test interrupt
+        result.clear();
+        operation.walk_mut(pre, |op| {
+            let name = op
+                .name()
+                .as_string_ref()
+                .as_str()
+                .expect("valid str")
+                .to_string();
+            result.push(name.clone());
+            match name.as_str() {
+                "parent" => operation_like::WalkResult::Advance,
+                _ => operation_like::WalkResult::Interrupt,
+            }
+        });
+        assert_eq!(vec!["parent", "child1"], result);
+
+        // test skip
+        result.clear();
+        operation.walk_mut(pre, |op| {
+            let name = op
+                .name()
+                .as_string_ref()
+                .as_str()
+                .expect("valid str")
+                .to_string();
+            result.push(name.clone());
+            operation_like::WalkResult::Skip
+        });
+        assert_eq!(vec!["parent"], result);
+    }
+
+    #[test]
+    fn walk_post_mut() {
+        let post = operation_like::WalkOrder::PostOrder;
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+
+        let location = Location::unknown(&context);
+        let block = Block::new(&[]);
+
+        let operation = block.append_operation(
+            OperationBuilder::new("grandparent", location)
+                .add_regions([{
+                    let region = Region::new();
+                    let block = Block::new(&[]);
+                    block.append_operation(
+                        OperationBuilder::new("parent", location)
+                            .add_regions([{
+                                let region = Region::new();
+                                let block = Block::new(&[]);
+                                block.append_operation(
+                                    OperationBuilder::new("child", location).build().unwrap(),
+                                );
+                                region.append_block(block);
+                                region
+                            }])
+                            .build()
+                            .unwrap(),
+                    );
+                    region.append_block(block);
+                    region
+                }])
+                .build()
+                .unwrap(),
+        );
+        let mut operation = unsafe { OperationRefMut::from_raw(operation.to_raw()) };
+
+        // test advance
+        let mut result: Vec<String> = Vec::new();
+        operation.walk_mut(post, |op| {
+            let name = op
+                .name()
+                .as_string_ref()
+                .as_str()
+                .expect("valid str")
+                .to_string();
+            result.push(name);
+            operation_like::WalkResult::Advance
+        });
+        assert_eq!(vec!["child", "parent", "grandparent"], result);
+
+        // test interrupt
+        result.clear();
+        operation.walk_mut(post, |op| {
+            let name = op
+                .name()
+                .as_string_ref()
+                .as_str()
+                .expect("valid str")
+                .to_string();
+            result.push(name.clone());
+            match name.as_str() {
+                "child" => operation_like::WalkResult::Advance,
+                _ => operation_like::WalkResult::Interrupt,
+            }
+        });
+        assert_eq!(vec!["child", "parent"], result);
+
+        // test skip
+        // XXX it doesn't seem like there's a meaningful way to test skip with post
+        //     because a post order walk visits children before a parent
+        result.clear();
+        operation.walk_mut(post, |op| {
             let name = op
                 .name()
                 .as_string_ref()

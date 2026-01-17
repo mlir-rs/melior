@@ -236,6 +236,11 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
         unsafe { OperationRef::from_option_raw(mlirOperationGetParentOperation(self.to_raw())) }
     }
 
+    /// Returns a mutable reference to a parent operation.
+    fn parent_operation_mut(&mut self) -> Option<OperationRefMut<'c, 'a>> {
+        unsafe { OperationRefMut::from_option_raw(mlirOperationGetParentOperation(self.to_raw())) }
+    }
+
     /// Verifies an operation.
     fn verify(&self) -> bool {
         unsafe { mlirOperationVerify(self.to_raw()) }
@@ -264,7 +269,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
         Ok(data.0)
     }
 
-    /// Walk this operation (and all nested operations) in either pre- or
+    /// Walks this operation (and all nested operations) in either pre- or
     /// post-order.
     ///
     /// The closure is called once per operation; by returning
@@ -317,5 +322,33 @@ pub trait OperationMutLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Removes itself from a parent block.
     fn remove_from_parent(&mut self) {
         unsafe { mlirOperationRemoveFromParent(self.to_raw()) }
+    }
+
+    /// Walks this operation (and all nested operations) in either pre- or
+    /// post-order.
+    ///
+    /// The closure is called once per operation; by returning
+    /// `WalkResult::Advance`/`Skip`/`Interrupt` you control the traversal.
+    fn walk_mut<F>(&mut self, order: WalkOrder, mut callback: F)
+    where
+        F: for<'x, 'y> FnMut(OperationRefMut<'x, 'y>) -> WalkResult,
+    {
+        // trampoline from C to Rust
+        unsafe extern "C" fn tramp<'c: 'a, 'a, F: FnMut(OperationRefMut<'c, 'a>) -> WalkResult>(
+            operation: MlirOperation,
+            data: *mut c_void,
+        ) -> MlirWalkResult {
+            let callback: &mut F = unsafe { &mut *(data as *mut F) };
+            let operation = unsafe { OperationRefMut::from_raw(operation) };
+            (callback)(operation) as _
+        }
+        unsafe {
+            mlirOperationWalk(
+                self.to_raw(),
+                Some(tramp::<'c, 'a, F>),
+                &mut callback as *mut _ as *mut _,
+                order as _,
+            );
+        }
     }
 }
