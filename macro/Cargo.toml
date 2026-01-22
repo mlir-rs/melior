@@ -13,7 +13,7 @@ keywords.workspace = true
 proc-macro = true
 
 [dependencies]
-comrak = { version = "0.49.0", default-features = false }
+comrak = { version = "0.50.0", default-features = false }
 convert_case = "0.10.0"
 proc-macro2 = "1"
 quote = "1"
