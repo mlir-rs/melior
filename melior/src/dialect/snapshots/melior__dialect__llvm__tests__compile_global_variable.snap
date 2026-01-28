@@ -1,0 +1,8 @@
+---
+source: melior/src/dialect/llvm.rs
+expression: module.as_operation()
+---
+module {
+  llvm.mlir.global internal constant @const_global(42 : i32) {addr_space = 0 : i32, alignment = 4 : i64} : i32
+  llvm.mlir.global external @mutable_global(123 : i32) {addr_space = 0 : i32, alignment = 8 : i64} : i32
+}
