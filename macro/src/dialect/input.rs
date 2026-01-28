@@ -21,14 +21,6 @@ impl DialectInput {
         &self.name
     }
 
-    pub fn table_gen(&self) -> Option<&str> {
-        self.table_gen.as_deref()
-    }
-
-    pub fn td_file(&self) -> Option<&str> {
-        self.td_file.as_deref()
-    }
-
     pub fn include_directories(&self) -> impl Iterator<Item = &str> {
         self.include_directories.iter().map(Deref::deref)
     }
@@ -45,8 +37,6 @@ impl DialectInput {
 impl Parse for DialectInput {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut name = None;
-        let mut table_gen = None;
-        let mut td_file = None;
         let mut includes = vec![];
         let mut files = vec![];
         let mut directories = vec![];
@@ -54,8 +44,6 @@ impl Parse for DialectInput {
         for item in Punctuated::<InputField, Token![,]>::parse_terminated(input)? {
             match item {
                 InputField::Name(field) => name = Some(field.value()),
-                InputField::TableGen(td) => table_gen = Some(td.value()),
-                InputField::TdFile(file) => td_file = Some(file.value()),
                 InputField::IncludeDirectories(field) => {
                     includes = field.into_iter().map(|literal| literal.value()).collect()
                 }

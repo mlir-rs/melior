@@ -29,14 +29,6 @@ const LLVM_INCLUDE_DIRECTORY: &str = env!("LLVM_INCLUDE_DIRECTORY");
 pub fn generate_dialect(input: DialectInput) -> Result<TokenStream, Box<dyn std::error::Error>> {
     let mut parser = TableGenParser::new();
 
-    if let Some(source) = input.table_gen() {
-        parser = parser.add_source(source).map_err(create_syn_error)?;
-    }
-
-    if let Some(file) = input.td_file() {
-        parser = parser.add_source_file(file);
-    }
-
     for path in input.include_directories().chain([LLVM_INCLUDE_DIRECTORY]) {
         parser = parser.add_include_directory(path);
     }

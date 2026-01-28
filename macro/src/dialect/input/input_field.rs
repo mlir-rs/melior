@@ -4,8 +4,6 @@ use syn::{LitStr, Token, bracketed, parse::Parse, punctuated::Punctuated};
 
 pub enum InputField {
     Name(LitStr),
-    TableGen(LitStr),
-    TdFile(LitStr),
     IncludeDirectories(Punctuated<LitStr, Token![,]>),
     Files(Punctuated<LitStr, Token![,]>),
     Directories(Punctuated<LitStr, Token![,]>),
@@ -19,10 +17,6 @@ impl Parse for InputField {
 
         if ident == format_ident!("name") {
             Ok(Self::Name(input.parse()?))
-        } else if ident == format_ident!("table_gen") {
-            Ok(Self::TableGen(input.parse()?))
-        } else if ident == format_ident!("td_file") {
-            Ok(Self::TdFile(input.parse()?))
         } else if ident == format_ident!("include_dirs") {
             let content;
             bracketed!(content in input);
