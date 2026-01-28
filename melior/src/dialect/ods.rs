@@ -10,14 +10,14 @@ pub mod __private {
 melior_macro::dialect! {
     name: "affine",
     files: ["IR/AffineOps.td", "TransformOps/AffineTransformOps.td", "IR/AffineMemoryOpInterfaces.td"],
-    include_directories: ["mlir/Dialect/Affine"],
+    directories: ["mlir/Dialect/Affine"],
 }
 
 /* TODO: Fix "error: invalid conversion from Invalid to alloc::string::String" probably tblgen issue?
 melior_macro::dialect! {
     name: "amdgpu",
     files: ["IR/AMDGPU.td", "Transforms/Passes.td"],
-    include_directories: ["mlir/Dialect/AMDGPU"],
+    directories: ["mlir/Dialect/AMDGPU"],
 }
 */
 
@@ -39,13 +39,13 @@ melior_macro::dialect! {
 melior_macro::dialect! {
     name: "arm_sme",
     files: ["ArmSME.td", "ArmSMEOps.td", "ArmSMEIntrinsicOps.td"],
-    include_directories: ["mlir/Dialect/ArmSME/IR"],
+    directories: ["mlir/Dialect/ArmSME/IR"],
 }
 
 melior_macro::dialect! {
     name: "async",
     files: ["AsyncDialect.td", "AsyncOps.td", "AsyncTypes.td"],
-    include_directories: ["mlir/Dialect/Async/IR"],
+    directories: ["mlir/Dialect/Async/IR"],
 }
 
 melior_macro::dialect! {
@@ -68,13 +68,13 @@ melior_macro::dialect! {
         "TransformOps/BufferizationTransformOps.td",
         "Transforms/Passes.td",
     ],
-    include_directories: ["mlir/Dialect/Bufferization"],
+    directories: ["mlir/Dialect/Bufferization"],
 }
 
 melior_macro::dialect! {
     name: "complex",
     files: ["ComplexBase.td", "ComplexOps.td"],
-    include_directories: ["mlir/Dialect/Complex/IR"],
+    directories: ["mlir/Dialect/Complex/IR"],
 }
 
 melior_macro::dialect! {
@@ -85,13 +85,13 @@ melior_macro::dialect! {
 melior_macro::dialect! {
     name: "dlti",
     files: ["DLTI.td", "DLTIAttrs.td", "DLTIBase.td"],
-    include_directories: ["mlir/Dialect/DLTI"]
+    directories: ["mlir/Dialect/DLTI"]
 }
 
 melior_macro::dialect! {
     name: "func",
     files: ["IR/FuncOps.td", "TransformOps/FuncTransformOps.td", "Transforms/Passes.td"],
-    include_directories: ["mlir/Dialect/Func"],
+    directories: ["mlir/Dialect/Func"],
 }
 
 melior_macro::dialect! {
@@ -102,7 +102,7 @@ melior_macro::dialect! {
 melior_macro::dialect! {
     name: "irdl",
     files: ["IRDLOps.td", "IRDL.td"],
-    include_directories: ["mlir/Dialect/IRDL/IR"],
+    directories: ["mlir/Dialect/IRDL/IR"],
 }
 
 melior_macro::dialect! {
@@ -118,7 +118,7 @@ melior_macro::dialect! {
         "LLVMAttrDefs.td",
         "BasicPtxBuilderInterface.td",
     ],
-    include_directories: ["mlir/Dialect/LLVMIR"],
+    directories: ["mlir/Dialect/LLVMIR"],
 }
 
 melior_macro::dialect! {
@@ -159,7 +159,7 @@ melior_macro::dialect! {
 melior_macro::dialect! {
     name: "quant",
     files: ["IR/QuantOps.td", "Transforms/Passes.td"],
-    include_directories: ["mlir/Dialect/Quant"],
+    directories: ["mlir/Dialect/Quant"],
 }
 
 melior_macro::dialect! {
