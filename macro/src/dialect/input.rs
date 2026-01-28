@@ -7,10 +7,6 @@ use syn::{Token, parse::Parse, punctuated::Punctuated};
 pub struct DialectInput {
     name: String,
     // TODO Remove this field.
-    table_gen: Option<String>,
-    // TODO Remove this field.
-    td_file: Option<String>,
-    // TODO Remove this field.
     include_directories: Vec<String>,
     files: Vec<String>,
     directories: Vec<String>,
@@ -58,8 +54,6 @@ impl Parse for DialectInput {
 
         Ok(Self {
             name: name.ok_or_else(|| input.error("dialect name required"))?,
-            table_gen,
-            td_file,
             include_directories: includes,
             files,
             directories,
