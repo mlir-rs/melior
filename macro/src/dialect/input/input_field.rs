@@ -4,7 +4,6 @@ use syn::{LitStr, Token, bracketed, parse::Parse, punctuated::Punctuated};
 
 pub enum InputField {
     Name(LitStr),
-    IncludeDirectories(Punctuated<LitStr, Token![,]>),
     Files(Punctuated<LitStr, Token![,]>),
     Directories(Punctuated<LitStr, Token![,]>),
 }
@@ -17,12 +16,6 @@ impl Parse for InputField {
 
         if ident == format_ident!("name") {
             Ok(Self::Name(input.parse()?))
-        } else if ident == format_ident!("include_dirs") {
-            let content;
-            bracketed!(content in input);
-            Ok(Self::IncludeDirectories(
-                Punctuated::<LitStr, Token![,]>::parse_terminated(&content)?,
-            ))
         } else if ident == format_ident!("files") {
             let content;
             bracketed!(content in input);
