@@ -21,7 +21,7 @@ use syn::parse_macro_input;
 /// melior::dialect! {
 ///     name: "func",
 ///     files: ["IR/FuncOps.td", "TransformOps/FuncTransformOps.td", "Transforms/Passes.td"],
-///     include_directories: ["mlir/Dialect/Func"],
+///     directories: ["mlir/Dialect/Func"],
 /// }
 /// ```
 #[proc_macro]
