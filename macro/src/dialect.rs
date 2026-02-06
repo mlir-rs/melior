@@ -11,6 +11,7 @@ use self::{
     generation::generate_operation,
     utility::{sanitize_documentation, sanitize_snake_case_identifier},
 };
+use convert_case::{Case, Casing};
 pub use input::DialectInput;
 use operation::Operation;
 use proc_macro::TokenStream;
@@ -62,6 +63,118 @@ pub fn generate_dialect(input: DialectInput) -> Result<TokenStream, Error> {
     Ok(quote! { #dialect }.into())
 }
 
+fn generate_operation_enum(
+    dialect_name: &str,
+    record_keeper: &RecordKeeper,
+) -> Result<Option<proc_macro2::TokenStream>, Error> {
+    let enum_name = quote::format_ident!("{}Operation", dialect_name.to_case(Case::Pascal));
+
+    let mut operations = record_keeper
+        .all_derived_definitions("Op")
+        .map(Operation::new)
+        .collect::<Result<Vec<_>, _>>()?;
+    operations.retain(|operation| operation.dialect_name() == dialect_name);
+
+    let enum_ident = quote::format_ident!("{}Operation", dialect_name.to_case(Case::Pascal));
+
+    let match_arms = operations.iter().map(|operation| {
+        let ident = quote::format_ident!("{}", operation.name());
+        let full_name = operation.full_operation_name();
+
+        quote! {
+            #full_name => Ok(#enum_name::#ident(#ident::try_from(operation.clone()).expect("operation should match type"))),
+        }
+    }).collect::<Vec<_>>();
+
+    let raw_match_arms = operations
+        .iter()
+        .map(|operation| {
+            let ident = quote::format_ident!("{}", operation.name());
+
+            quote! {
+                #enum_ident::#ident(op) => op.as_operation(),
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let clone_match_arms = operations
+        .iter()
+        .map(|operation| {
+            let ident = quote::format_ident!("{}", operation.name());
+
+            quote! {
+                #enum_ident::#ident(op) => #enum_ident::#ident(#ident { operation: op.as_operation().clone() }),
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let operation_enum = operations
+        .iter()
+        .map(|operation| quote::format_ident!("{}", operation.name()))
+        .map(|operation| {
+            quote! {
+                #operation(#operation<'b>)
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let from_impls = operations.iter().map(|operation| {
+        let ident = quote::format_ident!("{}", operation.name());
+
+        quote! {
+            impl<'b> From<#ident<'b>> for #enum_ident<'b> {
+                fn from(op: #ident<'b>) -> Self {
+                    #enum_ident::#ident(op)
+                }
+            }
+        }
+    });
+
+    if operation_enum.is_empty() {
+        Ok(None)
+    } else {
+        let enum_definition = quote! {
+            pub enum #enum_name<'b> {
+                #(#operation_enum),*
+            }
+
+            impl<'b> Clone for #enum_name<'b> {
+                fn clone(&self) -> Self {
+                    match self {
+                        #(#clone_match_arms)*
+                    }
+                }
+            }
+
+            impl<'b> std::fmt::Display for #enum_name<'b> {
+                fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                   std::fmt::Display::fmt(self.as_operation(), formatter)
+                }
+            }
+
+            impl<'b> #enum_name<'b> {
+                pub fn try_new(operation: melior::ir::operation::Operation<'b>) -> Result<Self, melior::ir::operation::Operation<'b>> {
+                    match operation.name().as_string_ref().as_str().unwrap() {
+                        #(#match_arms)*
+                        _ => Err(operation),
+                    }
+                }
+            }
+
+            impl<'b> #enum_name<'b> {
+                pub fn as_operation(&self) -> &melior::ir::operation::Operation<'b> {
+                    match self {
+                        #(#raw_match_arms)*
+                    }
+                }
+            }
+
+            #(#from_impls)*
+        };
+        Ok(Some(enum_definition))
+    }
+}
+
 fn generate_dialect_module(
     name: &str,
     dialect: Record,
@@ -82,6 +195,7 @@ fn generate_dialect_module(
         sanitize_documentation(dialect.str_value("description").unwrap_or(""),)?
     );
     let name = sanitize_snake_case_identifier(name)?;
+    let enum_definition = generate_operation_enum(dialect_name, record_keeper)?;
 
     Ok(quote! {
         #[doc = #doc]
@@ -90,6 +204,8 @@ fn generate_dialect_module(
             use melior::ir::operation::OperationMutLike;
 
             #(#operations)*
+
+            #enum_definition
         }
     })
 }

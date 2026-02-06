@@ -26,7 +26,7 @@ fn llvm_config(
         .map(|path| Path::new(&path).join("bin"))
         .unwrap_or_default();
     let call = format!(
-        "{} --link-static {}",
+        "{} --link-static --ignore-libllvm {}",
         prefix.join("llvm-config").display(),
         argument
     );

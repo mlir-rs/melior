@@ -24,6 +24,8 @@ pub fn constant<'c>(
 }
 
 /// `arith.cmpf` predicate
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[repr(i64)]
 pub enum CmpfPredicate {
     False,
     Oeq,
@@ -55,6 +57,8 @@ pub fn cmpf<'c>(
 }
 
 /// `arith.cmpi` predicate
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[repr(i64)]
 pub enum CmpiPredicate {
     Eq,
     Ne,
