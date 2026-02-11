@@ -12,7 +12,7 @@ pub mod transform;
 
 pub use self::{
     external::{ExternalPass, RunExternalPass, create_external},
-    manager::PassManager,
+    manager::{PassIrPrintingOptions, PassManager},
     operation_manager::OperationPassManager,
 };
 use mlir_sys::MlirPass;
