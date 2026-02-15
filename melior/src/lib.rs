@@ -28,6 +28,7 @@ pub use self::{
 };
 
 pub use melior_macro::dialect;
+pub use mlir_sys;
 
 #[cfg(test)]
 mod tests {
