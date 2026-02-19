@@ -13,13 +13,11 @@ melior_macro::dialect! {
     include_directories: ["mlir/Dialect/Affine"],
 }
 
-/* TODO: Fix "error: invalid conversion from Invalid to alloc::string::String" probably tblgen issue?
 melior_macro::dialect! {
     name: "amdgpu",
     files: ["IR/AMDGPU.td", "Transforms/Passes.td"],
     include_directories: ["mlir/Dialect/AMDGPU"],
 }
-*/
 
 melior_macro::dialect! {
     name: "arith",
