@@ -1,3 +1,5 @@
+#![cfg(feature = "ods-dialects")]
+
 use melior::dialect;
 
 dialect! {
