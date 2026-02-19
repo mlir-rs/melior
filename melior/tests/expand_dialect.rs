@@ -11,5 +11,5 @@ dialect! {
 dialect! {
     name: "arith",
     files: ["mlir/Dialect/Arith/IR/ArithOps.td"],
-    include_directories: [env!("FOO")],
+    include_directories: [env!("MLIR_TEST_INCLUDE_DIR")],
 }
