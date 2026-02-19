@@ -27,7 +27,13 @@ pub use self::{
     string_ref::StringRef,
 };
 
-pub use melior_macro::dialect;
+#[cfg(feature = "ods-dialects")]
+#[macro_export]
+macro_rules! dialect {
+    ($($input:tt)*) => {
+        melior_macro::dialect! { $($input)* }
+    };
+}
 
 #[cfg(test)]
 mod tests {
