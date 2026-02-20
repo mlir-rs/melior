@@ -1,14 +1,14 @@
 mod ods;
 
 pub use self::ods::OdsError;
+use proc_macro::TokenStream;
+use quote::quote;
 use std::{
     error,
     fmt::{self, Display, Formatter},
     io,
     string::FromUtf8Error,
 };
-use quote::quote;
-use proc_macro::TokenStream;
 use tblgen::{
     SourceInfo,
     error::{SourceError, TableGenError},

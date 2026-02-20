@@ -1,8 +1,8 @@
 mod input_field;
 
 use self::input_field::InputField;
-use std::ops::Deref;
 use proc_macro2::Span;
+use std::ops::Deref;
 use syn::{Token, parse::Parse, punctuated::Punctuated};
 
 pub struct DialectInput {
@@ -26,9 +26,9 @@ impl DialectInput {
     }
 
     pub fn directory_env_vars(&self) -> impl Iterator<Item = (&str, &Span)> {
-        self.directory_env_vars.iter().map(|(value, span)|{
-            (value.deref(), span)
-        })
+        self.directory_env_vars
+            .iter()
+            .map(|(value, span)| (value.deref(), span))
     }
 }
 
@@ -49,7 +49,10 @@ impl Parse for DialectInput {
                     directories = field.into_iter().map(|literal| literal.value()).collect()
                 }
                 InputField::DirectoryEnvVars(field) => {
-                    directory_env_vars = field.into_iter().map(|literal| (literal.value(), literal.span())).collect()
+                    directory_env_vars = field
+                        .into_iter()
+                        .map(|literal| (literal.value(), literal.span()))
+                        .collect()
                 }
             }
         }
