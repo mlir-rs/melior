@@ -39,6 +39,7 @@ impl Error {
             | Self::Utf8(_) => self,
         }
     }
+
     pub fn to_compile_error(&self) -> TokenStream {
         match self {
             Self::Syn(err) => err.to_compile_error().into(),
