@@ -11,6 +11,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         // spell-checker: disable-next-line
         llvm_config("--includedir", &version_variable)?
     );
+
+    // For testing
     println!("cargo:rustc-env=ENV_VAR_FOR_MLIR_DIALECT_DIR=foo/bar/baz");
 
     Ok(())
