@@ -29,7 +29,7 @@ use syn::parse_macro_input;
 pub fn dialect(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DialectInput);
     dialect::generate_dialect(input).unwrap_or_else(|error| {
-        error.to_compile_error().into()
+        error.to_compile_error()
     })
 }
 

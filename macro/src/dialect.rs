@@ -37,7 +37,7 @@ pub fn generate_dialect(input: DialectInput) -> Result<TokenStream, Error> {
 
     for (env_var, span) in input.directory_env_vars() {
         parser = parser.add_include_directory(&resolve_include_directory(
-            &env::var(env_var).map_err(|error| syn::Error::new(span.clone(), error.to_string()))?,
+            &env::var(env_var).map_err(|error| syn::Error::new(*span, error.to_string()))?,
         ));
     }
 
