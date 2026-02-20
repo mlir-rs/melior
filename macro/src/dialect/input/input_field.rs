@@ -6,6 +6,7 @@ pub enum InputField {
     Name(LitStr),
     Files(Punctuated<LitStr, Token![,]>),
     Directories(Punctuated<LitStr, Token![,]>),
+    DirectoryEnvVars(Punctuated<LitStr, Token![,]>),
 }
 
 impl Parse for InputField {
@@ -26,6 +27,12 @@ impl Parse for InputField {
             let content;
             bracketed!(content in input);
             Ok(Self::Directories(
+                Punctuated::<LitStr, Token![,]>::parse_terminated(&content)?,
+            ))
+        } else if ident == format_ident!("include_directory_env_vars") {
+            let content;
+            bracketed!(content in input);
+            Ok(Self::DirectoryEnvVars(
                 Punctuated::<LitStr, Token![,]>::parse_terminated(&content)?,
             ))
         } else {

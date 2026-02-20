@@ -22,13 +22,15 @@ use syn::parse_macro_input;
 ///     name: "func",
 ///     files: ["IR/FuncOps.td", "TransformOps/FuncTransformOps.td", "Transforms/Passes.td"],
 ///     include_directories: ["mlir/Dialect/Func"],
+///     include_directory_env_vars: ["ENV_VAR_FOR_MLIR_DIALECT_DIR"],
 /// }
 /// ```
 #[proc_macro]
 pub fn dialect(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DialectInput);
-
-    convert_result(dialect::generate_dialect(input))
+    dialect::generate_dialect(input).unwrap_or_else(|error| {
+        error.to_compile_error().into()
+    })
 }
 
 #[proc_macro]

@@ -7,6 +7,8 @@ use std::{
     io,
     string::FromUtf8Error,
 };
+use quote::quote;
+use proc_macro::TokenStream;
 use tblgen::{
     SourceInfo,
     error::{SourceError, TableGenError},
@@ -35,6 +37,21 @@ impl Error {
             | Self::Io(_)
             | Self::Syn(_)
             | Self::Utf8(_) => self,
+        }
+    }
+    pub fn to_compile_error(&self) -> TokenStream {
+        match self {
+            Self::Syn(err) => err.to_compile_error().into(),
+            Self::TableGen(_)
+            | Self::Ods(_)
+            | Self::Parse(_)
+            | Self::Format(_)
+            | Self::InvalidIdentifier(_)
+            | Self::Io(_)
+            | Self::Utf8(_) => {
+                let message = self.to_string();
+                quote! { compile_error!(#message) }.into()
+            }
         }
     }
 }

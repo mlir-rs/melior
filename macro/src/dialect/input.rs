@@ -2,12 +2,14 @@ mod input_field;
 
 use self::input_field::InputField;
 use std::ops::Deref;
+use proc_macro2::Span;
 use syn::{Token, parse::Parse, punctuated::Punctuated};
 
 pub struct DialectInput {
     name: String,
     files: Vec<String>,
     directories: Vec<String>,
+    directory_env_vars: Vec<(String, Span)>,
 }
 
 impl DialectInput {
@@ -22,6 +24,12 @@ impl DialectInput {
     pub fn directories(&self) -> impl Iterator<Item = &str> {
         self.directories.iter().map(Deref::deref)
     }
+
+    pub fn directory_env_vars(&self) -> impl Iterator<Item = (&str, &Span)> {
+        self.directory_env_vars.iter().map(|(value, span)|{
+            (value.deref(), span)
+        })
+    }
 }
 
 impl Parse for DialectInput {
@@ -29,6 +37,7 @@ impl Parse for DialectInput {
         let mut name = None;
         let mut files = vec![];
         let mut directories = vec![];
+        let mut directory_env_vars = vec![];
 
         for item in Punctuated::<InputField, Token![,]>::parse_terminated(input)? {
             match item {
@@ -39,6 +48,9 @@ impl Parse for DialectInput {
                 InputField::Directories(field) => {
                     directories = field.into_iter().map(|literal| literal.value()).collect()
                 }
+                InputField::DirectoryEnvVars(field) => {
+                    directory_env_vars = field.into_iter().map(|literal| (literal.value(), literal.span())).collect()
+                }
             }
         }
 
@@ -46,6 +58,7 @@ impl Parse for DialectInput {
             name: name.ok_or_else(|| input.error("dialect name required"))?,
             files,
             directories,
+            directory_env_vars,
         })
     }
 }
