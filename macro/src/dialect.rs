@@ -26,37 +26,19 @@ use tblgen::{TableGenParser, record::Record, record_keeper::RecordKeeper};
 
 const LLVM_INCLUDE_DIRECTORY: &str = env!("LLVM_INCLUDE_DIRECTORY");
 
-pub fn generate_dialect(input: DialectInput) -> Result<TokenStream, Error> {
+pub fn generate_dialect(input: DialectInput) -> Result<TokenStream, Box<dyn std::error::Error>> {
     let mut parser = TableGenParser::new();
 
     parser = parser.add_include_directory(LLVM_INCLUDE_DIRECTORY);
 
-    let get_path = |path: &str| {
-        let path = if matches!(
-            Path::new(path).components().next(),
-            Some(Component::CurDir | Component::ParentDir)
-        ) {
-            path.into()
-        } else {
-            Path::new(LLVM_INCLUDE_DIRECTORY).join(path)
-        };
-        path.display().to_string()
-    };
-
     for path in input.directories() {
-        let path = get_path(path);
-        parser = parser.add_include_directory(&path);
+        parser = parser.add_include_directory(&resolve_include_directory(path));
     }
 
     for (env_var, span) in input.directory_env_vars() {
-        let path = match env::var(env_var) {
-            Ok(path) => path,
-            Err(err) => {
-                return Err(syn::Error::new(span.clone(), err.to_string()).into())
-            }
-        };
-        let path = get_path(&path);
-        parser = parser.add_include_directory(&path);
+        parser = parser.add_include_directory(&resolve_include_directory(
+            &env::var(env_var).map_err(|error| syn::Error::new(span.clone(), error.to_string()))?,
+        ));
     }
 
     if input.files().count() > 0 {
@@ -110,6 +92,19 @@ fn generate_dialect_module(
             #(#operations)*
         }
     })
+}
+
+fn resolve_include_directory(path: &str) -> String {
+    if matches!(
+        Path::new(path).components().next(),
+        Some(Component::CurDir | Component::ParentDir)
+    ) {
+        path.into()
+    } else {
+        Path::new(LLVM_INCLUDE_DIRECTORY).join(path)
+    }
+    .display()
+    .to_string()
 }
 
 fn create_syn_error(error: impl Display) -> syn::Error {
