@@ -269,17 +269,44 @@ mod tests {
     }
 
     #[test]
-    fn compile_arith_addf() {
+    fn compile_float_arithmetics() {
         let context = create_test_context();
         let location = Location::unknown(&context);
         let r#type = Type::float32(&context);
 
         test_operation("addf", &context, &[r#type, r#type], |block| {
-            block.append_operation(
+            let add = block.append_operation(
                 arith::addf(
                     &context,
                     block.argument(0).unwrap().into(),
                     block.argument(1).unwrap().into(),
+                    location,
+                )
+                .into(),
+            );
+            let sub = block.append_operation(
+                arith::subf(
+                    &context,
+                    add.result(0).unwrap().into(),
+                    block.argument(1).unwrap().into(),
+                    location,
+                )
+                .into(),
+            );
+            let mul = block.append_operation(
+                arith::mulf(
+                    &context,
+                    add.result(0).unwrap().into(),
+                    sub.result(0).unwrap().into(),
+                    location,
+                )
+                .into(),
+            );
+            block.append_operation(
+                arith::divf(
+                    &context,
+                    mul.result(0).unwrap().into(),
+                    sub.result(0).unwrap().into(),
                     location,
                 )
                 .into(),
