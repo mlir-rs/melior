@@ -9,6 +9,8 @@ pub enum VariadicKind {
         preceding_variadic_count: usize,
     },
     AttributeSized,
+    // TODO Support variadic-of-variadic operands.
+    // https://mlir.llvm.org/docs/DefiningDialects/Operations/#variadicofvariadic-operands
 }
 
 impl VariadicKind {
