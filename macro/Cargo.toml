@@ -26,3 +26,4 @@ unindent = "0.2.4"
 melior = { path = "../melior", features = ["ods-dialects"] }
 mlir-sys = "210.0.1"
 pretty_assertions = "1.4.1"
+trybuild = { version = "1.0.108", features = ["diff"] }
