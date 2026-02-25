@@ -2,7 +2,7 @@ mod ods;
 
 pub use self::ods::OdsError;
 use proc_macro::TokenStream;
-use quote::quote;
+use proc_macro2::Span;
 use std::{
     error,
     fmt::{self, Display, Formatter},
@@ -49,10 +49,9 @@ impl Error {
             | Self::Format(_)
             | Self::InvalidIdentifier(_)
             | Self::Io(_)
-            | Self::Utf8(_) => {
-                let message = self.to_string();
-                quote! { compile_error!(#message) }.into()
-            }
+            | Self::Utf8(_) => syn::Error::new(Span::call_site(), self)
+                .to_compile_error()
+                .into(),
         }
     }
 }

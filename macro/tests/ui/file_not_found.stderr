@@ -1,0 +1,10 @@
+error: failed to parse TableGen source: failed to parse TableGen source
+ --> tests/ui/file_not_found.rs:1:1
+  |
+1 | / melior::dialect! {
+2 | |     name: "func",
+3 | |     files: ["IR/FuncOpsNotFound.td"],
+4 | | }
+  | |_^
+  |
+  = note: this error originates in the macro `melior::dialect` (in Nightly builds, run with -Z macro-backtrace for more info)
