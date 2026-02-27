@@ -82,7 +82,7 @@ fn generate_operation_enum(
         let full_name = operation.full_operation_name();
 
         quote! {
-            #full_name => Ok(#enum_name::#ident(#ident::try_from(operation.clone()).expect("operation should match type"))),
+            #full_name => Ok(#enum_name::#ident(#ident::try_from(operation).expect("operation should match type"))),
         }
     }).collect::<Vec<_>>();
 
