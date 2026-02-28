@@ -169,6 +169,11 @@ impl<'c, 'a> OperationRef<'c, 'a> {
         }
     }
 
+    /// Creates a deep-copy of the operation that this reference points to.
+    pub fn to_owned(&self) -> Operation<'c> {
+        unsafe { Operation::from_raw(mlirOperationClone(self.raw)) }
+    }
+
     /// Creates an optional operation reference from a raw object.
     ///
     /// # Safety
