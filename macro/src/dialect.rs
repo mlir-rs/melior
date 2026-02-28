@@ -77,15 +77,23 @@ fn generate_operation_enum(
 
     let enum_ident = quote::format_ident!("{}Operation", dialect_name.to_case(Case::Pascal));
 
-    let match_arms = operations.iter().map(|operation| {
-        let ident = quote::format_ident!("{}", operation.name());
+    let match_arms = operations
+        .iter()
+        .map(|operation| {
+            let ident = quote::format_ident!("{}", operation.name());
             let member = quote::format_ident!("{}", operation.short_name());
-        let full_name = operation.full_operation_name();
+            let full_name = operation.full_operation_name();
 
-        quote! {
-            #full_name => Ok(#enum_name::#member(#ident::try_from(operation).expect("operation should match type"))),
-        }
-    }).collect::<Vec<_>>();
+            quote! {
+                #full_name => Ok(
+                    #enum_name::#member(
+                        #ident::try_from(operation)
+                            .expect("operation should match type"),
+                    ),
+                ),
+            }
+        })
+        .collect::<Vec<_>>();
 
     let raw_match_arms = operations
         .iter()
