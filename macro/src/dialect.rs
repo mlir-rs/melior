@@ -103,8 +103,7 @@ fn generate_operation_enum(
             let ident = quote::format_ident!("{}", operation.name());
 
             quote! {
-                // TODO Implement `Clone` for the dialect-specific operations.
-                #enum_ident::#ident(op) => #enum_ident::#ident(#ident { operation: op.as_operation().clone() }),
+                #enum_ident::#ident(op) => #enum_ident::#ident(op.clone()),
             }
         })
         .collect::<Vec<_>>();

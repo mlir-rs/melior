@@ -60,6 +60,7 @@ pub fn generate_operation(operation: &Operation) -> TokenStream {
         #[doc = #summary]
         #[doc = "\n\n"]
         #[doc = #description]
+        #[derive(Clone, Debug, PartialEq, Eq)]
         pub struct #identifier<'c> {
             operation: ::melior::ir::operation::Operation<'c>,
         }
