@@ -79,41 +79,45 @@ fn generate_operation_enum(
 
     let match_arms = operations.iter().map(|operation| {
         let ident = quote::format_ident!("{}", operation.name());
+            let member = quote::format_ident!("{}", operation.short_name());
         let full_name = operation.full_operation_name();
 
         quote! {
-            #full_name => Ok(#enum_name::#ident(#ident::try_from(operation).expect("operation should match type"))),
+            #full_name => Ok(#enum_name::#member(#ident::try_from(operation).expect("operation should match type"))),
         }
     }).collect::<Vec<_>>();
 
     let raw_match_arms = operations
         .iter()
         .map(|operation| {
-            let ident = quote::format_ident!("{}", operation.name());
+            let member = quote::format_ident!("{}", operation.short_name());
 
             quote! {
-                #enum_ident::#ident(op) => op.as_operation(),
+                #enum_ident::#member(op) => op.as_operation(),
             }
         })
         .collect::<Vec<_>>();
 
     let operation_enum = operations
         .iter()
-        .map(|operation| quote::format_ident!("{}", operation.name()))
         .map(|operation| {
+            let member = quote::format_ident!("{}", operation.short_name());
+            let operation = quote::format_ident!("{}", operation.name());
+
             quote! {
-                #operation(#operation<'b>)
+                #member(#operation<'b>)
             }
         })
         .collect::<Vec<_>>();
 
     let from_impls = operations.iter().map(|operation| {
         let ident = quote::format_ident!("{}", operation.name());
+        let member = quote::format_ident!("{}", operation.short_name());
 
         quote! {
             impl<'b> From<#ident<'b>> for #enum_ident<'b> {
                 fn from(op: #ident<'b>) -> Self {
-                    #enum_ident::#ident(op)
+                    #enum_ident::#member(op)
                 }
             }
         }
