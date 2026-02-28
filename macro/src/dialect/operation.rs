@@ -100,8 +100,7 @@ impl<'a> Operation<'a> {
             name
         }
         .trim_end_matches("Op")
-        .to_owned()
-            + "Operation")
+        .to_owned())
     }
 
     pub fn name(&self) -> &str {
