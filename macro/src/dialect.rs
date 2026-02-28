@@ -97,17 +97,6 @@ fn generate_operation_enum(
         })
         .collect::<Vec<_>>();
 
-    let clone_match_arms = operations
-        .iter()
-        .map(|operation| {
-            let ident = quote::format_ident!("{}", operation.name());
-
-            quote! {
-                #enum_ident::#ident(op) => #enum_ident::#ident(op.clone()),
-            }
-        })
-        .collect::<Vec<_>>();
-
     let operation_enum = operations
         .iter()
         .map(|operation| quote::format_ident!("{}", operation.name()))
@@ -134,16 +123,9 @@ fn generate_operation_enum(
         Ok(None)
     } else {
         let enum_definition = quote! {
+            #[derive(Clone, Debug, PartialEq, Eq)]
             pub enum #enum_name<'b> {
                 #(#operation_enum),*
-            }
-
-            impl<'b> Clone for #enum_name<'b> {
-                fn clone(&self) -> Self {
-                    match self {
-                        #(#clone_match_arms)*
-                    }
-                }
             }
 
             impl<'b> std::fmt::Display for #enum_name<'b> {
