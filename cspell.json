@@ -32,6 +32,7 @@
     "funcs",
     "getelementptr",
     "hasher",
+    "impls",
     "indoc",
     "insertvalue",
     "insta",
