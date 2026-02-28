@@ -1,6 +1,6 @@
 [package]
 name = "melior-macro"
-version = "0.19.2"
+version = "0.19.3"
 edition.workspace = true
 description = "Internal macros for Melior"
 documentation = "https://mlir-rs.github.io/melior/melior/"
