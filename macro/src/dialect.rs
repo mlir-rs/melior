@@ -77,55 +77,55 @@ fn generate_operation_enum(
 
     let enum_ident = quote::format_ident!("{}Operation", dialect_name.to_case(Case::Pascal));
 
-    let match_arms = operations.iter().map(|operation| {
-        let ident = quote::format_ident!("{}", operation.name());
-        let full_name = operation.full_operation_name();
-
-        quote! {
-            #full_name => Ok(#enum_name::#ident(#ident::try_from(operation).expect("operation should match type"))),
-        }
-    }).collect::<Vec<_>>();
-
-    let raw_match_arms = operations
+    let match_arms = operations
         .iter()
         .map(|operation| {
             let ident = quote::format_ident!("{}", operation.name());
+            let member = quote::format_ident!("{}", operation.short_name());
+            let full_name = operation.full_operation_name();
 
             quote! {
-                #enum_ident::#ident(op) => op.as_operation(),
+                #full_name => Ok(
+                    #enum_name::#member(
+                        #ident::try_from(operation)
+                            .expect("operation should match type"),
+                    ),
+                ),
             }
         })
         .collect::<Vec<_>>();
 
-    let clone_match_arms = operations
+    let raw_match_arms = operations
         .iter()
         .map(|operation| {
-            let ident = quote::format_ident!("{}", operation.name());
+            let member = quote::format_ident!("{}", operation.short_name());
 
             quote! {
-                // TODO Implement `Clone` for the dialect-specific operations.
-                #enum_ident::#ident(op) => #enum_ident::#ident(#ident { operation: op.as_operation().clone() }),
+                #enum_ident::#member(op) => op.as_operation(),
             }
         })
         .collect::<Vec<_>>();
 
     let operation_enum = operations
         .iter()
-        .map(|operation| quote::format_ident!("{}", operation.name()))
         .map(|operation| {
+            let member = quote::format_ident!("{}", operation.short_name());
+            let operation = quote::format_ident!("{}", operation.name());
+
             quote! {
-                #operation(#operation<'b>)
+                #member(#operation<'b>)
             }
         })
         .collect::<Vec<_>>();
 
     let from_impls = operations.iter().map(|operation| {
         let ident = quote::format_ident!("{}", operation.name());
+        let member = quote::format_ident!("{}", operation.short_name());
 
         quote! {
             impl<'b> From<#ident<'b>> for #enum_ident<'b> {
                 fn from(op: #ident<'b>) -> Self {
-                    #enum_ident::#ident(op)
+                    #enum_ident::#member(op)
                 }
             }
         }
@@ -135,16 +135,9 @@ fn generate_operation_enum(
         Ok(None)
     } else {
         let enum_definition = quote! {
+            #[derive(Clone, Debug, PartialEq, Eq)]
             pub enum #enum_name<'b> {
                 #(#operation_enum),*
-            }
-
-            impl<'b> Clone for #enum_name<'b> {
-                fn clone(&self) -> Self {
-                    match self {
-                        #(#clone_match_arms)*
-                    }
-                }
             }
 
             impl<'b> std::fmt::Display for #enum_name<'b> {

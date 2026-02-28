@@ -23,6 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
+      - run: echo LIBRARY_PATH=$(brew --prefix)/lib >> ${{ github.env }}
+        if: runner.os == 'macOS'
       - run: cargo test --all-features
   sanitize:
     if: github.ref == 'refs/heads/main'

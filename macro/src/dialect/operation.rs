@@ -31,6 +31,7 @@ const VOWELS: &str = "aeiou";
 #[derive(Debug)]
 pub struct Operation<'a> {
     name: String,
+    short_name: String,
     short_dialect_name: &'a str,
     dialect_name: &'a str,
     operation_name: &'a str,
@@ -62,9 +63,11 @@ impl<'a> Operation<'a> {
             trait_names.contains("::mlir::OpTrait::SameVariadicResultSize"),
             trait_names.contains("::mlir::OpTrait::AttrSizedResultSegments"),
         )?;
+        let short_name = Self::build_name(definition)?;
 
         Ok(Self {
-            name: Self::build_name(definition)?,
+            name: short_name.clone() + "Operation",
+            short_name,
             dialect_name: definition.def_value("opDialect")?.name()?,
             short_dialect_name: definition.def_value("opDialect")?.str_value("name")?,
             operation_name,
@@ -100,12 +103,15 @@ impl<'a> Operation<'a> {
             name
         }
         .trim_end_matches("Op")
-        .to_owned()
-            + "Operation")
+        .to_owned())
     }
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn short_name(&self) -> &str {
+        &self.short_name
     }
 
     pub const fn can_infer_type(&self) -> bool {
