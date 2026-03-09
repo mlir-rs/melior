@@ -256,9 +256,8 @@ impl<'a> Operation<'a> {
             .dag_value("regions")?
             .args()
             .map(|(name, value)| {
-                let name = name.ok_or_else(|| {
-                    OdsError::UnnamedDagArg("regions").with_location(definition)
-                })?;
+                let name = name
+                    .ok_or_else(|| OdsError::UnnamedDagArg("regions").with_location(definition))?;
                 Region::new(
                     name,
                     Record::try_from(value)
