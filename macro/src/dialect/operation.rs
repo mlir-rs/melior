@@ -237,6 +237,7 @@ impl<'a> Operation<'a> {
         definition
             .dag_value("successors")?
             .args()
+            .filter_map(|(name, value)| Some((name?, value)))
             .map(|(name, value)| {
                 Successor::new(
                     name,
@@ -252,6 +253,7 @@ impl<'a> Operation<'a> {
         definition
             .dag_value("regions")?
             .args()
+            .filter_map(|(name, value)| Some((name?, value)))
             .map(|(name, value)| {
                 Region::new(
                     name,
@@ -293,6 +295,7 @@ impl<'a> Operation<'a> {
         definition
             .dag_value(name)?
             .args()
+            .filter_map(|(name, argument)| Some((name?, argument)))
             .map(|(name, argument)| {
                 let definition =
                     Record::try_from(argument).map_err(|error| error.set_location(definition))?;
