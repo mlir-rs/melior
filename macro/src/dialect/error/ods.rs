@@ -8,6 +8,7 @@ pub enum OdsError {
     ExpectedSuperClass(&'static str),
     InvalidTrait,
     UnexpectedSuperClass(&'static str),
+    UnnamedDagArg(&'static str),
 }
 
 impl Display for OdsError {
@@ -19,6 +20,9 @@ impl Display for OdsError {
             Self::InvalidTrait => write!(formatter, "record is not a supported trait"),
             Self::UnexpectedSuperClass(class) => {
                 write!(formatter, "record should not be a sub-class of {class}",)
+            }
+            Self::UnnamedDagArg(dag) => {
+                write!(formatter, "unnamed argument in {dag} DAG")
             }
         }
     }
