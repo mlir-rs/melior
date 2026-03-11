@@ -13,17 +13,17 @@ keywords.workspace = true
 proc-macro = true
 
 [dependencies]
-comrak = { version = "0.50.0", default-features = false }
+comrak = { version = "0.51.0", default-features = false }
 convert_case = "0.11.0"
 proc-macro2 = "1"
 quote = "1"
 regex = "1.12.3"
 syn = { version = "2", features = ["full"] }
-tblgen = { version = "0.7.2", default-features = false, features = ["llvm21-0"] }
+tblgen = { version = "0.8.1", default-features = false, features = ["llvm21-0"] }
 unindent = "0.2.4"
 
 [dev-dependencies]
 melior = { path = "../melior", features = ["ods-dialects"] }
-mlir-sys = "210.0.2"
+mlir-sys = "210.0.3"
 pretty_assertions = "1.4.1"
 trybuild = { version = "1.0.108", features = ["diff"] }

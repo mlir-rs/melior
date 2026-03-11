@@ -239,6 +239,9 @@ impl<'a> Operation<'a> {
             .dag_value("successors")?
             .args()
             .map(|(name, value)| {
+                let name = name.ok_or_else(|| {
+                    OdsError::UnnamedDagArg("successors").with_location(definition)
+                })?;
                 Successor::new(
                     name,
                     Record::try_from(value)
@@ -254,6 +257,8 @@ impl<'a> Operation<'a> {
             .dag_value("regions")?
             .args()
             .map(|(name, value)| {
+                let name = name
+                    .ok_or_else(|| OdsError::UnnamedDagArg("regions").with_location(definition))?;
                 Region::new(
                     name,
                     Record::try_from(value)
@@ -294,6 +299,10 @@ impl<'a> Operation<'a> {
         definition
             .dag_value(name)?
             .args()
+            // Unnamed DAG args (e.g. `(outs AnyType)` without `$name`) are skipped.
+            // In MLIR ODS, unnamed args always appear after all named args, so
+            // filtering preserves correct positional indices for named elements.
+            .filter_map(|(name, argument)| Some((name?, argument)))
             .map(|(name, argument)| {
                 let definition =
                     Record::try_from(argument).map_err(|error| error.set_location(definition))?;
