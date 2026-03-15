@@ -1,6 +1,6 @@
 mod utility;
 
-use melior::ir::{Block, Location, Type, block::BlockLike, operation::OperationLike};
+use melior::ir::{Block, Location, Type, ValueLike, block::BlockLike, operation::OperationLike};
 use utility::*;
 
 melior_macro::dialect! {
@@ -28,6 +28,8 @@ fn simple() {
     assert_eq!(operation.lhs().unwrap(), block.argument(0).unwrap().into());
     assert_eq!(operation.rhs().unwrap(), block.argument(1).unwrap().into());
     assert_eq!(operation.as_operation().operand_count(), 2);
+    assert_eq!(operation.as_operation().result_count(), 1);
+    assert_eq!(operation.res().unwrap().r#type(), r#type);
 }
 
 #[test]
@@ -64,4 +66,6 @@ fn variadic_after_single() {
     );
     assert_eq!(operation.as_operation().operand_count(), 3);
     assert_eq!(operation.others().count(), 2);
+    assert_eq!(operation.as_operation().result_count(), 1);
+    assert_eq!(operation.res().unwrap().r#type(), r#type);
 }
