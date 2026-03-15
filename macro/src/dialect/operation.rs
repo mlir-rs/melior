@@ -28,6 +28,21 @@ use tblgen::{TypedInit, error::WithLocation, record::Record};
 // spell-checker: disable-next-line
 const VOWELS: &str = "aeiou";
 
+/// How a generated builder populates result types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TypeInference {
+    /// Op implements `InferTypeOpInterface` — call `enable_result_type_inference()`.
+    Interface,
+    /// Op has `SameOperandsAndResultType` — copy `operands[0].type()` to all results
+    /// in the first-operand setter.
+    SameOperands,
+    /// Op has `FirstAttrDerivedResultType` — derive result type from the first attribute
+    /// in the first-attribute setter.
+    FirstAttrDerived,
+    /// No inference — user must provide result types explicitly via setter methods.
+    Explicit,
+}
+
 #[derive(Debug)]
 pub struct Operation<'a> {
     name: String,
@@ -38,7 +53,7 @@ pub struct Operation<'a> {
     constructor_identifier: Ident,
     summary: &'a str,
     description: String,
-    can_infer_type: bool,
+    type_inference: TypeInference,
     results: Vec<OperationResult<'a>>,
     operands: Vec<Operand<'a>>,
     regions: Vec<Region<'a>>,
@@ -74,13 +89,29 @@ impl<'a> Operation<'a> {
             constructor_identifier: sanitize_snake_case_identifier(operation_name)?,
             summary: definition.str_value("summary")?,
             description: sanitize_documentation(definition.str_value("description")?)?,
-            can_infer_type: traits.iter().any(|r#trait| {
-                (r#trait.name() == Some("::mlir::OpTrait::FirstAttrDerivedResultType")
-                    || r#trait.name() == Some("::mlir::OpTrait::SameOperandsAndResultType"))
-                    && unfixed_result_count == 0
-                    || r#trait.name() == Some("::mlir::InferTypeOpInterface::Trait")
-                        && regions.is_empty()
-            }),
+            type_inference: {
+                let has_interface = regions.is_empty()
+                    && traits.iter().any(|r#trait| {
+                        r#trait.name() == Some("::mlir::InferTypeOpInterface::Trait")
+                    });
+                let has_same_operands = unfixed_result_count == 0
+                    && traits.iter().any(|r#trait| {
+                        r#trait.name() == Some("::mlir::OpTrait::SameOperandsAndResultType")
+                    });
+                let has_first_attr_derived = unfixed_result_count == 0
+                    && traits.iter().any(|r#trait| {
+                        r#trait.name() == Some("::mlir::OpTrait::FirstAttrDerivedResultType")
+                    });
+                if has_interface {
+                    TypeInference::Interface
+                } else if has_same_operands {
+                    TypeInference::SameOperands
+                } else if has_first_attr_derived {
+                    TypeInference::FirstAttrDerived
+                } else {
+                    TypeInference::Explicit
+                }
+            },
             results,
             operands: Self::collect_operands(
                 &arguments,
@@ -114,8 +145,8 @@ impl<'a> Operation<'a> {
         &self.short_name
     }
 
-    pub const fn can_infer_type(&self) -> bool {
-        self.can_infer_type
+    pub const fn type_inference(&self) -> TypeInference {
+        self.type_inference
     }
 
     pub const fn dialect_name(&self) -> &str {
@@ -196,10 +227,11 @@ impl<'a> Operation<'a> {
     }
 
     pub fn required_results(&self) -> impl Iterator<Item = &'_ OperationResult<'_>> {
-        if self.can_infer_type {
-            Default::default()
-        } else {
-            self.results.iter()
+        match self.type_inference {
+            TypeInference::Interface
+            | TypeInference::SameOperands
+            | TypeInference::FirstAttrDerived => Default::default(),
+            TypeInference::Explicit => self.results.iter(),
         }
         .filter(|field| !field.is_optional())
     }
