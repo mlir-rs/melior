@@ -1,11 +1,10 @@
 mod utility;
 
 use melior::ir::{
-    Location, Type,
+    Location, Type, ValueLike,
     attribute::{Attribute, TypeAttribute},
     operation::OperationLike,
 };
-use melior::ir::ValueLike;
 use utility::*;
 
 melior_macro::dialect! {

@@ -6,9 +6,9 @@ use quote::{format_ident, quote};
 
 pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
     let result_fns = match builder.operation().type_inference() {
-        TypeInference::Interface | TypeInference::SameOperands | TypeInference::FirstAttrDerived => {
-            Default::default()
-        }
+        TypeInference::Interface
+        | TypeInference::SameOperands
+        | TypeInference::FirstAttrDerived => Default::default(),
         TypeInference::Explicit => builder
             .operation()
             .results()
@@ -146,8 +146,9 @@ fn generate_same_operands_first_fn(
     let add_arguments = field.add_arguments(identifier);
     let result_count = builder.operation().result_len();
     let result_type_copies: Vec<_> = (0..result_count).map(|_| quote! { result_type }).collect();
-    // For variadic operands the parameter is `&[Value]`; index into it for the type.
-    // For singular operands the parameter is `Value`; take a reference directly.
+    // For variadic operands the parameter is `&[Value]`; index into it for the
+    // type. For singular operands the parameter is `Value`; take a reference
+    // directly.
     let type_access = if field.is_variadic() {
         quote! { ::melior::ir::ValueLike::r#type(&#identifier[0]) }
     } else {
@@ -198,7 +199,8 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
     let add_arguments = field.add_arguments(identifier);
     let result_count = builder.operation().result_len();
     let result_type_copies: Vec<_> = (0..result_count).map(|_| quote! { result_type }).collect();
-    // If the attribute is a TypeAttr, use its wrapped type; otherwise use the attribute's own type.
+    // If the attribute is a TypeAttr, use its wrapped type; otherwise use the
+    // attribute's own type.
     let type_access = if field.is_type_attr() {
         quote! { #identifier.value() }
     } else {
@@ -244,8 +246,11 @@ fn generate_build_fn(builder: &OperationBuilder) -> TokenStream {
     let arguments = builder.type_state().arguments_with_all(true);
     let operation_identifier = format_ident!("{}", &builder.operation().name());
     let error = format!("should be a valid {operation_identifier}");
-    let maybe_infer = matches!(builder.operation().type_inference(), TypeInference::Interface)
-        .then_some(quote! { .enable_result_type_inference() });
+    let maybe_infer = matches!(
+        builder.operation().type_inference(),
+        TypeInference::Interface
+    )
+    .then_some(quote! { .enable_result_type_inference() });
 
     quote! {
         impl<'c> #identifier<'c, #(#arguments),*> {

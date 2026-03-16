@@ -31,15 +31,17 @@ const VOWELS: &str = "aeiou";
 /// How a generated builder populates result types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TypeInference {
-    /// Op implements `InferTypeOpInterface` — call `enable_result_type_inference()`.
+    /// Op implements `InferTypeOpInterface` — call
+    /// `enable_result_type_inference()`.
     Interface,
-    /// Op has `SameOperandsAndResultType` — copy `operands[0].type()` to all results
-    /// in the first-operand setter.
+    /// Op has `SameOperandsAndResultType` — copy `operands[0].type()` to all
+    /// results in the first-operand setter.
     SameOperands,
-    /// Op has `FirstAttrDerivedResultType` — derive result type from the first attribute
-    /// in the first-attribute setter.
+    /// Op has `FirstAttrDerivedResultType` — derive result type from the first
+    /// attribute in the first-attribute setter.
     FirstAttrDerived,
-    /// No inference — user must provide result types explicitly via setter methods.
+    /// No inference — user must provide result types explicitly via setter
+    /// methods.
     Explicit,
 }
 
