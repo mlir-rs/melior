@@ -442,4 +442,74 @@ mod tests {
             "Block(\n<<UNLINKED BLOCK>>\n)"
         );
     }
+
+    #[test]
+    fn insert_argument() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let i32_type = Type::from(IntegerType::new(&context, 32));
+        let i64_type = Type::from(IntegerType::new(&context, 64));
+
+        let block = Block::new(&[(i64_type, location)]);
+        let inserted = block.insert_argument(0, i32_type, location);
+
+        assert_eq!(block.argument_count(), 2);
+        assert_eq!(inserted.r#type(), i32_type);
+        assert_eq!(block.argument(0).unwrap().r#type(), i32_type);
+    }
+
+    #[test]
+    fn erase_argument() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let i32_type = Type::from(IntegerType::new(&context, 32));
+        let i64_type = Type::from(IntegerType::new(&context, 64));
+
+        let block = Block::new(&[(i32_type, location), (i64_type, location)]);
+        assert_eq!(block.argument_count(), 2);
+
+        // SAFETY: No BlockArgument handles are held at this point.
+        unsafe { block.erase_argument(0) };
+
+        assert_eq!(block.argument_count(), 1);
+        assert_eq!(block.argument(0).unwrap().r#type(), i64_type);
+    }
+
+    #[test]
+    fn successor_count() {
+        let block = Block::new(&[]);
+        assert_eq!(block.successor_count(), 0);
+    }
+
+    #[test]
+    fn successor_out_of_bounds() {
+        let block = Block::new(&[]);
+        assert_eq!(
+            block.successor(0).unwrap_err(),
+            Error::PositionOutOfBounds {
+                name: "block successor",
+                value: "<<UNLINKED BLOCK>>\n".into(),
+                index: 0,
+            }
+        );
+    }
+
+    #[test]
+    fn predecessor_count() {
+        let block = Block::new(&[]);
+        assert_eq!(block.predecessor_count(), 0);
+    }
+
+    #[test]
+    fn predecessor_out_of_bounds() {
+        let block = Block::new(&[]);
+        assert_eq!(
+            block.predecessor(0).unwrap_err(),
+            Error::PositionOutOfBounds {
+                name: "block predecessor",
+                value: "<<UNLINKED BLOCK>>\n".into(),
+                index: 0,
+            }
+        );
+    }
 }

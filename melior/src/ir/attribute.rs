@@ -8,19 +8,21 @@ mod bool;
 mod dense_elements;
 mod dense_i32_array;
 mod dense_i64_array;
+mod dictionary;
 mod distinct;
 mod flat_symbol_ref;
 mod float;
 mod integer;
+mod strided_layout;
 mod string;
 mod r#type;
 
 pub use self::{
     array::ArrayAttribute, attribute_like::AttributeLike, bool::BoolAttribute,
     dense_elements::DenseElementsAttribute, dense_i32_array::DenseI32ArrayAttribute,
-    dense_i64_array::DenseI64ArrayAttribute, flat_symbol_ref::FlatSymbolRefAttribute,
-    float::FloatAttribute, integer::IntegerAttribute, string::StringAttribute,
-    r#type::TypeAttribute,
+    dense_i64_array::DenseI64ArrayAttribute, dictionary::DictionaryAttribute,
+    flat_symbol_ref::FlatSymbolRefAttribute, float::FloatAttribute, integer::IntegerAttribute,
+    strided_layout::StridedLayoutAttribute, string::StringAttribute, r#type::TypeAttribute,
 };
 use crate::{context::Context, string_ref::StringRef, utility::print_callback};
 use distinct::DisctinctAttribute;
@@ -138,10 +140,12 @@ from_subtypes!(
     DenseElementsAttribute,
     DenseI32ArrayAttribute,
     DenseI64ArrayAttribute,
+    DictionaryAttribute,
     FlatSymbolRefAttribute,
     FloatAttribute,
     IntegerAttribute,
     StringAttribute,
+    StridedLayoutAttribute,
     TypeAttribute,
     DisctinctAttribute,
 );

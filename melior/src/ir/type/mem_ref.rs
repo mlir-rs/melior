@@ -4,8 +4,9 @@ use crate::{
     ir::{Attribute, Location, Type, affine_map::AffineMap, attribute::AttributeLike},
 };
 use mlir_sys::{
-    MlirType, mlirMemRefTypeGet, mlirMemRefTypeGetAffineMap, mlirMemRefTypeGetChecked,
-    mlirMemRefTypeGetLayout, mlirMemRefTypeGetMemorySpace,
+    MlirType, mlirMemRefTypeContiguousGet, mlirMemRefTypeContiguousGetChecked, mlirMemRefTypeGet,
+    mlirMemRefTypeGetAffineMap, mlirMemRefTypeGetChecked, mlirMemRefTypeGetLayout,
+    mlirMemRefTypeGetMemorySpace, mlirMemRefTypeGetStridesAndOffset,
 };
 
 /// A mem-ref type.
@@ -51,6 +52,58 @@ impl<'c> MemRefType<'c> {
                 memory_space.to_raw(),
             ))
         }
+    }
+
+    /// Creates a contiguous mem-ref type (identity layout).
+    pub fn contiguous(
+        element_type: Type<'c>,
+        dimensions: &[i64],
+        memory_space: Option<Attribute<'c>>,
+    ) -> Self {
+        unsafe {
+            Self::from_raw(mlirMemRefTypeContiguousGet(
+                element_type.to_raw(),
+                dimensions.len() as isize,
+                dimensions.as_ptr(),
+                memory_space.unwrap_or_else(|| Attribute::null()).to_raw(),
+            ))
+        }
+    }
+
+    /// Creates a contiguous mem-ref type with diagnostics.
+    pub fn contiguous_checked(
+        location: Location<'c>,
+        element_type: Type<'c>,
+        dimensions: &[i64],
+        memory_space: Option<Attribute<'c>>,
+    ) -> Option<Self> {
+        unsafe {
+            Self::from_option_raw(mlirMemRefTypeContiguousGetChecked(
+                location.to_raw(),
+                element_type.to_raw(),
+                dimensions.len() as isize,
+                dimensions.as_ptr(),
+                memory_space.unwrap_or_else(|| Attribute::null()).to_raw(),
+            ))
+        }
+    }
+
+    /// Returns the strides and offset of the mem-ref type.
+    ///
+    /// Returns a tuple of `(strides, offset)` where `strides` has length equal
+    /// to the rank.
+    pub fn strides_and_offset(&self) -> (Vec<i64>, i64) {
+        let rank = self.rank();
+        let mut strides = vec![0i64; rank];
+        let mut offset = 0i64;
+        unsafe {
+            mlirMemRefTypeGetStridesAndOffset(
+                self.r#type.to_raw(),
+                strides.as_mut_ptr(),
+                &mut offset,
+            );
+        }
+        (strides, offset)
     }
 
     /// Returns a layout.
@@ -141,5 +194,61 @@ mod tests {
             MemRefType::new(Type::index(&context), &[42, 42], None, None).memory_space(),
             None,
         );
+    }
+
+    #[test]
+    fn contiguous() {
+        let context = Context::new();
+
+        assert_eq!(
+            Type::from(MemRefType::contiguous(Type::float64(&context), &[42], None)),
+            Type::parse(&context, "memref<42xf64>").unwrap()
+        );
+    }
+
+    #[test]
+    fn contiguous_checked() {
+        let context = Context::new();
+
+        assert_eq!(
+            MemRefType::contiguous_checked(
+                Location::unknown(&context),
+                Type::float64(&context),
+                &[42],
+                None,
+            )
+            .map(Type::from),
+            Type::parse(&context, "memref<42xf64>")
+        );
+    }
+
+    #[test]
+    fn contiguous_checked_fail() {
+        let context = Context::new();
+
+        // index type is not a valid element type for memref in the checked variant
+        assert_eq!(
+            MemRefType::contiguous_checked(
+                Location::unknown(&context),
+                Type::index(&context),
+                &[42],
+                None,
+            )
+            .map(Type::from),
+            Type::parse(&context, "memref<42xindex>")
+        );
+    }
+
+    #[test]
+    fn strides_and_offset() {
+        let context = Context::new();
+
+        let memref = MemRefType::new(Type::float64(&context), &[4, 8], None, None);
+        let (strides, offset) = memref.strides_and_offset();
+        assert_eq!(strides.len(), 2);
+        assert_eq!(offset, 0);
+        // Row-major strides for 4x8: strides[0]=8, strides[1]=1
+        assert_eq!(strides[0], 8);
+        assert_eq!(strides[1], 1);
     }
 }

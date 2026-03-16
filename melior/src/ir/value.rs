@@ -259,4 +259,47 @@ mod tests {
             "Value(\n%c0 = arith.constant 0 : index\n)"
         );
     }
+
+    #[test]
+    fn set_type() {
+        use crate::ir::r#type::IntegerType;
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let index_type = Type::index(&context);
+        let i32_type = Type::from(IntegerType::new(&context, 32));
+
+        let block = Block::new(&[(index_type, location)]);
+        let arg = block.argument(0).unwrap();
+        let value = Value::from(arg);
+
+        value.set_type(i32_type);
+
+        assert_eq!(value.r#type(), i32_type);
+    }
+
+    #[test]
+    fn value_context() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let index_type = Type::index(&context);
+
+        let block = Block::new(&[(index_type, location)]);
+        let arg = block.argument(0).unwrap();
+        let value = Value::from(arg);
+
+        assert!(value.context() == context);
+    }
+
+    #[test]
+    fn value_location() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let index_type = Type::index(&context);
+
+        let block = Block::new(&[(index_type, location)]);
+        let arg = block.argument(0).unwrap();
+        let value = Value::from(arg);
+
+        let _ = value.location();
+    }
 }
