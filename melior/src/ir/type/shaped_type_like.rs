@@ -2,12 +2,11 @@ use crate::Error;
 
 use super::{Type, TypeLike};
 use mlir_sys::{
-    mlirShapedTypeGetDimSize, mlirShapedTypeGetDynamicSize,
-    mlirShapedTypeGetDynamicStrideOrOffset, mlirShapedTypeGetElementType,
-    mlirShapedTypeGetRank, mlirShapedTypeHasRank, mlirShapedTypeHasStaticShape,
-    mlirShapedTypeIsDynamicDim, mlirShapedTypeIsDynamicSize,
-    mlirShapedTypeIsDynamicStrideOrOffset, mlirShapedTypeIsStaticDim,
-    mlirShapedTypeIsStaticSize, mlirShapedTypeIsStaticStrideOrOffset,
+    mlirShapedTypeGetDimSize, mlirShapedTypeGetDynamicSize, mlirShapedTypeGetDynamicStrideOrOffset,
+    mlirShapedTypeGetElementType, mlirShapedTypeGetRank, mlirShapedTypeHasRank,
+    mlirShapedTypeHasStaticShape, mlirShapedTypeIsDynamicDim, mlirShapedTypeIsDynamicSize,
+    mlirShapedTypeIsDynamicStrideOrOffset, mlirShapedTypeIsStaticDim, mlirShapedTypeIsStaticSize,
+    mlirShapedTypeIsStaticStrideOrOffset,
 };
 
 /// Trait for shaped types.
@@ -227,14 +226,9 @@ mod tests {
     fn is_dynamic_size() {
         assert!(!MemRefType::is_dynamic_size(42));
         assert!(MemRefType::is_dynamic_size(
-            MemRefType::new(
-                Type::index(&Context::new()),
-                &[i64::MIN],
-                None,
-                None,
-            )
-            .dim_size_signed(0)
-            .unwrap()
+            MemRefType::new(Type::index(&Context::new()), &[i64::MIN], None, None,)
+                .dim_size_signed(0)
+                .unwrap()
         ));
     }
 
@@ -272,13 +266,10 @@ mod tests {
     fn has_static_shape() {
         let context = Context::new();
 
-        assert!(
-            MemRefType::new(Type::index(&context), &[42, 10], None, None).has_static_shape()
-        );
+        assert!(MemRefType::new(Type::index(&context), &[42, 10], None, None).has_static_shape());
 
         assert!(
-            !MemRefType::new(Type::index(&context), &[42, i64::MIN], None, None)
-                .has_static_shape()
+            !MemRefType::new(Type::index(&context), &[42, i64::MIN], None, None).has_static_shape()
         );
     }
 
