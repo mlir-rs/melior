@@ -166,7 +166,7 @@ pub trait BlockLike<'c, 'a>: Display + 'a {
     ///
     /// This invalidates any `BlockArgument` or `Value` handles that were
     /// obtained for the erased argument. Using such handles after this call
-    /// is undefined behaviour.
+    /// is undefined behavior.
     unsafe fn erase_argument(&self, index: usize) {
         unsafe { mlirBlockEraseArgument(self.to_raw(), index as u32) }
     }
