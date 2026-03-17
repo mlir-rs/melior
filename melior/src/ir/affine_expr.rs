@@ -20,6 +20,7 @@ use std::{
     ffi::c_void,
     fmt::{self, Debug, Display, Formatter},
     marker::PhantomData,
+    ops::{Add, Mul},
 };
 
 /// An affine expression.
@@ -47,16 +48,6 @@ impl<'c> AffineExpr<'c> {
     /// Creates a constant expression.
     pub fn constant(context: &'c Context, value: i64) -> Self {
         unsafe { Self::from_raw(mlirAffineConstantExprGet(context.to_raw(), value)) }
-    }
-
-    /// Creates an addition expression.
-    pub fn add(lhs: Self, rhs: Self) -> Self {
-        unsafe { Self::from_raw(mlirAffineAddExprGet(lhs.raw, rhs.raw)) }
-    }
-
-    /// Creates a multiplication expression.
-    pub fn mul(lhs: Self, rhs: Self) -> Self {
-        unsafe { Self::from_raw(mlirAffineMulExprGet(lhs.raw, rhs.raw)) }
     }
 
     /// Creates a ceiling division expression.
@@ -245,6 +236,22 @@ impl<'c> AffineExpr<'c> {
     }
 }
 
+impl<'c> Add for AffineExpr<'c> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
+        unsafe { Self::from_raw(mlirAffineAddExprGet(self.raw, rhs.raw)) }
+    }
+}
+
+impl<'c> Mul for AffineExpr<'c> {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self {
+        unsafe { Self::from_raw(mlirAffineMulExprGet(self.raw, rhs.raw)) }
+    }
+}
+
 impl PartialEq for AffineExpr<'_> {
     fn eq(&self, other: &Self) -> bool {
         unsafe { mlirAffineExprEqual(self.raw, other.raw) }
@@ -307,7 +314,7 @@ mod tests {
         let context = Context::new();
         let lhs = AffineExpr::dim(&context, 0);
         let rhs = AffineExpr::constant(&context, 1);
-        let expr = AffineExpr::add(lhs, rhs);
+        let expr = lhs + rhs;
         assert!(expr.is_add());
         assert!(expr.is_binary());
     }
@@ -317,7 +324,7 @@ mod tests {
         let context = Context::new();
         let lhs = AffineExpr::dim(&context, 0);
         let rhs = AffineExpr::constant(&context, 2);
-        let expr = AffineExpr::mul(lhs, rhs);
+        let expr = lhs * rhs;
         assert!(expr.is_mul());
         assert!(expr.is_binary());
     }
@@ -384,7 +391,7 @@ mod tests {
         let context = Context::new();
         let lhs = AffineExpr::dim(&context, 0);
         let rhs = AffineExpr::constant(&context, 1);
-        let expr = AffineExpr::add(lhs, rhs);
+        let expr = lhs + rhs;
         assert_eq!(expr.lhs(), lhs);
         assert_eq!(expr.rhs(), rhs);
     }
@@ -401,10 +408,7 @@ mod tests {
     fn is_pure_affine() {
         let context = Context::new();
         // dim + constant is pure affine
-        let expr = AffineExpr::add(
-            AffineExpr::dim(&context, 0),
-            AffineExpr::constant(&context, 1),
-        );
+        let expr = AffineExpr::dim(&context, 0) + AffineExpr::constant(&context, 1);
         assert!(expr.is_pure_affine());
     }
 
@@ -432,10 +436,7 @@ mod tests {
     fn is_multiple_of() {
         let context = Context::new();
         // 2 * d0 is a multiple of 2
-        let expr = AffineExpr::mul(
-            AffineExpr::constant(&context, 2),
-            AffineExpr::dim(&context, 0),
-        );
+        let expr = AffineExpr::constant(&context, 2) * AffineExpr::dim(&context, 0);
         assert!(expr.is_multiple_of(2));
     }
 

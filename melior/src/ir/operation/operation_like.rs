@@ -1,7 +1,8 @@
 use std::{ffi::c_void, fmt::Display};
 
 use mlir_sys::{
-    MlirOperation, MlirWalkOrder_MlirWalkPostOrder, MlirWalkOrder_MlirWalkPreOrder, MlirWalkResult,
+    MlirOperation, MlirValue, MlirWalkOrder_MlirWalkPostOrder, MlirWalkOrder_MlirWalkPreOrder,
+    MlirWalkResult,
     MlirWalkResult_MlirWalkResultAdvance, MlirWalkResult_MlirWalkResultInterrupt,
     MlirWalkResult_MlirWalkResultSkip, mlirOperationDump, mlirOperationGetAttribute,
     mlirOperationGetAttributeByName, mlirOperationGetBlock, mlirOperationGetContext,
@@ -435,8 +436,13 @@ pub trait OperationMutLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Replaces all operands of the operation with `values`.
     fn set_operands(&mut self, values: &[Value<'c, 'a>]) {
-        let raws: Vec<_> = values.iter().map(|v| v.to_raw()).collect();
-        unsafe { mlirOperationSetOperands(self.to_raw(), raws.len() as isize, raws.as_ptr()) }
+        unsafe {
+            mlirOperationSetOperands(
+                self.to_raw(),
+                values.len() as isize,
+                values.as_ptr() as *const MlirValue,
+            )
+        }
     }
 
     /// Sets the successor at `index` to `block`.

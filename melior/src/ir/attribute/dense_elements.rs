@@ -821,8 +821,8 @@ mod tests {
         // MLIR dense string attrs work with any shaped type.
         let element = IntegerType::new(&context, 8).into();
         let ty = RankedTensorType::new(&[2], element, None).into();
-        let strs = [StringRef::new("hello"), StringRef::new("world")];
-        let attr = DenseElementsAttribute::string_values(ty, &strs);
+        let strings = [StringRef::new("hello"), StringRef::new("world")];
+        let attr = DenseElementsAttribute::string_values(ty, &strings);
         assert_eq!(attr.string_element(0), Ok("hello"));
         assert_eq!(attr.string_element(1), Ok("world"));
     }

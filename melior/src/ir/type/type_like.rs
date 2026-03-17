@@ -152,36 +152,40 @@ mod tests {
         assert!(Type::vector(&[42], Type::index(&context)).is_vector());
     }
 
+    // TODO: Fix macro name generation for float4/float6 types — the regex in
+    // macro/src/utility.rs only handles `float_8_` patterns, producing
+    // inconsistent names like `is_float_4_e_2_m_1_fn` instead of
+    // `is_float4_e2m1_fn`.
     #[test]
-    fn is_float_4_e_2_m_1_fn() {
+    fn is_float4_e2m1_fn() {
         let context = Context::new();
 
         assert!(Type::float4_e2m1fn(&context).is_float_4_e_2_m_1_fn());
     }
 
     #[test]
-    fn is_float_6_e_2_m_3_fn() {
+    fn is_float6_e2m3_fn() {
         let context = Context::new();
 
         assert!(Type::float6_e2m3fn(&context).is_float_6_e_2_m_3_fn());
     }
 
     #[test]
-    fn is_float_6_e_3_m_2_fn() {
+    fn is_float6_e3m2_fn() {
         let context = Context::new();
 
         assert!(Type::float6_e3m2fn(&context).is_float_6_e_3_m_2_fn());
     }
 
     #[test]
-    fn is_float8e3m4() {
+    fn is_float8_e3m4() {
         let context = Context::new();
 
         assert!(Type::float8_e3m4(&context).is_float8e3m4());
     }
 
     #[test]
-    fn is_float8e8m0fnu() {
+    fn is_float8_e8m0_fnu() {
         let context = Context::new();
 
         assert!(Type::float8_e8m0fnu(&context).is_float8e8m0fnu());
