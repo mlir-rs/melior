@@ -1,7 +1,6 @@
 mod utility;
 
-use melior::ir::{Block, Location, Type, block::BlockLike, operation::OperationLike};
-use melior::ir::ValueLike;
+use melior::ir::{Block, Location, Type, ValueLike, block::BlockLike, operation::OperationLike};
 use utility::*;
 
 melior_macro::dialect! {
@@ -24,10 +23,7 @@ fn same_operands_result_type_has_result() {
     let op = same_type_test::add(&context, lhs, rhs, location);
 
     assert_eq!(op.as_operation().result_count(), 1);
-    assert_eq!(
-        op.result().unwrap().r#type(),
-        i32_type,
-    );
+    assert_eq!(op.result().unwrap().r#type(), i32_type,);
 }
 
 #[test]
