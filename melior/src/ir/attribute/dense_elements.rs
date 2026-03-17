@@ -29,6 +29,27 @@ use mlir_sys::{
     mlirDenseElementsAttrUInt64SplatGet, mlirElementsAttrGetNumElements,
 };
 
+macro_rules! dense_element_accessor {
+    ($name:ident, $type:ty, $guard:ident, $type_name:expr, $ffi:ident) => {
+        pub fn $name(&self, index: usize) -> Result<$type, Error> {
+            if !self.$guard() {
+                Err(Error::ElementExpected {
+                    r#type: $type_name,
+                    value: self.to_string(),
+                })
+            } else if index < self.len() {
+                Ok(unsafe { $ffi(self.attribute.to_raw(), index as isize) })
+            } else {
+                Err(Error::PositionOutOfBounds {
+                    name: "dense element",
+                    value: self.to_string(),
+                    index,
+                })
+            }
+        }
+    };
+}
+
 /// A dense elements attribute.
 #[derive(Clone, Copy, Hash)]
 pub struct DenseElementsAttribute<'c> {
@@ -294,246 +315,91 @@ impl<'c> DenseElementsAttribute<'c> {
     // Element accessors
     // -------------------------------------------------------------------------
 
-    /// Returns a bool element at the given index.
-    pub fn bool_element(&self, index: usize) -> Result<bool, Error> {
-        if !self.is_dense_int_elements() {
-            Err(Error::ElementExpected {
-                r#type: "integer",
-                value: self.to_string(),
-            })
-        } else if index < self.len() {
-            Ok(unsafe {
-                mlirDenseElementsAttrGetBoolValue(self.attribute.to_raw(), index as isize)
-            })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "dense element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
-
-    /// Returns an i8 element at the given index.
-    pub fn i8_element(&self, index: usize) -> Result<i8, Error> {
-        if !self.is_dense_int_elements() {
-            Err(Error::ElementExpected {
-                r#type: "integer",
-                value: self.to_string(),
-            })
-        } else if index < self.len() {
-            Ok(unsafe {
-                mlirDenseElementsAttrGetInt8Value(self.attribute.to_raw(), index as isize)
-            })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "dense element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
-
-    /// Returns an i16 element at the given index.
-    pub fn i16_element(&self, index: usize) -> Result<i16, Error> {
-        if !self.is_dense_int_elements() {
-            Err(Error::ElementExpected {
-                r#type: "integer",
-                value: self.to_string(),
-            })
-        } else if index < self.len() {
-            Ok(unsafe {
-                mlirDenseElementsAttrGetInt16Value(self.attribute.to_raw(), index as isize)
-            })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "dense element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
-
-    /// Returns an i32 element.
+    dense_element_accessor!(
+        bool_element,
+        bool,
+        is_dense_int_elements,
+        "integer",
+        mlirDenseElementsAttrGetBoolValue
+    );
+    dense_element_accessor!(
+        i8_element,
+        i8,
+        is_dense_int_elements,
+        "integer",
+        mlirDenseElementsAttrGetInt8Value
+    );
+    dense_element_accessor!(
+        i16_element,
+        i16,
+        is_dense_int_elements,
+        "integer",
+        mlirDenseElementsAttrGetInt16Value
+    );
     // TODO Prevent calling these type specific methods on other types.
-    pub fn i32_element(&self, index: usize) -> Result<i32, Error> {
-        if !self.is_dense_int_elements() {
-            Err(Error::ElementExpected {
-                r#type: "integer",
-                value: self.to_string(),
-            })
-        } else if index < self.len() {
-            Ok(unsafe {
-                mlirDenseElementsAttrGetInt32Value(self.attribute.to_raw(), index as isize)
-            })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "dense element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
-
-    /// Returns an i64 element.
-    pub fn i64_element(&self, index: usize) -> Result<i64, Error> {
-        if !self.is_dense_int_elements() {
-            Err(Error::ElementExpected {
-                r#type: "integer",
-                value: self.to_string(),
-            })
-        } else if index < self.len() {
-            Ok(unsafe {
-                mlirDenseElementsAttrGetInt64Value(self.attribute.to_raw(), index as isize)
-            })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "dense element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
-
-    /// Returns a u8 element at the given index.
-    pub fn u8_element(&self, index: usize) -> Result<u8, Error> {
-        if !self.is_dense_int_elements() {
-            Err(Error::ElementExpected {
-                r#type: "integer",
-                value: self.to_string(),
-            })
-        } else if index < self.len() {
-            Ok(unsafe {
-                mlirDenseElementsAttrGetUInt8Value(self.attribute.to_raw(), index as isize)
-            })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "dense element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
-
-    /// Returns a u16 element at the given index.
-    pub fn u16_element(&self, index: usize) -> Result<u16, Error> {
-        if !self.is_dense_int_elements() {
-            Err(Error::ElementExpected {
-                r#type: "integer",
-                value: self.to_string(),
-            })
-        } else if index < self.len() {
-            Ok(unsafe {
-                mlirDenseElementsAttrGetUInt16Value(self.attribute.to_raw(), index as isize)
-            })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "dense element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
-
-    /// Returns a u32 element at the given index.
-    pub fn u32_element(&self, index: usize) -> Result<u32, Error> {
-        if !self.is_dense_int_elements() {
-            Err(Error::ElementExpected {
-                r#type: "integer",
-                value: self.to_string(),
-            })
-        } else if index < self.len() {
-            Ok(unsafe {
-                mlirDenseElementsAttrGetUInt32Value(self.attribute.to_raw(), index as isize)
-            })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "dense element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
-
-    /// Returns a u64 element at the given index.
-    pub fn u64_element(&self, index: usize) -> Result<u64, Error> {
-        if !self.is_dense_int_elements() {
-            Err(Error::ElementExpected {
-                r#type: "integer",
-                value: self.to_string(),
-            })
-        } else if index < self.len() {
-            Ok(unsafe {
-                mlirDenseElementsAttrGetUInt64Value(self.attribute.to_raw(), index as isize)
-            })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "dense element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
-
-    /// Returns an f32 element at the given index.
-    pub fn f32_element(&self, index: usize) -> Result<f32, Error> {
-        if !self.is_dense_fp_elements() {
-            Err(Error::ElementExpected {
-                r#type: "floating point",
-                value: self.to_string(),
-            })
-        } else if index < self.len() {
-            Ok(unsafe {
-                mlirDenseElementsAttrGetFloatValue(self.attribute.to_raw(), index as isize)
-            })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "dense element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
-
-    /// Returns an f64 element at the given index.
-    pub fn f64_element(&self, index: usize) -> Result<f64, Error> {
-        if !self.is_dense_fp_elements() {
-            Err(Error::ElementExpected {
-                r#type: "floating point",
-                value: self.to_string(),
-            })
-        } else if index < self.len() {
-            Ok(unsafe {
-                mlirDenseElementsAttrGetDoubleValue(self.attribute.to_raw(), index as isize)
-            })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "dense element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
-
-    /// Returns an index element at the given index.
-    pub fn index_element(&self, index: usize) -> Result<u64, Error> {
-        if !self.is_dense_int_elements() {
-            Err(Error::ElementExpected {
-                r#type: "integer",
-                value: self.to_string(),
-            })
-        } else if index < self.len() {
-            Ok(unsafe {
-                mlirDenseElementsAttrGetIndexValue(self.attribute.to_raw(), index as isize)
-            })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "dense element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
+    dense_element_accessor!(
+        i32_element,
+        i32,
+        is_dense_int_elements,
+        "integer",
+        mlirDenseElementsAttrGetInt32Value
+    );
+    dense_element_accessor!(
+        i64_element,
+        i64,
+        is_dense_int_elements,
+        "integer",
+        mlirDenseElementsAttrGetInt64Value
+    );
+    dense_element_accessor!(
+        u8_element,
+        u8,
+        is_dense_int_elements,
+        "integer",
+        mlirDenseElementsAttrGetUInt8Value
+    );
+    dense_element_accessor!(
+        u16_element,
+        u16,
+        is_dense_int_elements,
+        "integer",
+        mlirDenseElementsAttrGetUInt16Value
+    );
+    dense_element_accessor!(
+        u32_element,
+        u32,
+        is_dense_int_elements,
+        "integer",
+        mlirDenseElementsAttrGetUInt32Value
+    );
+    dense_element_accessor!(
+        u64_element,
+        u64,
+        is_dense_int_elements,
+        "integer",
+        mlirDenseElementsAttrGetUInt64Value
+    );
+    dense_element_accessor!(
+        f32_element,
+        f32,
+        is_dense_fp_elements,
+        "floating point",
+        mlirDenseElementsAttrGetFloatValue
+    );
+    dense_element_accessor!(
+        f64_element,
+        f64,
+        is_dense_fp_elements,
+        "floating point",
+        mlirDenseElementsAttrGetDoubleValue
+    );
+    dense_element_accessor!(
+        index_element,
+        u64,
+        is_dense_int_elements,
+        "integer",
+        mlirDenseElementsAttrGetIndexValue
+    );
 
     /// Returns a string element at the given index.
     pub fn string_element(&self, index: usize) -> Result<&str, Error> {

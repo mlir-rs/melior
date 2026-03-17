@@ -2,8 +2,7 @@ use std::{ffi::c_void, fmt::Display};
 
 use mlir_sys::{
     MlirOperation, MlirValue, MlirWalkOrder_MlirWalkPostOrder, MlirWalkOrder_MlirWalkPreOrder,
-    MlirWalkResult,
-    MlirWalkResult_MlirWalkResultAdvance, MlirWalkResult_MlirWalkResultInterrupt,
+    MlirWalkResult, MlirWalkResult_MlirWalkResultAdvance, MlirWalkResult_MlirWalkResultInterrupt,
     MlirWalkResult_MlirWalkResultSkip, mlirOperationDump, mlirOperationGetAttribute,
     mlirOperationGetAttributeByName, mlirOperationGetBlock, mlirOperationGetContext,
     mlirOperationGetDiscardableAttribute, mlirOperationGetDiscardableAttributeByName,
