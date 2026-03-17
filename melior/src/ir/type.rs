@@ -12,8 +12,13 @@ mod tuple;
 mod type_like;
 
 pub use self::{
-    function::FunctionType, id::TypeId, integer::IntegerType, mem_ref::MemRefType,
-    ranked_tensor::RankedTensorType, shaped_type_like::ShapedTypeLike, tuple::TupleType,
+    function::FunctionType,
+    id::TypeId,
+    integer::IntegerType,
+    mem_ref::MemRefType,
+    ranked_tensor::RankedTensorType,
+    shaped_type_like::{DimSize, ShapedTypeLike},
+    tuple::TupleType,
     type_like::TypeLike,
 };
 use super::Location;
