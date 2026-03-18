@@ -19,6 +19,7 @@
     "comrak",
     "dashmap",
     "dealloc",
+    "discardable",
     "detensorize",
     "disctinct",
     "divf",
@@ -29,6 +30,7 @@
     "extractvalue",
     "extsi",
     "extui",
+    "fnuz",
     "funcs",
     "getelementptr",
     "hasher",
@@ -79,6 +81,7 @@
     "trunci",
     "unranked",
     "vulkan",
+    "xindex",
     "xori",
     "zstd"
   ]

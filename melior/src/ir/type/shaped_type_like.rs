@@ -2,9 +2,20 @@ use crate::Error;
 
 use super::{Type, TypeLike};
 use mlir_sys::{
-    mlirShapedTypeGetDimSize, mlirShapedTypeGetElementType, mlirShapedTypeGetRank,
-    mlirShapedTypeHasRank,
+    mlirShapedTypeGetDimSize, mlirShapedTypeGetDynamicStrideOrOffset, mlirShapedTypeGetElementType,
+    mlirShapedTypeGetRank, mlirShapedTypeHasRank, mlirShapedTypeHasStaticShape,
+    mlirShapedTypeIsDynamicSize, mlirShapedTypeIsDynamicStrideOrOffset,
+    mlirShapedTypeIsStaticStrideOrOffset,
 };
+
+/// A dimension size of a shaped type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DimSize {
+    /// A statically known dimension size.
+    Static(u64),
+    /// A dynamic (unknown at compile time) dimension.
+    Dynamic,
+}
 
 /// Trait for shaped types.
 pub trait ShapedTypeLike<'c>: TypeLike<'c> {
@@ -19,9 +30,15 @@ pub trait ShapedTypeLike<'c>: TypeLike<'c> {
     }
 
     /// Returns a dimension size.
-    fn dim_size(&self, index: usize) -> Result<usize, Error> {
+    fn dim_size(&self, index: usize) -> Result<DimSize, Error> {
         if index < self.rank() {
-            Ok((unsafe { mlirShapedTypeGetDimSize(self.to_raw(), index as isize) }) as usize)
+            let raw = unsafe { mlirShapedTypeGetDimSize(self.to_raw(), index as isize) };
+
+            if unsafe { mlirShapedTypeIsDynamicSize(raw) } {
+                Ok(DimSize::Dynamic)
+            } else {
+                Ok(DimSize::Static(raw as u64))
+            }
         } else {
             Err(Error::PositionOutOfBounds {
                 name: "dimension size",
@@ -29,6 +46,26 @@ pub trait ShapedTypeLike<'c>: TypeLike<'c> {
                 index,
             })
         }
+    }
+
+    /// Checks if a type has a static shape (all dimensions are static).
+    fn has_static_shape(&self) -> bool {
+        unsafe { mlirShapedTypeHasStaticShape(self.to_raw()) }
+    }
+
+    /// Checks if a value represents a dynamic stride or offset.
+    fn is_dynamic_stride_or_offset(value: i64) -> bool {
+        unsafe { mlirShapedTypeIsDynamicStrideOrOffset(value) }
+    }
+
+    /// Checks if a value represents a static stride or offset.
+    fn is_static_stride_or_offset(value: i64) -> bool {
+        unsafe { mlirShapedTypeIsStaticStrideOrOffset(value) }
+    }
+
+    /// Returns the sentinel value for a dynamic stride or offset.
+    fn dynamic_stride_or_offset() -> i64 {
+        unsafe { mlirShapedTypeGetDynamicStrideOrOffset() }
     }
 
     /// Checks if a type has a rank.
@@ -87,23 +124,60 @@ mod tests {
             })
         );
         assert_eq!(
-            MemRefType::new(Type::index(&context), &[42], None, None)
-                .dim_size(0)
-                .unwrap(),
-            42
+            MemRefType::new(Type::index(&context), &[42], None, None).dim_size(0),
+            Ok(DimSize::Static(42))
         );
         assert_eq!(
-            MemRefType::new(Type::index(&context), &[42, 0], None, None)
-                .dim_size(0)
-                .unwrap(),
-            42
+            MemRefType::new(Type::index(&context), &[42, 0], None, None).dim_size(0),
+            Ok(DimSize::Static(42))
         );
         assert_eq!(
-            MemRefType::new(Type::index(&context), &[0, 42], None, None)
-                .dim_size(1)
-                .unwrap(),
-            42
+            MemRefType::new(Type::index(&context), &[0, 42], None, None).dim_size(1),
+            Ok(DimSize::Static(42))
         );
+    }
+
+    #[test]
+    fn dim_size_dynamic() {
+        let context = Context::new();
+
+        assert_eq!(
+            MemRefType::new(Type::index(&context), &[i64::MIN], None, None).dim_size(0),
+            Ok(DimSize::Dynamic)
+        );
+    }
+
+    #[test]
+    fn has_static_shape() {
+        let context = Context::new();
+
+        assert!(MemRefType::new(Type::index(&context), &[42, 10], None, None).has_static_shape());
+
+        assert!(
+            !MemRefType::new(Type::index(&context), &[42, i64::MIN], None, None).has_static_shape()
+        );
+    }
+
+    #[test]
+    fn is_dynamic_stride_or_offset() {
+        let sentinel = MemRefType::dynamic_stride_or_offset();
+        assert!(MemRefType::is_dynamic_stride_or_offset(sentinel));
+        assert!(!MemRefType::is_dynamic_stride_or_offset(0));
+    }
+
+    #[test]
+    fn is_static_stride_or_offset() {
+        assert!(MemRefType::is_static_stride_or_offset(0));
+        assert!(!MemRefType::is_static_stride_or_offset(
+            MemRefType::dynamic_stride_or_offset()
+        ));
+    }
+
+    #[test]
+    fn dynamic_stride_or_offset() {
+        let sentinel = MemRefType::dynamic_stride_or_offset();
+        assert!(MemRefType::is_dynamic_stride_or_offset(sentinel));
+        assert!(!MemRefType::is_static_stride_or_offset(sentinel));
     }
 
     #[test]
