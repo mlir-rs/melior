@@ -310,6 +310,307 @@ mod tests {
     };
     use pretty_assertions::assert_eq;
 
+    // -----------------------------------------------------------------------
+    // OperationLike new methods
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn type_id_registered_op() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        // arith.constant is a registered op and should have a TypeId.
+        let operation = OperationBuilder::new("arith.constant", location)
+            .add_results(&[Type::index(&context)])
+            .add_attributes(&[(
+                Identifier::new(&context, "value"),
+                crate::ir::Attribute::parse(&context, "0 : index").unwrap(),
+            )])
+            .build()
+            .unwrap();
+        assert!(operation.type_id().is_some());
+    }
+
+    #[test]
+    fn type_id_unregistered_op() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let location = Location::unknown(&context);
+        // An unregistered op has no TypeId.
+        let operation = OperationBuilder::new("foo.unregistered", location)
+            .build()
+            .unwrap();
+        assert!(operation.type_id().is_none());
+    }
+
+    #[test]
+    fn first_region_present() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let operation = OperationBuilder::new("foo", Location::unknown(&context))
+            .add_regions([Region::new()])
+            .build()
+            .unwrap();
+        assert!(operation.first_region().is_some());
+    }
+
+    #[test]
+    fn first_region_absent() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let operation = OperationBuilder::new("foo", Location::unknown(&context))
+            .build()
+            .unwrap();
+        assert!(operation.first_region().is_none());
+    }
+
+    #[test]
+    fn discardable_attribute_count_and_at() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        // arith.constant supports discardable attrs (any unregistered attribute).
+        let mut operation = OperationBuilder::new("arith.constant", location)
+            .add_results(&[Type::index(&context)])
+            .add_attributes(&[(
+                Identifier::new(&context, "value"),
+                crate::ir::Attribute::parse(&context, "0 : index").unwrap(),
+            )])
+            .build()
+            .unwrap();
+
+        assert_eq!(operation.discardable_attribute_count(), 0);
+
+        operation
+            .set_discardable_attribute("my_tag", StringAttribute::new(&context, "hello").into());
+
+        assert_eq!(operation.discardable_attribute_count(), 1);
+        let (name, attr) = operation.discardable_attribute_at(0).unwrap();
+        assert_eq!(name, Identifier::new(&context, "my_tag"));
+        assert_eq!(attr.to_string(), "\"hello\"");
+    }
+
+    #[test]
+    fn discardable_attribute_at_out_of_bounds() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let operation = OperationBuilder::new("foo", Location::unknown(&context))
+            .build()
+            .unwrap();
+        assert!(operation.discardable_attribute_at(0).is_err());
+    }
+
+    #[test]
+    fn discardable_attribute_by_name() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let mut operation = OperationBuilder::new("arith.constant", location)
+            .add_results(&[Type::index(&context)])
+            .add_attributes(&[(
+                Identifier::new(&context, "value"),
+                crate::ir::Attribute::parse(&context, "0 : index").unwrap(),
+            )])
+            .build()
+            .unwrap();
+
+        assert!(operation.discardable_attribute("my_tag").is_err());
+
+        operation
+            .set_discardable_attribute("my_tag", StringAttribute::new(&context, "world").into());
+
+        assert_eq!(
+            operation
+                .discardable_attribute("my_tag")
+                .unwrap()
+                .to_string(),
+            "\"world\""
+        );
+    }
+
+    #[test]
+    fn remove_discardable_attribute() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let mut operation = OperationBuilder::new("arith.constant", location)
+            .add_results(&[Type::index(&context)])
+            .add_attributes(&[(
+                Identifier::new(&context, "value"),
+                crate::ir::Attribute::parse(&context, "0 : index").unwrap(),
+            )])
+            .build()
+            .unwrap();
+
+        operation.set_discardable_attribute("my_tag", StringAttribute::new(&context, "val").into());
+        assert_eq!(operation.discardable_attribute_count(), 1);
+
+        assert!(operation.remove_discardable_attribute("my_tag").is_ok());
+        assert_eq!(operation.discardable_attribute_count(), 0);
+
+        assert!(operation.remove_discardable_attribute("my_tag").is_err());
+    }
+
+    #[test]
+    fn has_inherent_attribute() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        // arith.constant has an inherent "value" attribute.
+        let operation = OperationBuilder::new("arith.constant", location)
+            .add_results(&[Type::index(&context)])
+            .add_attributes(&[(
+                Identifier::new(&context, "value"),
+                crate::ir::Attribute::parse(&context, "0 : index").unwrap(),
+            )])
+            .build()
+            .unwrap();
+
+        assert!(operation.has_inherent_attribute("value"));
+        assert!(!operation.has_inherent_attribute("nonexistent"));
+    }
+
+    #[test]
+    fn inherent_attribute_by_name() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let operation = OperationBuilder::new("arith.constant", location)
+            .add_results(&[Type::index(&context)])
+            .add_attributes(&[(
+                Identifier::new(&context, "value"),
+                crate::ir::Attribute::parse(&context, "0 : index").unwrap(),
+            )])
+            .build()
+            .unwrap();
+
+        assert!(operation.inherent_attribute("value").is_ok());
+        assert!(operation.inherent_attribute("nonexistent").is_err());
+    }
+
+    // -----------------------------------------------------------------------
+    // OperationMutLike new methods
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn set_operand() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let location = Location::unknown(&context);
+        let index_type = Type::index(&context);
+
+        let block = Block::new(&[(index_type, location), (index_type, location)]);
+        let arg0: Value = block.argument(0).unwrap().into();
+        let arg1: Value = block.argument(1).unwrap().into();
+
+        block.append_operation(
+            OperationBuilder::new("foo", location)
+                .add_operands(&[arg0])
+                .build()
+                .unwrap(),
+        );
+
+        // Use first_operation_mut to get a mutable reference.
+        let mut op_ref = block.first_operation_mut().unwrap();
+        op_ref.set_operand(0, arg1);
+        assert_eq!(op_ref.operand(0).unwrap(), arg1);
+    }
+
+    #[test]
+    fn set_operands() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let location = Location::unknown(&context);
+        let index_type = Type::index(&context);
+
+        let block = Block::new(&[(index_type, location), (index_type, location)]);
+        let arg0: Value = block.argument(0).unwrap().into();
+        let arg1: Value = block.argument(1).unwrap().into();
+
+        block.append_operation(
+            OperationBuilder::new("foo", location)
+                .add_operands(&[arg0])
+                .build()
+                .unwrap(),
+        );
+
+        let mut op_ref = block.first_operation_mut().unwrap();
+        // Replace all operands.
+        op_ref.set_operands(&[arg1, arg0]);
+        assert_eq!(op_ref.operand_count(), 2);
+        assert_eq!(op_ref.operand(0).unwrap(), arg1);
+        assert_eq!(op_ref.operand(1).unwrap(), arg0);
+    }
+
+    #[test]
+    fn set_inherent_attribute() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let mut operation = OperationBuilder::new("arith.constant", location)
+            .add_results(&[Type::index(&context)])
+            .add_attributes(&[(
+                Identifier::new(&context, "value"),
+                crate::ir::Attribute::parse(&context, "0 : index").unwrap(),
+            )])
+            .build()
+            .unwrap();
+
+        operation.set_inherent_attribute(
+            "value",
+            crate::ir::Attribute::parse(&context, "1 : index").unwrap(),
+        );
+        assert_eq!(
+            operation.inherent_attribute("value").unwrap().to_string(),
+            "1 : index"
+        );
+    }
+
+    #[test]
+    fn move_after() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let location = Location::unknown(&context);
+        let block = Block::new(&[]);
+
+        block.append_operation(OperationBuilder::new("first", location).build().unwrap());
+        let second =
+            block.append_operation(OperationBuilder::new("second", location).build().unwrap());
+
+        // "first" should be before "second" initially.
+        assert_eq!(
+            block.first_operation().unwrap().name(),
+            Identifier::new(&context, "first")
+        );
+
+        // Move "first" after "second" — now "second" becomes first.
+        block.first_operation_mut().unwrap().move_after(second);
+
+        assert_eq!(
+            block.first_operation().unwrap().name(),
+            Identifier::new(&context, "second")
+        );
+    }
+
+    #[test]
+    fn move_before() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let location = Location::unknown(&context);
+        let block = Block::new(&[]);
+
+        let first =
+            block.append_operation(OperationBuilder::new("first", location).build().unwrap());
+        block.append_operation(OperationBuilder::new("second", location).build().unwrap());
+
+        // "first" should be before "second" initially.
+        // Move "second" before "first" — "second" becomes first.
+        block
+            .first_operation_mut()
+            .unwrap()
+            .next_in_block_mut()
+            .unwrap()
+            .move_before(first);
+
+        assert_eq!(
+            block.first_operation().unwrap().name(),
+            Identifier::new(&context, "second")
+        );
+    }
+
     #[test]
     fn new() {
         let context = create_test_context();

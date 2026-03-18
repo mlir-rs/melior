@@ -24,9 +24,14 @@ pub use self::{
 use super::Location;
 use crate::{context::Context, string_ref::StringRef, utility::print_callback};
 use mlir_sys::{
-    MlirType, mlirBF16TypeGet, mlirF16TypeGet, mlirF32TypeGet, mlirF64TypeGet, mlirIndexTypeGet,
+    MlirType, mlirBF16TypeGet, mlirF16TypeGet, mlirF32TypeGet, mlirF64TypeGet,
+    mlirFloat4E2M1FNTypeGet, mlirFloat6E2M3FNTypeGet, mlirFloat6E3M2FNTypeGet,
+    mlirFloat8E3M4TypeGet, mlirFloat8E4M3B11FNUZTypeGet, mlirFloat8E4M3FNTypeGet,
+    mlirFloat8E4M3FNUZTypeGet, mlirFloat8E4M3TypeGet, mlirFloat8E5M2FNUZTypeGet,
+    mlirFloat8E5M2TypeGet, mlirFloat8E8M0FNUTypeGet, mlirFloatTypeGetWidth, mlirIndexTypeGet,
     mlirNoneTypeGet, mlirTypeEqual, mlirTypeParseGet, mlirTypePrint, mlirVectorTypeGet,
-    mlirVectorTypeGetChecked,
+    mlirVectorTypeGetChecked, mlirVectorTypeGetScalable, mlirVectorTypeGetScalableChecked,
+    mlirVectorTypeIsDimScalable, mlirVectorTypeIsScalable,
 };
 use std::{
     ffi::c_void,
@@ -73,6 +78,66 @@ impl<'c> Type<'c> {
         unsafe { Self::from_raw(mlirF64TypeGet(context.to_raw())) }
     }
 
+    /// Creates a float4 E2M1FN type.
+    pub fn float4_e2m1fn(context: &'c Context) -> Self {
+        unsafe { Self::from_raw(mlirFloat4E2M1FNTypeGet(context.to_raw())) }
+    }
+
+    /// Creates a float6 E2M3FN type.
+    pub fn float6_e2m3fn(context: &'c Context) -> Self {
+        unsafe { Self::from_raw(mlirFloat6E2M3FNTypeGet(context.to_raw())) }
+    }
+
+    /// Creates a float6 E3M2FN type.
+    pub fn float6_e3m2fn(context: &'c Context) -> Self {
+        unsafe { Self::from_raw(mlirFloat6E3M2FNTypeGet(context.to_raw())) }
+    }
+
+    /// Creates a float8 E3M4 type.
+    pub fn float8_e3m4(context: &'c Context) -> Self {
+        unsafe { Self::from_raw(mlirFloat8E3M4TypeGet(context.to_raw())) }
+    }
+
+    /// Creates a float8 E4M3 type.
+    pub fn float8_e4m3(context: &'c Context) -> Self {
+        unsafe { Self::from_raw(mlirFloat8E4M3TypeGet(context.to_raw())) }
+    }
+
+    /// Creates a float8 E4M3B11FNUZ type.
+    pub fn float8_e4m3b11fnuz(context: &'c Context) -> Self {
+        unsafe { Self::from_raw(mlirFloat8E4M3B11FNUZTypeGet(context.to_raw())) }
+    }
+
+    /// Creates a float8 E4M3FN type.
+    pub fn float8_e4m3fn(context: &'c Context) -> Self {
+        unsafe { Self::from_raw(mlirFloat8E4M3FNTypeGet(context.to_raw())) }
+    }
+
+    /// Creates a float8 E4M3FNUZ type.
+    pub fn float8_e4m3fnuz(context: &'c Context) -> Self {
+        unsafe { Self::from_raw(mlirFloat8E4M3FNUZTypeGet(context.to_raw())) }
+    }
+
+    /// Creates a float8 E5M2 type.
+    pub fn float8_e5m2(context: &'c Context) -> Self {
+        unsafe { Self::from_raw(mlirFloat8E5M2TypeGet(context.to_raw())) }
+    }
+
+    /// Creates a float8 E5M2FNUZ type.
+    pub fn float8_e5m2fnuz(context: &'c Context) -> Self {
+        unsafe { Self::from_raw(mlirFloat8E5M2FNUZTypeGet(context.to_raw())) }
+    }
+
+    /// Creates a float8 E8M0FNU type.
+    pub fn float8_e8m0fnu(context: &'c Context) -> Self {
+        unsafe { Self::from_raw(mlirFloat8E8M0FNUTypeGet(context.to_raw())) }
+    }
+
+    /// Returns the width of a float type. Only valid if `is_float()` is true.
+    pub fn float_width(&self) -> u32 {
+        unsafe { mlirFloatTypeGetWidth(self.raw) }
+    }
+
     /// Creates an index type.
     pub fn index(context: &'c Context) -> Self {
         unsafe { Self::from_raw(mlirIndexTypeGet(context.to_raw())) }
@@ -108,6 +173,46 @@ impl<'c> Type<'c> {
                 r#type.raw,
             ))
         }
+    }
+
+    /// Creates a scalable vector type.
+    pub fn vector_scalable(dimensions: &[u64], scalable: &[bool], element_type: Self) -> Self {
+        unsafe {
+            Self::from_raw(mlirVectorTypeGetScalable(
+                dimensions.len() as isize,
+                dimensions.as_ptr() as *const i64,
+                scalable.as_ptr(),
+                element_type.raw,
+            ))
+        }
+    }
+
+    /// Creates a scalable vector type with diagnostics.
+    pub fn vector_scalable_checked(
+        location: Location<'c>,
+        dimensions: &[u64],
+        scalable: &[bool],
+        element_type: Self,
+    ) -> Option<Self> {
+        unsafe {
+            Self::from_option_raw(mlirVectorTypeGetScalableChecked(
+                location.to_raw(),
+                dimensions.len() as isize,
+                dimensions.as_ptr() as *const i64,
+                scalable.as_ptr(),
+                element_type.raw,
+            ))
+        }
+    }
+
+    /// Returns `true` if the vector type has at least one scalable dimension.
+    pub fn is_scalable_vector(&self) -> bool {
+        unsafe { mlirVectorTypeIsScalable(self.raw) }
+    }
+
+    /// Returns `true` if the given dimension of a vector type is scalable.
+    pub fn is_vector_dim_scalable(&self, dim: usize) -> bool {
+        unsafe { mlirVectorTypeIsDimScalable(self.raw, dim as isize) }
     }
 
     /// Creates a type from a raw object.
@@ -293,5 +398,181 @@ mod tests {
         let context = create_test_context();
 
         assert_eq!(format!("{:?}", Type::index(&context)), "Type(index)");
+    }
+
+    #[test]
+    fn float4_e2m1fn() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::float4_e2m1fn(&context),
+            Type::parse(&context, "f4E2M1FN").unwrap()
+        );
+    }
+
+    #[test]
+    fn float6_e2m3fn() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::float6_e2m3fn(&context),
+            Type::parse(&context, "f6E2M3FN").unwrap()
+        );
+    }
+
+    #[test]
+    fn float6_e3m2fn() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::float6_e3m2fn(&context),
+            Type::parse(&context, "f6E3M2FN").unwrap()
+        );
+    }
+
+    #[test]
+    fn float8_e3m4() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::float8_e3m4(&context),
+            Type::parse(&context, "f8E3M4").unwrap()
+        );
+    }
+
+    #[test]
+    fn float8_e4m3() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::float8_e4m3(&context),
+            Type::parse(&context, "f8E4M3").unwrap()
+        );
+    }
+
+    #[test]
+    fn float8_e4m3b11fnuz() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::float8_e4m3b11fnuz(&context),
+            Type::parse(&context, "f8E4M3B11FNUZ").unwrap()
+        );
+    }
+
+    #[test]
+    fn float8_e4m3fn() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::float8_e4m3fn(&context),
+            Type::parse(&context, "f8E4M3FN").unwrap()
+        );
+    }
+
+    #[test]
+    fn float8_e4m3fnuz() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::float8_e4m3fnuz(&context),
+            Type::parse(&context, "f8E4M3FNUZ").unwrap()
+        );
+    }
+
+    #[test]
+    fn float8_e5m2() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::float8_e5m2(&context),
+            Type::parse(&context, "f8E5M2").unwrap()
+        );
+    }
+
+    #[test]
+    fn float8_e5m2fnuz() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::float8_e5m2fnuz(&context),
+            Type::parse(&context, "f8E5M2FNUZ").unwrap()
+        );
+    }
+
+    #[test]
+    fn float8_e8m0fnu() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::float8_e8m0fnu(&context),
+            Type::parse(&context, "f8E8M0FNU").unwrap()
+        );
+    }
+
+    #[test]
+    fn float_width() {
+        let context = create_test_context();
+
+        assert_eq!(Type::float32(&context).float_width(), 32);
+        assert_eq!(Type::float64(&context).float_width(), 64);
+        assert_eq!(Type::float16(&context).float_width(), 16);
+    }
+
+    #[test]
+    fn vector_scalable() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::vector_scalable(&[4], &[true], Type::float32(&context)),
+            Type::parse(&context, "vector<[4]xf32>").unwrap()
+        );
+    }
+
+    #[test]
+    fn vector_scalable_checked() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::vector_scalable_checked(
+                Location::unknown(&context),
+                &[4],
+                &[true],
+                Type::float32(&context),
+            ),
+            Type::parse(&context, "vector<[4]xf32>")
+        );
+    }
+
+    #[test]
+    fn vector_scalable_checked_fail() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::vector_scalable_checked(
+                Location::unknown(&context),
+                &[0],
+                &[true],
+                Type::index(&context),
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn is_scalable_vector() {
+        let context = create_test_context();
+
+        assert!(Type::vector_scalable(&[4], &[true], Type::float32(&context)).is_scalable_vector());
+        assert!(!Type::vector(&[4], Type::float32(&context)).is_scalable_vector());
+    }
+
+    #[test]
+    fn is_vector_dim_scalable() {
+        let context = create_test_context();
+
+        let scalable = Type::vector_scalable(&[4, 8], &[true, false], Type::float32(&context));
+        assert!(scalable.is_vector_dim_scalable(0));
+        assert!(!scalable.is_vector_dim_scalable(1));
     }
 }
