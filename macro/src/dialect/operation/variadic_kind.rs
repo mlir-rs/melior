@@ -32,6 +32,7 @@ impl VariadicKind {
         } else if attribute_sized {
             Ok(Self::AttributeSized)
         } else {
+            // TODO: Support multiple variadic operands/results without these traits.
             Err(
                 "multiple variadic operands/results require SameVariadicOperandSize, \
                 SameVariadicResultSize, or AttrSizedOperandSegments/AttrSizedResultSegments trait",
