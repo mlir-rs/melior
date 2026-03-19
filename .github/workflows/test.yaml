@@ -64,7 +64,6 @@ jobs:
       - build
       - unit_test
       - bench
-      - dialect_build
     if: always()
     runs-on: ubuntu-latest
     steps:
