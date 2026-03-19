@@ -112,7 +112,7 @@ impl<'a> Attribute<'a> {
         self.storage_type_string == mlir_attribute!(UnitAttr)
     }
 
-    pub fn is_type_attr(&self) -> bool {
+    pub fn is_type(&self) -> bool {
         self.storage_type_string.trim() == mlir_attribute!(TypeAttr)
     }
 }

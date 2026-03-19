@@ -40,9 +40,6 @@ pub enum TypeInference {
     /// Op has `FirstAttrDerivedResultType` — derive result type from the first
     /// attribute in the first-attribute setter.
     FirstAttrDerived,
-    /// No inference — user must provide result types explicitly via setter
-    /// methods.
-    Explicit,
 }
 
 #[derive(Debug)]
@@ -55,7 +52,7 @@ pub struct Operation<'a> {
     constructor_identifier: Ident,
     summary: &'a str,
     description: String,
-    type_inference: TypeInference,
+    type_inference: Option<TypeInference>,
     results: Vec<OperationResult<'a>>,
     operands: Vec<Operand<'a>>,
     regions: Vec<Region<'a>>,
@@ -105,13 +102,13 @@ impl<'a> Operation<'a> {
                         r#trait.name() == Some("::mlir::OpTrait::FirstAttrDerivedResultType")
                     });
                 if has_interface {
-                    TypeInference::Interface
+                    Some(TypeInference::Interface)
                 } else if has_same_operands {
-                    TypeInference::SameOperands
+                    Some(TypeInference::SameOperands)
                 } else if has_first_attr_derived {
-                    TypeInference::FirstAttrDerived
+                    Some(TypeInference::FirstAttrDerived)
                 } else {
-                    TypeInference::Explicit
+                    None
                 }
             },
             results,
@@ -147,7 +144,7 @@ impl<'a> Operation<'a> {
         &self.short_name
     }
 
-    pub const fn type_inference(&self) -> TypeInference {
+    pub const fn type_inference(&self) -> Option<TypeInference> {
         self.type_inference
     }
 
@@ -230,10 +227,8 @@ impl<'a> Operation<'a> {
 
     pub fn required_results(&self) -> impl Iterator<Item = &'_ OperationResult<'_>> {
         match self.type_inference {
-            TypeInference::Interface
-            | TypeInference::SameOperands
-            | TypeInference::FirstAttrDerived => Default::default(),
-            TypeInference::Explicit => self.results.iter(),
+            Some(_) => Default::default(),
+            None => self.results.iter(),
         }
         .filter(|field| !field.is_optional())
     }

@@ -6,10 +6,8 @@ use quote::{format_ident, quote};
 
 pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
     let result_fns = match builder.operation().type_inference() {
-        TypeInference::Interface
-        | TypeInference::SameOperands
-        | TypeInference::FirstAttrDerived => Default::default(),
-        TypeInference::Explicit => builder
+        Some(_) => Default::default(),
+        None => builder
             .operation()
             .results()
             .map(|result| generate_field_fn(builder, result))
@@ -17,7 +15,7 @@ pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
     };
     let infer_from_operands = matches!(
         builder.operation().type_inference(),
-        TypeInference::SameOperands
+        Some(TypeInference::SameOperands)
     );
     let operand_fns = builder
         .operation()
@@ -43,7 +41,7 @@ pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
         .collect::<Vec<_>>();
     let infer_from_first_attr = matches!(
         builder.operation().type_inference(),
-        TypeInference::FirstAttrDerived
+        Some(TypeInference::FirstAttrDerived)
     );
     let attribute_fns = builder
         .operation()
@@ -201,7 +199,7 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
     let result_type_copies: Vec<_> = (0..result_count).map(|_| quote! { result_type }).collect();
     // If the attribute is a TypeAttr, use its wrapped type; otherwise use the
     // attribute's own type.
-    let type_access = if field.is_type_attr() {
+    let type_access = if field.is_type() {
         quote! { #identifier.value() }
     } else {
         quote! { ::melior::ir::attribute::AttributeLike::r#type(&#identifier) }
@@ -248,7 +246,7 @@ fn generate_build_fn(builder: &OperationBuilder) -> TokenStream {
     let error = format!("should be a valid {operation_identifier}");
     let maybe_infer = matches!(
         builder.operation().type_inference(),
-        TypeInference::Interface
+        Some(TypeInference::Interface)
     )
     .then_some(quote! { .enable_result_type_inference() });
 
