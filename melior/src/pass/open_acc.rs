@@ -1,3 +1,4 @@
+// spell-checker: disable
 //! OpenACC passes.
 
 melior_macro::passes!(

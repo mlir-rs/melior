@@ -1,9 +1,9 @@
+// spell-checker: disable
 //! Linalg passes.
 
 melior_macro::passes!(
     "Linalg",
     [
-        // spell-checker: disable-next-line
         mlirCreateLinalgConvertElementwiseToLinalgPass,
         mlirCreateLinalgConvertLinalgToAffineLoopsPass,
         mlirCreateLinalgConvertLinalgToLoopsPass,

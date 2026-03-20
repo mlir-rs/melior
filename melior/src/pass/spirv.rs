@@ -1,3 +1,4 @@
+// spell-checker: disable
 //! SPIR-V passes.
 
 melior_macro::passes!(

@@ -1,3 +1,4 @@
+// spell-checker: disable
 //! SCF passes.
 
 melior_macro::passes!(
@@ -10,7 +11,6 @@ melior_macro::passes!(
         mlirCreateSCFSCFForLoopRangeFolding,
         mlirCreateSCFSCFForLoopSpecialization,
         mlirCreateSCFSCFForToWhileLoop,
-        // spell-checker: disable-next-line
         mlirCreateSCFSCFParallelForToNestedFors,
         mlirCreateSCFSCFParallelLoopFusion,
         mlirCreateSCFSCFParallelLoopSpecialization,
