@@ -1,14 +1,35 @@
 //! Passes and pass managers.
 
+pub mod affine;
+pub mod amdgpu;
+pub mod arith;
+pub mod arm_sme;
 pub mod r#async;
+pub mod bufferization;
 pub mod conversion;
+pub mod emitc;
 pub mod external;
+pub mod func;
 pub mod gpu;
 pub mod linalg;
+pub mod llvm;
 mod manager;
+pub mod math;
+pub mod memref;
+pub mod ml_program;
+pub mod nvgpu;
+pub mod open_acc;
 mod operation_manager;
+pub mod scf;
+pub mod shape;
+pub mod shard;
 pub mod sparse_tensor;
+pub mod spirv;
+pub mod tensor;
+pub mod tosa;
 pub mod transform;
+pub mod transform_dialect;
+pub mod vector;
 
 pub use self::{
     external::{ExternalPass, RunExternalPass, create_external},

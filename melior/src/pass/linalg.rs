@@ -11,10 +11,12 @@ melior_macro::passes!(
         mlirCreateLinalgLinalgBlockPackMatmul,
         mlirCreateLinalgLinalgDetensorizePass,
         mlirCreateLinalgLinalgElementwiseOpFusionPass,
+        mlirCreateLinalgLinalgFoldIntoElementwisePass,
         mlirCreateLinalgLinalgFoldUnitExtentDimsPass,
         mlirCreateLinalgLinalgGeneralizeNamedOpsPass,
         mlirCreateLinalgLinalgInlineScalarOperandsPass,
-        mlirCreateLinalgLinalgNamedOpConversionPass,
+        mlirCreateLinalgLinalgMorphOpsPass,
         mlirCreateLinalgLinalgSpecializeGenericOpsPass,
+        mlirCreateLinalgSimplifyDepthwiseConvPass,
     ]
 );
