@@ -29,6 +29,8 @@ pub enum Error {
     ResultNotFound(&'static str),
     RunPass,
     TypeExpected(&'static str, String),
+    WriteBytecode,
+    ApplyPatterns,
     UnknownDiagnosticSeverity(u32),
     Utf8(Utf8Error),
 }
@@ -80,6 +82,8 @@ impl Display for Error {
             Self::Utf8(error) => {
                 write!(formatter, "{error}")
             }
+            Self::WriteBytecode => write!(formatter, "failed to write bytecode"),
+            Self::ApplyPatterns => write!(formatter, "failed to apply patterns"),
         }
     }
 }

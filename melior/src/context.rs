@@ -3,15 +3,16 @@ use crate::{
     dialect::{Dialect, DialectRegistry},
     logical_result::LogicalResult,
     string_ref::StringRef,
+    thread_pool::ThreadPool,
 };
 use mlir_sys::{
     MlirContext, MlirDiagnostic, MlirLogicalResult, mlirContextAppendDialectRegistry,
     mlirContextAttachDiagnosticHandler, mlirContextCreate, mlirContextDestroy,
     mlirContextDetachDiagnosticHandler, mlirContextEnableMultithreading, mlirContextEqual,
     mlirContextGetAllowUnregisteredDialects, mlirContextGetNumLoadedDialects,
-    mlirContextGetNumRegisteredDialects, mlirContextGetOrLoadDialect,
+    mlirContextGetNumRegisteredDialects, mlirContextGetNumThreads, mlirContextGetOrLoadDialect,
     mlirContextIsRegisteredOperation, mlirContextLoadAllAvailableDialects,
-    mlirContextSetAllowUnregisteredDialects,
+    mlirContextSetAllowUnregisteredDialects, mlirContextSetThreadPool,
 };
 use std::{ffi::c_void, marker::PhantomData, mem::transmute};
 
@@ -120,6 +121,16 @@ impl Context {
     /// Detaches a diagnostic handler.
     pub fn detach_diagnostic_handler(&self, id: DiagnosticHandlerId) {
         unsafe { mlirContextDetachDiagnosticHandler(self.to_raw(), id.to_raw()) }
+    }
+
+    /// Sets the thread pool used by the context.
+    pub fn set_thread_pool(&self, pool: &ThreadPool) {
+        unsafe { mlirContextSetThreadPool(self.raw, pool.to_raw()) }
+    }
+
+    /// Returns the number of threads used by the context.
+    pub fn thread_count(&self) -> usize {
+        unsafe { mlirContextGetNumThreads(self.raw) as usize }
     }
 
     pub(crate) fn to_ref(&self) -> ContextRef<'_> {
@@ -329,5 +340,12 @@ mod tests {
         let ctx_ref_to_ref: &Context = unsafe { ctx_ref.to_ref() };
 
         assert_eq!(&ctx_ref, ctx_ref_to_ref);
+    }
+
+    #[test]
+    fn thread_count() {
+        let context = Context::new();
+
+        assert!(context.thread_count() >= 1);
     }
 }

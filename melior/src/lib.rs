@@ -9,12 +9,16 @@ pub mod diagnostic;
 pub mod dialect;
 mod error;
 mod execution_engine;
+mod greedy_rewrite_driver;
 #[cfg(feature = "helpers")]
 pub mod helpers;
 pub mod ir;
+mod ir_rewriter;
 mod logical_result;
 pub mod pass;
+mod rewrite_pattern;
 mod string_ref;
+mod thread_pool;
 
 #[cfg(test)]
 mod test;
@@ -24,7 +28,17 @@ pub use self::{
     context::{Context, ContextRef},
     error::Error,
     execution_engine::ExecutionEngine,
+    greedy_rewrite_driver::{
+        GreedyRewriteDriverConfig, GreedyRewriteStrictness, GreedySimplifyRegionLevel,
+        apply_patterns_and_fold_greedily, walk_and_apply_patterns,
+    },
+    ir_rewriter::{IRRewriter, RewriterBase},
+    rewrite_pattern::{
+        FrozenRewritePatternSet, PatternRewriter, RewritePattern, RewritePatternSet,
+        create_op_rewrite_pattern,
+    },
     string_ref::StringRef,
+    thread_pool::ThreadPool,
 };
 
 pub use melior_macro::dialect;

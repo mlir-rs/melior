@@ -1,13 +1,14 @@
 use std::{ffi::c_void, fmt::Display};
 
 use mlir_sys::{
-    MlirOperation, MlirValue, MlirWalkOrder_MlirWalkPostOrder, MlirWalkOrder_MlirWalkPreOrder,
-    MlirWalkResult, MlirWalkResult_MlirWalkResultAdvance, MlirWalkResult_MlirWalkResultInterrupt,
-    MlirWalkResult_MlirWalkResultSkip, mlirOperationDump, mlirOperationGetAttribute,
-    mlirOperationGetAttributeByName, mlirOperationGetBlock, mlirOperationGetContext,
-    mlirOperationGetDiscardableAttribute, mlirOperationGetDiscardableAttributeByName,
-    mlirOperationGetFirstRegion, mlirOperationGetInherentAttributeByName, mlirOperationGetLocation,
-    mlirOperationGetName, mlirOperationGetNextInBlock, mlirOperationGetNumAttributes,
+    MlirOperation, MlirStringRef, MlirValue, MlirWalkOrder_MlirWalkPostOrder,
+    MlirWalkOrder_MlirWalkPreOrder, MlirWalkResult, MlirWalkResult_MlirWalkResultAdvance,
+    MlirWalkResult_MlirWalkResultInterrupt, MlirWalkResult_MlirWalkResultSkip, mlirOperationDump,
+    mlirOperationGetAttribute, mlirOperationGetAttributeByName, mlirOperationGetBlock,
+    mlirOperationGetContext, mlirOperationGetDiscardableAttribute,
+    mlirOperationGetDiscardableAttributeByName, mlirOperationGetFirstRegion,
+    mlirOperationGetInherentAttributeByName, mlirOperationGetLocation, mlirOperationGetName,
+    mlirOperationGetNextInBlock, mlirOperationGetNumAttributes,
     mlirOperationGetNumDiscardableAttributes, mlirOperationGetNumOperands,
     mlirOperationGetNumRegions, mlirOperationGetNumResults, mlirOperationGetNumSuccessors,
     mlirOperationGetOperand, mlirOperationGetParentOperation, mlirOperationGetRegion,
@@ -17,14 +18,15 @@ use mlir_sys::{
     mlirOperationRemoveDiscardableAttributeByName, mlirOperationRemoveFromParent,
     mlirOperationSetAttributeByName, mlirOperationSetDiscardableAttributeByName,
     mlirOperationSetInherentAttributeByName, mlirOperationSetOperand, mlirOperationSetOperands,
-    mlirOperationSetSuccessor, mlirOperationVerify, mlirOperationWalk,
+    mlirOperationSetSuccessor, mlirOperationVerify, mlirOperationWalk, mlirOperationWriteBytecode,
+    mlirOperationWriteBytecodeWithConfig,
 };
 
 use crate::{
     ContextRef, Error, StringRef,
     ir::{
         Attribute, AttributeLike, Block, BlockRef, Identifier, Location, RegionRef, Value,
-        r#type::TypeId, value::ValueLike,
+        bytecode_writer_config::BytecodeWriterConfig, r#type::TypeId, value::ValueLike,
     },
 };
 
@@ -276,6 +278,57 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
         data.1?;
 
         Ok(data.0)
+    }
+
+    /// Serializes an operation to bytecode.
+    fn write_bytecode(&self) -> Result<Vec<u8>, Error> {
+        unsafe extern "C" fn collect_bytes(string: MlirStringRef, data: *mut c_void) {
+            let bytes = unsafe { &mut *(data as *mut Vec<u8>) };
+            let slice =
+                unsafe { std::slice::from_raw_parts(string.data as *const u8, string.length) };
+
+            bytes.extend_from_slice(slice);
+        }
+
+        let mut bytes = Vec::new();
+
+        unsafe {
+            mlirOperationWriteBytecode(
+                self.to_raw(),
+                Some(collect_bytes),
+                &mut bytes as *mut _ as *mut _,
+            );
+        }
+
+        Ok(bytes)
+    }
+
+    /// Serializes an operation to bytecode with a writer configuration.
+    fn write_bytecode_with_config(&self, config: &BytecodeWriterConfig) -> Result<Vec<u8>, Error> {
+        unsafe extern "C" fn collect_bytes(string: MlirStringRef, data: *mut c_void) {
+            let bytes = unsafe { &mut *(data as *mut Vec<u8>) };
+            let slice =
+                unsafe { std::slice::from_raw_parts(string.data as *const u8, string.length) };
+
+            bytes.extend_from_slice(slice);
+        }
+
+        let mut bytes = Vec::new();
+
+        let result = crate::logical_result::LogicalResult::from_raw(unsafe {
+            mlirOperationWriteBytecodeWithConfig(
+                self.to_raw(),
+                config.to_raw(),
+                Some(collect_bytes),
+                &mut bytes as *mut _ as *mut _,
+            )
+        });
+
+        if result.is_success() {
+            Ok(bytes)
+        } else {
+            Err(Error::WriteBytecode)
+        }
     }
 
     /// Walks this operation (and all nested operations) in either pre- or
