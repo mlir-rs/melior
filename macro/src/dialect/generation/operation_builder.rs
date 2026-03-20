@@ -1,21 +1,33 @@
-use crate::dialect::operation::{OperationBuilder, OperationField};
+use crate::dialect::operation::{
+    Attribute, OperationBuilder, OperationElement, OperationField, TypeInference,
+};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
 pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
-    let result_fns = if builder.operation().can_infer_type() {
-        Default::default()
-    } else {
-        builder
+    let result_fns = match builder.operation().type_inference() {
+        Some(_) => Default::default(),
+        None => builder
             .operation()
             .results()
             .map(|result| generate_field_fn(builder, result))
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>(),
     };
+    let infer_from_operands = matches!(
+        builder.operation().type_inference(),
+        Some(TypeInference::SameOperands)
+    );
     let operand_fns = builder
         .operation()
         .operands()
-        .map(|operand| generate_field_fn(builder, operand))
+        .enumerate()
+        .map(|(i, operand)| {
+            if i == 0 && infer_from_operands {
+                generate_same_operands_first_fn(builder, operand)
+            } else {
+                generate_field_fn(builder, operand)
+            }
+        })
         .collect::<Vec<_>>();
     let region_fns = builder
         .operation()
@@ -27,10 +39,21 @@ pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
         .successors()
         .map(|successor| generate_field_fn(builder, successor))
         .collect::<Vec<_>>();
+    let infer_from_first_attr = matches!(
+        builder.operation().type_inference(),
+        Some(TypeInference::FirstAttrDerived)
+    );
     let attribute_fns = builder
         .operation()
         .attributes()
-        .map(|attribute| generate_field_fn(builder, attribute))
+        .enumerate()
+        .map(|(i, attribute)| {
+            if i == 0 && infer_from_first_attr {
+                generate_first_attr_derived_fn(builder, attribute)
+            } else {
+                generate_field_fn(builder, attribute)
+            }
+        })
         .collect::<Vec<_>>();
 
     let new_fn = generate_new_fn(builder);
@@ -106,15 +129,126 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
     }
 }
 
+// Mirrors C++'s genUseOperandAsResultTypeSeparateParamBuilder. Intentionally a
+// sibling of generate_field_fn rather than merged into it, matching the C++
+// structure where these are also separate functions.
+fn generate_same_operands_first_fn(
+    builder: &OperationBuilder,
+    field: &impl OperationElement,
+) -> TokenStream {
+    let builder_identifier = builder.identifier();
+    let identifier = field.singular_identifier();
+    let parameter_type = field.parameter_type();
+    let argument = quote! { #identifier: #parameter_type };
+    let add_identifier = format_ident!("add_{}", field.plural_kind_identifier());
+    let add_arguments = field.add_arguments(identifier);
+    let result_count = builder.operation().result_len();
+    let result_type_copies: Vec<_> = (0..result_count).map(|_| quote! { result_type }).collect();
+    // For variadic operands the parameter is `&[Value]`; index into it for the
+    // type. For singular operands the parameter is `Value`; take a reference
+    // directly.
+    let type_access = if field.is_variadic() {
+        quote! { ::melior::ir::ValueLike::r#type(&#identifier[0]) }
+    } else {
+        quote! { ::melior::ir::ValueLike::r#type(&#identifier) }
+    };
+
+    if field.is_optional() {
+        let parameters = builder.type_state().parameters().collect::<Vec<_>>();
+        quote! {
+            impl<'c, #(#parameters),*> #builder_identifier<'c, #(#parameters),*> {
+                pub fn #identifier(mut self, #argument) -> #builder_identifier<'c, #(#parameters),*> {
+                    let result_type = #type_access;
+                    self.builder = self.builder
+                        .add_results(&[#(#result_type_copies),*])
+                        .#add_identifier(#add_arguments);
+                    self
+                }
+            }
+        }
+    } else {
+        let parameters = builder.type_state().parameters_without(field.name());
+        let arguments_set = builder.type_state().arguments_with(field.name(), true);
+        let arguments_unset = builder.type_state().arguments_with(field.name(), false);
+        quote! {
+            impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
+                pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
+                    let result_type = #type_access;
+                    #builder_identifier {
+                        context: self.context,
+                        builder: self.builder
+                            .add_results(&[#(#result_type_copies),*])
+                            .#add_identifier(#add_arguments),
+                        _state: Default::default(),
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Mirrors C++'s genUseAttrAsResultTypeBuilder. Intentionally a sibling of
+// generate_field_fn for the same reason as generate_same_operands_first_fn.
+fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute) -> TokenStream {
+    let builder_identifier = builder.identifier();
+    let identifier = field.singular_identifier();
+    let parameter_type = field.parameter_type();
+    let argument = quote! { #identifier: #parameter_type };
+    let add_arguments = field.add_arguments(identifier);
+    let result_count = builder.operation().result_len();
+    let result_type_copies: Vec<_> = (0..result_count).map(|_| quote! { result_type }).collect();
+    // If the attribute is a TypeAttr, use its wrapped type; otherwise use the
+    // attribute's own type.
+    let type_access = if field.is_type() {
+        quote! { #identifier.value() }
+    } else {
+        quote! { ::melior::ir::attribute::AttributeLike::r#type(&#identifier) }
+    };
+
+    if field.is_optional() {
+        let parameters = builder.type_state().parameters().collect::<Vec<_>>();
+        quote! {
+            impl<'c, #(#parameters),*> #builder_identifier<'c, #(#parameters),*> {
+                pub fn #identifier(mut self, #argument) -> #builder_identifier<'c, #(#parameters),*> {
+                    let result_type = #type_access;
+                    self.builder = self.builder
+                        .add_results(&[#(#result_type_copies),*])
+                        .add_attributes(#add_arguments);
+                    self
+                }
+            }
+        }
+    } else {
+        let parameters = builder.type_state().parameters_without(field.name());
+        let arguments_set = builder.type_state().arguments_with(field.name(), true);
+        let arguments_unset = builder.type_state().arguments_with(field.name(), false);
+        quote! {
+            impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
+                pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
+                    let result_type = #type_access;
+                    #builder_identifier {
+                        context: self.context,
+                        builder: self.builder
+                            .add_results(&[#(#result_type_copies),*])
+                            .add_attributes(#add_arguments),
+                        _state: Default::default(),
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn generate_build_fn(builder: &OperationBuilder) -> TokenStream {
     let identifier = builder.identifier();
     let arguments = builder.type_state().arguments_with_all(true);
     let operation_identifier = format_ident!("{}", &builder.operation().name());
     let error = format!("should be a valid {operation_identifier}");
-    let maybe_infer = builder
-        .operation()
-        .can_infer_type()
-        .then_some(quote! { .enable_result_type_inference() });
+    let maybe_infer = matches!(
+        builder.operation().type_inference(),
+        Some(TypeInference::Interface)
+    )
+    .then_some(quote! { .enable_result_type_inference() });
 
     quote! {
         impl<'c> #identifier<'c, #(#arguments),*> {

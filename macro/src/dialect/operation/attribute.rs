@@ -111,6 +111,10 @@ impl<'a> Attribute<'a> {
     pub fn is_unit(&self) -> bool {
         self.storage_type_string == mlir_attribute!(UnitAttr)
     }
+
+    pub fn is_type(&self) -> bool {
+        self.storage_type_string.trim() == mlir_attribute!(TypeAttr)
+    }
 }
 
 impl OperationField for Attribute<'_> {
