@@ -161,10 +161,7 @@ impl<'a> Operation<'a> {
     }
 
     pub fn documentation_name(&self) -> String {
-        let article = self
-            .operation_name()
-            .get(..1)
-            .is_some_and(|c| VOWELS.contains(c));
+        let article = VOWELS.contains(&self.operation_name()[..1]);
 
         format!(
             "{} [`{}`]({}) operation",
