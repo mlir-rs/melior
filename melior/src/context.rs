@@ -140,7 +140,11 @@ impl Context {
     }
 
     /// Sets the thread pool used by the context.
-    pub fn set_thread_pool(&self, pool: &ThreadPool) {
+    ///
+    /// # Safety
+    ///
+    /// The thread pool must outlive the context.
+    pub unsafe fn set_thread_pool(&self, pool: &ThreadPool) {
         unsafe { mlirContextSetThreadPool(self.raw, pool.to_raw()) }
     }
 

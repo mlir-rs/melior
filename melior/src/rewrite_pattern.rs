@@ -67,6 +67,7 @@ impl Drop for FrozenRewritePatternSet {
 }
 
 /// A single rewrite pattern.
+#[must_use = "add to a RewritePatternSet or resources will leak"]
 pub struct RewritePattern {
     raw: MlirRewritePattern,
 }
@@ -97,7 +98,7 @@ impl PatternRewriter {
     }
 
     /// Returns the underlying rewriter base.
-    pub fn as_rewriter_base(&self) -> RewriterBase {
+    pub fn as_rewriter_base(&self) -> RewriterBase<'_> {
         unsafe { RewriterBase::from_raw(mlirPatternRewriterAsBase(self.raw)) }
     }
 }

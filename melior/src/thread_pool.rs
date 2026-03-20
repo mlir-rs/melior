@@ -46,7 +46,7 @@ mod tests {
         let pool = ThreadPool::new();
         let context = Context::new();
 
-        context.set_thread_pool(&pool);
+        unsafe { context.set_thread_pool(&pool) };
 
         assert!(context.thread_count() > 0);
     }

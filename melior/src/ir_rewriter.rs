@@ -41,7 +41,7 @@ impl<'c> IRRewriter<'c> {
     }
 
     /// Returns the underlying rewriter base.
-    pub fn as_rewriter_base(&self) -> RewriterBase {
+    pub fn as_rewriter_base(&self) -> RewriterBase<'_> {
         unsafe { RewriterBase::from_raw(self.raw) }
     }
 }
@@ -52,20 +52,24 @@ impl Drop for IRRewriter<'_> {
     }
 }
 
-/// A non-owning reference to a rewriter base. Copy + Clone.
+/// A non-owning reference to a rewriter base.
 #[derive(Clone, Copy)]
-pub struct RewriterBase {
+pub struct RewriterBase<'a> {
     raw: MlirRewriterBase,
+    _reference: PhantomData<&'a ()>,
 }
 
-impl RewriterBase {
+impl<'a> RewriterBase<'a> {
     /// Creates a rewriter base from a raw object.
     ///
     /// # Safety
     ///
     /// A raw object must be valid.
     pub unsafe fn from_raw(raw: MlirRewriterBase) -> Self {
-        Self { raw }
+        Self {
+            raw,
+            _reference: Default::default(),
+        }
     }
 
     /// Returns the context.
@@ -115,15 +119,15 @@ impl RewriterBase {
     }
 
     /// Creates a deep copy of the operation.
-    pub fn clone_op<'c, 'a>(&self, op: OperationRef<'c, 'a>) -> OperationRef<'c, 'a> {
+    pub fn clone_op<'c, 'b>(&self, op: OperationRef<'c, 'b>) -> OperationRef<'c, 'b> {
         unsafe { OperationRef::from_raw(mlirRewriterBaseClone(self.raw, op.to_raw())) }
     }
 
     /// Creates a deep copy of the operation without its regions.
-    pub fn clone_op_without_regions<'c, 'a>(
+    pub fn clone_op_without_regions<'c, 'b>(
         &self,
-        op: OperationRef<'c, 'a>,
-    ) -> OperationRef<'c, 'a> {
+        op: OperationRef<'c, 'b>,
+    ) -> OperationRef<'c, 'b> {
         unsafe {
             OperationRef::from_raw(mlirRewriterBaseCloneWithoutRegions(self.raw, op.to_raw()))
         }
