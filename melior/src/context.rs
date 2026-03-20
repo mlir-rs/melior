@@ -241,6 +241,18 @@ mod tests {
     }
 
     #[test]
+    fn new_with_threading() {
+        Context::new_with_threading(true);
+    }
+
+    #[test]
+    fn new_with_registry() {
+        let registry = DialectRegistry::new();
+
+        Context::new_with_registry(&registry, true);
+    }
+
+    #[test]
     fn registered_dialect_count() {
         let context = Context::new();
 

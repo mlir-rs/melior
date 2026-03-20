@@ -66,8 +66,7 @@ mod tests {
 
         let bytes = module.as_operation().write_bytecode();
 
-        assert!(bytes.is_ok());
-        assert!(!bytes.unwrap().is_empty());
+        assert!(!bytes.is_empty());
     }
 
     #[test]

@@ -14,7 +14,7 @@ pub use self::{
 use crate::{
     Error,
     context::Context,
-    utility::{print_callback, print_string_callback},
+    utility::{collect_bytes_callback, print_callback, print_string_callback},
 };
 use core::{
     fmt,

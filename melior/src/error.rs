@@ -8,6 +8,7 @@ use std::{
 /// A Melior error.
 #[derive(Debug, Eq, PartialEq)]
 pub enum Error {
+    ApplyPatterns,
     AttributeExpected(&'static str, String),
     AttributeNotFound(String),
     AttributeParse(String),
@@ -20,24 +21,24 @@ pub enum Error {
     OperationBuild,
     OperandNotFound(&'static str),
     OperationResultExpected(String),
+    ParsePassPipeline(String),
     PositionOutOfBounds {
         name: &'static str,
         value: String,
         index: usize,
     },
-    ParsePassPipeline(String),
     ResultNotFound(&'static str),
     RunPass,
     TypeExpected(&'static str, String),
-    WriteBytecode,
-    ApplyPatterns,
     UnknownDiagnosticSeverity(u32),
     Utf8(Utf8Error),
+    WriteBytecode,
 }
 
 impl Display for Error {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
+            Self::ApplyPatterns => write!(formatter, "failed to apply patterns"),
             Self::AttributeExpected(r#type, attribute) => {
                 write!(formatter, "{type} attribute expected: {attribute}")
             }
@@ -83,7 +84,6 @@ impl Display for Error {
                 write!(formatter, "{error}")
             }
             Self::WriteBytecode => write!(formatter, "failed to write bytecode"),
-            Self::ApplyPatterns => write!(formatter, "failed to apply patterns"),
         }
     }
 }
