@@ -639,9 +639,9 @@ checksum = "591ef38edfb78ca4771ee32cf494cb8771944bee237a9b91fc9c1424ac4b777b"
 
 [[package]]
 name = "tblgen"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddef9d30d3257a690cca57b7869b90cc1422b283dbfa6b64dec3a6003fae17ab"
+checksum = "15a6768dc51535aeaecbe812e2a792a77cbef10b1c4529e29bea5864a738dc6a"
 dependencies = [
  "bindgen",
  "cc",
