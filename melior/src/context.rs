@@ -7,12 +7,13 @@ use crate::{
 };
 use mlir_sys::{
     MlirContext, MlirDiagnostic, MlirLogicalResult, mlirContextAppendDialectRegistry,
-    mlirContextAttachDiagnosticHandler, mlirContextCreate, mlirContextDestroy,
-    mlirContextDetachDiagnosticHandler, mlirContextEnableMultithreading, mlirContextEqual,
-    mlirContextGetAllowUnregisteredDialects, mlirContextGetNumLoadedDialects,
-    mlirContextGetNumRegisteredDialects, mlirContextGetNumThreads, mlirContextGetOrLoadDialect,
-    mlirContextIsRegisteredOperation, mlirContextLoadAllAvailableDialects,
-    mlirContextSetAllowUnregisteredDialects, mlirContextSetThreadPool,
+    mlirContextAttachDiagnosticHandler, mlirContextCreate, mlirContextCreateWithRegistry,
+    mlirContextCreateWithThreading, mlirContextDestroy, mlirContextDetachDiagnosticHandler,
+    mlirContextEnableMultithreading, mlirContextEqual, mlirContextGetAllowUnregisteredDialects,
+    mlirContextGetNumLoadedDialects, mlirContextGetNumRegisteredDialects, mlirContextGetNumThreads,
+    mlirContextGetOrLoadDialect, mlirContextIsRegisteredOperation,
+    mlirContextLoadAllAvailableDialects, mlirContextSetAllowUnregisteredDialects,
+    mlirContextSetThreadPool,
 };
 use std::{ffi::c_void, marker::PhantomData, mem::transmute};
 
@@ -30,6 +31,21 @@ impl Context {
     pub fn new() -> Self {
         Self {
             raw: unsafe { mlirContextCreate() },
+        }
+    }
+
+    /// Creates a context with multithreading set explicitly.
+    pub fn new_with_threading(threading_enabled: bool) -> Self {
+        Self {
+            raw: unsafe { mlirContextCreateWithThreading(threading_enabled) },
+        }
+    }
+
+    /// Creates a context with a pre-loaded dialect registry and explicit
+    /// threading setting.
+    pub fn new_with_registry(registry: &DialectRegistry, threading_enabled: bool) -> Self {
+        Self {
+            raw: unsafe { mlirContextCreateWithRegistry(registry.to_raw(), threading_enabled) },
         }
     }
 
