@@ -19,7 +19,7 @@ proc-macro2 = "1"
 quote = "1"
 regex = "1.12.3"
 syn = { version = "2", features = ["full"] }
-tblgen = { version = "0.8.1", default-features = false, features = ["llvm21-0"] }
+tblgen = { version = "0.9.1", default-features = false, features = ["llvm21-0"] }
 unindent = "0.2.4"
 
 [dev-dependencies]
