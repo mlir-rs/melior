@@ -20,6 +20,10 @@ pub enum Error {
     InvokeFunction,
     OperationBuild,
     OperandNotFound(&'static str),
+    OperationExpected {
+        expected: &'static str,
+        actual: String,
+    },
     OperationResultExpected(String),
     ParsePassPipeline(String),
     PositionOutOfBounds {
@@ -60,6 +64,9 @@ impl Display for Error {
             }
             Self::OperandNotFound(name) => {
                 write!(formatter, "operand {name} not found")
+            }
+            Self::OperationExpected { expected, actual } => {
+                write!(formatter, "expected operation {expected}, got {actual}")
             }
             Self::OperationResultExpected(value) => {
                 write!(formatter, "operation result expected: {value}")

@@ -127,13 +127,13 @@ impl<'a> Operation<'a> {
     fn build_name(definition: Record) -> Result<String, Error> {
         let name = definition.name()?;
 
-        Ok(if let Some((_, name)) = name.split_once('_') {
+        let name = if let Some((_, name)) = name.split_once('_') {
             name
         } else {
             name
-        }
-        .trim_end_matches("Op")
-        .to_owned())
+        };
+
+        Ok(name.strip_suffix("Op").unwrap_or(name).to_owned())
     }
 
     pub fn name(&self) -> &str {
@@ -161,13 +161,11 @@ impl<'a> Operation<'a> {
     }
 
     pub fn documentation_name(&self) -> String {
+        let article = VOWELS.contains(&self.operation_name()[..1]);
+
         format!(
             "{} [`{}`]({}) operation",
-            if VOWELS.contains(&self.operation_name()[..1]) {
-                "an"
-            } else {
-                "a"
-            },
+            if article { "an" } else { "a" },
             self.operation_name,
             &self.name
         )
@@ -388,7 +386,8 @@ impl<'a> Operation<'a> {
             .iter()
             .filter(|(_, r#type)| r#type.is_unfixed())
             .count();
-        let mut variadic_kind = VariadicKind::new(unfixed_count, same_size, attribute_sized);
+        let mut variadic_kind = VariadicKind::new(unfixed_count, same_size, attribute_sized)
+            .map_err(|msg| Error::InvalidIdentifier(msg.to_owned()))?;
         let mut fields = vec![];
 
         for (name, r#type) in elements {

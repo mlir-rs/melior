@@ -65,17 +65,9 @@ pub fn generate_dialect(input: DialectInput) -> Result<TokenStream, Error> {
 
 fn generate_operation_enum(
     dialect_name: &str,
-    record_keeper: &RecordKeeper,
+    operations: &[Operation],
 ) -> Result<Option<proc_macro2::TokenStream>, Error> {
     let enum_name = quote::format_ident!("{}Operation", dialect_name.to_case(Case::Pascal));
-
-    let mut operations = record_keeper
-        .all_derived_definitions("Op")
-        .map(Operation::new)
-        .collect::<Result<Vec<_>, _>>()?;
-    operations.retain(|operation| operation.dialect_name() == dialect_name);
-
-    let enum_ident = quote::format_ident!("{}Operation", dialect_name.to_case(Case::Pascal));
 
     let match_arms = operations
         .iter()
@@ -101,7 +93,7 @@ fn generate_operation_enum(
             let member = quote::format_ident!("{}", operation.short_name());
 
             quote! {
-                #enum_ident::#member(op) => op.as_operation(),
+                #enum_name::#member(op) => op.as_operation(),
             }
         })
         .collect::<Vec<_>>();
@@ -123,9 +115,9 @@ fn generate_operation_enum(
         let member = quote::format_ident!("{}", operation.short_name());
 
         quote! {
-            impl<'b> From<#ident<'b>> for #enum_ident<'b> {
+            impl<'b> From<#ident<'b>> for #enum_name<'b> {
                 fn from(op: #ident<'b>) -> Self {
-                    #enum_ident::#member(op)
+                    #enum_name::#member(op)
                 }
             }
         }
@@ -148,7 +140,11 @@ fn generate_operation_enum(
 
             impl<'b> #enum_name<'b> {
                 pub fn try_new(operation: melior::ir::operation::Operation<'b>) -> Result<Self, melior::ir::operation::Operation<'b>> {
-                    match operation.name().as_string_ref().as_str().unwrap() {
+                    let name = operation.name();
+                    let Ok(name_str) = name.as_string_ref().as_str() else {
+                        return Err(operation);
+                    };
+                    match name_str {
                         #(#match_arms)*
                         _ => Err(operation),
                     }
@@ -175,12 +171,15 @@ fn generate_dialect_module(
     record_keeper: &RecordKeeper,
 ) -> Result<proc_macro2::TokenStream, Error> {
     let dialect_name = dialect.name()?;
-    let operations = record_keeper
+
+    let mut all_operations = record_keeper
         .all_derived_definitions("Op")
         .map(Operation::new)
-        .collect::<Result<Vec<_>, _>>()?
+        .collect::<Result<Vec<_>, _>>()?;
+    all_operations.retain(|operation| operation.dialect_name() == dialect_name);
+
+    let operations = all_operations
         .iter()
-        .filter(|operation| operation.dialect_name() == dialect_name)
         .map(generate_operation)
         .collect::<Vec<_>>();
 
@@ -189,7 +188,7 @@ fn generate_dialect_module(
         sanitize_documentation(dialect.str_value("description").unwrap_or(""),)?
     );
     let name = sanitize_snake_case_identifier(name)?;
-    let enum_definition = generate_operation_enum(dialect_name, record_keeper)?;
+    let enum_definition = generate_operation_enum(dialect_name, &all_operations)?;
 
     Ok(quote! {
         #[doc = #doc]
