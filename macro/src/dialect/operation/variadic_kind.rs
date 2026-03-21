@@ -14,21 +14,29 @@ pub enum VariadicKind {
 }
 
 impl VariadicKind {
-    pub fn new(unfixed_count: usize, same_size: bool, attribute_sized: bool) -> Self {
+    pub fn new(
+        unfixed_count: usize,
+        same_size: bool,
+        attribute_sized: bool,
+    ) -> Result<Self, &'static str> {
         if unfixed_count <= 1 {
-            Self::Simple {
+            Ok(Self::Simple {
                 unfixed_seen: false,
-            }
+            })
         } else if same_size {
-            Self::SameSize {
+            Ok(Self::SameSize {
                 unfixed_count,
                 preceding_simple_count: 0,
                 preceding_variadic_count: 0,
-            }
+            })
         } else if attribute_sized {
-            Self::AttributeSized
+            Ok(Self::AttributeSized)
         } else {
-            unimplemented!()
+            // TODO: Support multiple variadic operands/results without these traits.
+            Err(
+                "multiple variadic operands/results require SameVariadicOperandSize, \
+                SameVariadicResultSize, or AttrSizedOperandSegments/AttrSizedResultSegments trait",
+            )
         }
     }
 }
