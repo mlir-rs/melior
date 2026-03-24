@@ -162,6 +162,7 @@ mod tests {
 
         assert_eq!(pass_manager.run(&mut module), Ok(()));
 
+        // TODO: use `tempfile` crate
         ExecutionEngine::new(&module, 2, &[], true, false)
             .dump_to_object_file("/tmp/melior/test.o");
     }

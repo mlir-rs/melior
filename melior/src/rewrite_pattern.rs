@@ -1,4 +1,7 @@
-use crate::{context::Context, ir_rewriter::RewriterBase, string_ref::StringRef};
+use crate::{
+    context::Context, ir_rewriter::RewriterBase, logical_result::LogicalResult,
+    string_ref::StringRef,
+};
 use mlir_sys::{
     MlirFrozenRewritePatternSet, MlirOperation, MlirPatternRewriter, MlirRewritePattern,
     MlirRewritePatternCallbacks, MlirRewritePatternSet, mlirFreezeRewritePattern,
@@ -98,7 +101,7 @@ impl PatternRewriter {
     }
 
     /// Returns the underlying rewriter base.
-    pub fn as_rewriter_base(&self) -> RewriterBase<'_> {
+    pub fn as_rewriter_base(&self) -> RewriterBase<'_, '_> {
         unsafe { RewriterBase::from_raw(mlirPatternRewriterAsBase(self.raw)) }
     }
 }
@@ -136,7 +139,7 @@ where
         let cb = unsafe { &mut *(user_data as *mut F) };
         let success = cb(pattern, op, rewriter);
 
-        crate::logical_result::LogicalResult::from(success).to_raw()
+        LogicalResult::from(success).to_raw()
     }
 
     let callbacks = MlirRewritePatternCallbacks {
@@ -198,6 +201,104 @@ mod tests {
         let module = Module::new(Location::unknown(&context));
         let patterns = RewritePatternSet::new(&context);
         let frozen = patterns.freeze();
+        let config = GreedyRewriteDriverConfig::new();
+
+        assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+    }
+
+    #[test]
+    fn create_and_add_op_rewrite_pattern() {
+        let context = create_test_context();
+
+        let pattern = create_op_rewrite_pattern(
+            "arith.constant",
+            1,
+            &context,
+            |_pattern, _op, _rewriter| true,
+            &[],
+        );
+
+        let set = RewritePatternSet::new(&context);
+        set.add(pattern);
+    }
+
+    #[test]
+    fn create_pattern_with_generated_names() {
+        let context = create_test_context();
+
+        let pattern = create_op_rewrite_pattern(
+            "arith.constant",
+            1,
+            &context,
+            |_pattern, _op, _rewriter| true,
+            &["arith.addi"],
+        );
+
+        let set = RewritePatternSet::new(&context);
+        set.add(pattern);
+    }
+
+    #[test]
+    fn apply_op_rewrite_pattern() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+
+        let pattern = create_op_rewrite_pattern(
+            "arith.constant",
+            1,
+            &context,
+            |_pattern, _op, _rewriter| true,
+            &[],
+        );
+
+        let set = RewritePatternSet::new(&context);
+        set.add(pattern);
+
+        let frozen = set.freeze();
+        let config = GreedyRewriteDriverConfig::new();
+
+        assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+    }
+
+    #[test]
+    fn pattern_rewriter_as_rewriter_base() {
+        use crate::{
+            dialect::arith,
+            ir::{BlockLike, RegionLike, Type, attribute::IntegerAttribute},
+        };
+
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let body = module.body();
+        let location = Location::unknown(&context);
+
+        let op = arith::constant(
+            &context,
+            IntegerAttribute::new(Type::index(&context), 0).into(),
+            location,
+        );
+
+        body.append_operation(op);
+
+        let pattern = create_op_rewrite_pattern(
+            "arith.constant",
+            1,
+            &context,
+            |_pattern, op, rewriter| {
+                let rewriter = unsafe { PatternRewriter::from_raw(rewriter) };
+                let base = rewriter.as_rewriter_base();
+                let op = unsafe { crate::ir::OperationRef::from_raw(op) };
+
+                base.erase_op(op);
+                true
+            },
+            &[],
+        );
+
+        let set = RewritePatternSet::new(&context);
+        set.add(pattern);
+
+        let frozen = set.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
         assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());

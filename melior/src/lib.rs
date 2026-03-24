@@ -32,7 +32,7 @@ pub use self::{
         GreedyRewriteDriverConfig, GreedyRewriteStrictness, GreedySimplifyRegionLevel,
         apply_patterns_and_fold_greedily, walk_and_apply_patterns,
     },
-    ir_rewriter::{IRRewriter, RewriterBase},
+    ir_rewriter::{IrRewriter, RewriterBase},
     rewrite_pattern::{
         FrozenRewritePatternSet, PatternRewriter, RewritePattern, RewritePatternSet,
         create_op_rewrite_pattern,

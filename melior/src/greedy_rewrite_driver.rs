@@ -52,7 +52,7 @@ impl GreedyRewriteStrictness {
             x if x == MlirGreedyRewriteStrictness_MLIR_GREEDY_REWRITE_STRICTNESS_EXISTING_OPS => {
                 Self::ExistingOps
             }
-            _ => Self::AnyOp,
+            _ => unreachable!(),
         }
     }
 }
@@ -80,7 +80,7 @@ impl GreedySimplifyRegionLevel {
             {
                 Self::Aggressive
             }
-            _ => Self::Disabled,
+            _ => unreachable!(),
         }
     }
 }

@@ -25,11 +25,12 @@ use mlir_sys::{
 };
 
 use crate::{
-    ContextRef, Error, StringRef,
+    Context, ContextRef, Error, StringRef,
     ir::{
         Attribute, AttributeLike, Block, BlockRef, Identifier, Location, RegionRef, Value,
         bytecode_writer_config::BytecodeWriterConfig, r#type::TypeId, value::ValueLike,
     },
+    logical_result::LogicalResult,
 };
 
 use super::{
@@ -302,7 +303,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     fn write_bytecode_with_config(&self, config: &BytecodeWriterConfig) -> Result<Vec<u8>, Error> {
         let mut bytes = Vec::new();
 
-        let result = crate::logical_result::LogicalResult::from_raw(unsafe {
+        let result = LogicalResult::from_raw(unsafe {
             mlirOperationWriteBytecodeWithConfig(
                 self.to_raw(),
                 config.to_raw(),
@@ -445,7 +446,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     /// instance.
     fn implements_interface_static(
         name: &str,
-        context: &'c crate::Context,
+        context: &'c Context,
         interface_type_id: TypeId<'c>,
     ) -> bool {
         unsafe {

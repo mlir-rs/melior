@@ -18,12 +18,12 @@ use mlir_sys::{
 use std::marker::PhantomData;
 
 /// An IR rewriter. Owns the underlying rewriter object.
-pub struct IRRewriter<'c> {
+pub struct IrRewriter<'c> {
     raw: MlirRewriterBase,
     _context: PhantomData<&'c Context>,
 }
 
-impl<'c> IRRewriter<'c> {
+impl<'c> IrRewriter<'c> {
     /// Creates an IR rewriter for the given context.
     pub fn new(context: &'c Context) -> Self {
         Self {
@@ -41,12 +41,12 @@ impl<'c> IRRewriter<'c> {
     }
 
     /// Returns the underlying rewriter base.
-    pub fn as_rewriter_base(&self) -> RewriterBase<'_> {
+    pub fn as_rewriter_base(&self) -> RewriterBase<'c, '_> {
         unsafe { RewriterBase::from_raw(self.raw) }
     }
 }
 
-impl Drop for IRRewriter<'_> {
+impl Drop for IrRewriter<'_> {
     fn drop(&mut self) {
         unsafe { mlirIRRewriterDestroy(self.raw) }
     }
@@ -54,12 +54,13 @@ impl Drop for IRRewriter<'_> {
 
 /// A non-owning reference to a rewriter base.
 #[derive(Clone, Copy)]
-pub struct RewriterBase<'a> {
+pub struct RewriterBase<'c, 'a> {
     raw: MlirRewriterBase,
+    _context: PhantomData<&'c Context>,
     _reference: PhantomData<&'a ()>,
 }
 
-impl<'a> RewriterBase<'a> {
+impl<'c, 'a> RewriterBase<'c, 'a> {
     /// Creates a rewriter base from a raw object.
     ///
     /// # Safety
@@ -68,12 +69,13 @@ impl<'a> RewriterBase<'a> {
     pub unsafe fn from_raw(raw: MlirRewriterBase) -> Self {
         Self {
             raw,
-            _reference: Default::default(),
+            _context: PhantomData,
+            _reference: PhantomData,
         }
     }
 
     /// Returns the context.
-    pub fn context(&self) -> ContextRef<'_> {
+    pub fn context(&self) -> ContextRef<'c> {
         unsafe { ContextRef::from_raw(mlirRewriterBaseGetContext(self.raw)) }
     }
 
@@ -103,31 +105,28 @@ impl<'a> RewriterBase<'a> {
     }
 
     /// Returns the block the insertion point belongs to.
-    pub fn insertion_block(&self) -> BlockRef<'_, '_> {
+    pub fn insertion_block(&self) -> BlockRef<'c, '_> {
         unsafe { BlockRef::from_raw(mlirRewriterBaseGetInsertionBlock(self.raw)) }
     }
 
     /// Returns the current block.
-    pub fn block(&self) -> BlockRef<'_, '_> {
+    pub fn block(&self) -> BlockRef<'c, '_> {
         unsafe { BlockRef::from_raw(mlirRewriterBaseGetBlock(self.raw)) }
     }
 
     /// Inserts the operation at the current insertion point and returns a
     /// reference to it.
-    pub fn insert<'c>(&self, op: Operation<'c>) -> OperationRef<'c, '_> {
+    pub fn insert(&self, op: Operation<'c>) -> OperationRef<'c, '_> {
         unsafe { OperationRef::from_raw(mlirRewriterBaseInsert(self.raw, op.into_raw())) }
     }
 
     /// Creates a deep copy of the operation.
-    pub fn clone_op<'c, 'b>(&self, op: OperationRef<'c, 'b>) -> OperationRef<'c, 'b> {
+    pub fn clone_op<'b>(&self, op: OperationRef<'c, 'b>) -> OperationRef<'c, 'b> {
         unsafe { OperationRef::from_raw(mlirRewriterBaseClone(self.raw, op.to_raw())) }
     }
 
     /// Creates a deep copy of the operation without its regions.
-    pub fn clone_op_without_regions<'c, 'b>(
-        &self,
-        op: OperationRef<'c, 'b>,
-    ) -> OperationRef<'c, 'b> {
+    pub fn clone_op_without_regions<'b>(&self, op: OperationRef<'c, 'b>) -> OperationRef<'c, 'b> {
         unsafe {
             OperationRef::from_raw(mlirRewriterBaseCloneWithoutRegions(self.raw, op.to_raw()))
         }
@@ -214,7 +213,8 @@ mod tests {
     use super::*;
     use crate::{
         Context,
-        ir::{BlockLike, Location, Module, RegionLike, operation::OperationBuilder},
+        dialect::arith,
+        ir::{Location, Module, Type, attribute::IntegerAttribute},
         test::load_all_dialects,
     };
 
@@ -222,14 +222,14 @@ mod tests {
     fn new() {
         let context = Context::new();
 
-        IRRewriter::new(&context);
+        IrRewriter::new(&context);
     }
 
     #[test]
     fn set_insertion_point() {
         let context = Context::new();
         let module = Module::new(Location::unknown(&context));
-        let rewriter = IRRewriter::new(&context);
+        let rewriter = IrRewriter::new(&context);
         let base = rewriter.as_rewriter_base();
         let body = module.body();
 
@@ -243,21 +243,18 @@ mod tests {
         load_all_dialects(&context);
 
         let module = Module::new(Location::unknown(&context));
-        let rewriter = IRRewriter::new(&context);
+        let rewriter = IrRewriter::new(&context);
         let base = rewriter.as_rewriter_base();
         let body = module.body();
 
         base.set_insertion_point_to_end(body);
 
-        let op = OperationBuilder::new("arith.constant", Location::unknown(&context))
-            .add_results(&[crate::ir::Type::index(&context)])
-            .add_attributes(&[(
-                crate::ir::Identifier::new(&context, "value"),
-                crate::ir::attribute::IntegerAttribute::new(crate::ir::Type::index(&context), 0)
-                    .into(),
-            )])
-            .build()
-            .unwrap();
+        let location = Location::unknown(&context);
+        let op = arith::constant(
+            &context,
+            IntegerAttribute::new(Type::index(&context), 0).into(),
+            location,
+        );
 
         let op_ref = base.insert(op);
 
@@ -270,32 +267,26 @@ mod tests {
         load_all_dialects(&context);
 
         let module = Module::new(Location::unknown(&context));
-        let rewriter = IRRewriter::new(&context);
+        let rewriter = IrRewriter::new(&context);
         let base = rewriter.as_rewriter_base();
         let body = module.body();
 
         base.set_insertion_point_to_end(body);
 
-        let index_type = crate::ir::Type::index(&context);
+        let index_type = Type::index(&context);
         let location = Location::unknown(&context);
 
-        let op1 = OperationBuilder::new("arith.constant", location)
-            .add_results(&[index_type])
-            .add_attributes(&[(
-                crate::ir::Identifier::new(&context, "value"),
-                crate::ir::attribute::IntegerAttribute::new(index_type, 1).into(),
-            )])
-            .build()
-            .unwrap();
+        let op1 = arith::constant(
+            &context,
+            IntegerAttribute::new(index_type, 1).into(),
+            location,
+        );
 
-        let op2 = OperationBuilder::new("arith.constant", location)
-            .add_results(&[index_type])
-            .add_attributes(&[(
-                crate::ir::Identifier::new(&context, "value"),
-                crate::ir::attribute::IntegerAttribute::new(index_type, 2).into(),
-            )])
-            .build()
-            .unwrap();
+        let op2 = arith::constant(
+            &context,
+            IntegerAttribute::new(index_type, 2).into(),
+            location,
+        );
 
         let op1_ref = base.insert(op1);
         let op2_ref = base.insert(op2);
