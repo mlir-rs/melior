@@ -105,6 +105,13 @@ pub(crate) unsafe extern "C" fn print_string_callback(string: MlirStringRef, dat
     })();
 }
 
+pub(crate) unsafe extern "C" fn collect_bytes_callback(string: MlirStringRef, data: *mut c_void) {
+    let bytes = unsafe { &mut *(data as *mut Vec<u8>) };
+    let slice = unsafe { std::slice::from_raw_parts(string.data as *const u8, string.length) };
+
+    bytes.extend_from_slice(slice);
+}
+
 #[cfg(test)]
 mod tests {
     use crate::ir::Location;

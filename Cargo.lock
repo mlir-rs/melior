@@ -373,9 +373,9 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "mlir-sys"
-version = "210.0.4"
+version = "220.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f376ddc92bf2bad0eba47e20f75923f76306e429273379cedb70eb7e664aab90"
+checksum = "cc2e25debeba9206972a9cee0b9cebbde63c15d45318a5cde1e46041b398e1cc"
 dependencies = [
  "bindgen",
 ]
@@ -639,9 +639,9 @@ checksum = "591ef38edfb78ca4771ee32cf494cb8771944bee237a9b91fc9c1424ac4b777b"
 
 [[package]]
 name = "tblgen"
-version = "0.8.1"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c4e3abe8582a0bb8708d11142c45e8c622f013bc4936d918da42c2aade60e98"
+checksum = "15a6768dc51535aeaecbe812e2a792a77cbef10b1c4529e29bea5864a738dc6a"
 dependencies = [
  "bindgen",
  "cc",

@@ -296,19 +296,16 @@ impl<'a> Operation<'a> {
     }
 
     fn collect_traits(definition: Record<'a>) -> Result<Vec<Trait>, Error> {
-        let mut trait_lists = vec![definition.list_value("traits")?];
+        let mut trait_lists = vec![definition.list_of_defs_value("traits")?];
         let mut traits = vec![];
 
         while let Some(trait_list) = trait_lists.pop() {
-            for value in trait_list.iter() {
-                let definition =
-                    Record::try_from(value).map_err(|error| error.set_location(definition))?;
-
+            for definition in trait_list {
                 if definition.subclass_of("TraitList") {
-                    trait_lists.push(definition.list_value("traits")?);
+                    trait_lists.push(definition.list_of_defs_value("traits")?);
                 } else {
                     if definition.subclass_of("Interface") {
-                        trait_lists.push(definition.list_value("baseInterfaces")?);
+                        trait_lists.push(definition.list_of_defs_value("baseInterfaces")?);
                     }
                     traits.push(Trait::new(definition)?)
                 }

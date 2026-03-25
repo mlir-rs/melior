@@ -12,24 +12,30 @@ use mlir_sys::{
     mlirOperationGetNumRegions, mlirOperationGetNumResults, mlirOperationGetNumSuccessors,
     mlirOperationGetOperand, mlirOperationGetParentOperation, mlirOperationGetRegion,
     mlirOperationGetResult, mlirOperationGetSuccessor, mlirOperationGetTypeID,
-    mlirOperationHasInherentAttributeByName, mlirOperationMoveAfter, mlirOperationMoveBefore,
+    mlirOperationHasInherentAttributeByName, mlirOperationHashValue,
+    mlirOperationImplementsInterface, mlirOperationImplementsInterfaceStatic,
+    mlirOperationIsBeforeInBlock, mlirOperationMoveAfter, mlirOperationMoveBefore,
     mlirOperationPrintWithFlags, mlirOperationRemoveAttributeByName,
     mlirOperationRemoveDiscardableAttributeByName, mlirOperationRemoveFromParent,
-    mlirOperationSetAttributeByName, mlirOperationSetDiscardableAttributeByName,
-    mlirOperationSetInherentAttributeByName, mlirOperationSetOperand, mlirOperationSetOperands,
-    mlirOperationSetSuccessor, mlirOperationVerify, mlirOperationWalk,
+    mlirOperationReplaceUsesOfWith, mlirOperationSetAttributeByName,
+    mlirOperationSetDiscardableAttributeByName, mlirOperationSetInherentAttributeByName,
+    mlirOperationSetLocation, mlirOperationSetOperand, mlirOperationSetOperands,
+    mlirOperationSetSuccessor, mlirOperationVerify, mlirOperationWalk, mlirOperationWriteBytecode,
+    mlirOperationWriteBytecodeWithConfig,
 };
 
 use crate::{
-    ContextRef, Error, StringRef,
+    Context, ContextRef, Error, StringRef,
     ir::{
         Attribute, AttributeLike, Block, BlockRef, Identifier, Location, RegionRef, Value,
-        r#type::TypeId, value::ValueLike,
+        bytecode_writer_config::BytecodeWriterConfig, r#type::TypeId, value::ValueLike,
     },
+    logical_result::LogicalResult,
 };
 
 use super::{
-    OperationPrintingFlags, OperationRef, OperationRefMut, OperationResult, print_string_callback,
+    OperationPrintingFlags, OperationRef, OperationRefMut, OperationResult, collect_bytes_callback,
+    print_string_callback,
 };
 
 /// Order in which to traverse an operation tree.
@@ -278,6 +284,41 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
         Ok(data.0)
     }
 
+    /// Serializes an operation to bytecode.
+    fn write_bytecode(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        unsafe {
+            mlirOperationWriteBytecode(
+                self.to_raw(),
+                Some(collect_bytes_callback),
+                &mut bytes as *mut _ as *mut _,
+            );
+        }
+
+        bytes
+    }
+
+    /// Serializes an operation to bytecode with a writer configuration.
+    fn write_bytecode_with_config(&self, config: &BytecodeWriterConfig) -> Result<Vec<u8>, Error> {
+        let mut bytes = Vec::new();
+
+        let result = LogicalResult::from_raw(unsafe {
+            mlirOperationWriteBytecodeWithConfig(
+                self.to_raw(),
+                config.to_raw(),
+                Some(collect_bytes_callback),
+                &mut bytes as *mut _ as *mut _,
+            )
+        });
+
+        if result.is_success() {
+            Ok(bytes)
+        } else {
+            Err(Error::WriteBytecode)
+        }
+    }
+
     /// Walks this operation (and all nested operations) in either pre- or
     /// post-order.
     ///
@@ -383,9 +424,39 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
         }
     }
 
-    // TODO: mlirOperationImplementsInterface — requires an interface TypeId
-    // TODO: mlirOperationImplementsInterfaceStatic — requires an interface TypeId +
-    // operation name
+    /// Returns a hash value for the operation.
+    fn hash_value(&self) -> usize {
+        unsafe { mlirOperationHashValue(self.to_raw()) }
+    }
+
+    /// Returns `true` if this operation appears before `other` in the same
+    /// block.
+    fn is_before_in_block(&self, other: OperationRef<'c, 'a>) -> bool {
+        unsafe { mlirOperationIsBeforeInBlock(self.to_raw(), other.to_raw()) }
+    }
+
+    /// Returns `true` if the operation implements the interface identified by
+    /// the given type ID.
+    fn implements_interface(&self, interface_type_id: TypeId<'c>) -> bool {
+        unsafe { mlirOperationImplementsInterface(self.to_raw(), interface_type_id.to_raw()) }
+    }
+
+    /// Returns `true` if the named operation implements the interface
+    /// identified by the given type ID, without requiring an operation
+    /// instance.
+    fn implements_interface_static(
+        name: &str,
+        context: &'c Context,
+        interface_type_id: TypeId<'c>,
+    ) -> bool {
+        unsafe {
+            mlirOperationImplementsInterfaceStatic(
+                StringRef::new(name).to_raw(),
+                context.to_raw(),
+                interface_type_id.to_raw(),
+            )
+        }
+    }
 }
 
 pub trait OperationMutLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
@@ -473,6 +544,16 @@ pub trait OperationMutLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         }
         .then_some(())
         .ok_or_else(|| Error::AttributeNotFound(name.into()))
+    }
+
+    /// Sets the location of the operation.
+    fn set_location(&mut self, location: Location<'c>) {
+        unsafe { mlirOperationSetLocation(self.to_raw(), location.to_raw()) }
+    }
+
+    /// Replaces all uses of `of` inside this operation with `with`.
+    fn replace_uses_of_with(&mut self, of: Value<'c, 'a>, with: Value<'c, 'a>) {
+        unsafe { mlirOperationReplaceUsesOfWith(self.to_raw(), of.to_raw(), with.to_raw()) }
     }
 
     /// Sets an inherent attribute by name. Has no effect if `name` does not

@@ -14,5 +14,6 @@ melior_macro::passes!(
         mlirCreateGPUGpuNVVMAttachTarget,
         mlirCreateGPUGpuROCDLAttachTarget,
         mlirCreateGPUGpuSPIRVAttachTarget,
+        mlirCreateGPUGpuXeVMAttachTarget,
     ]
 );
