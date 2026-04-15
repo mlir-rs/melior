@@ -12,7 +12,7 @@ categories = ["api-bindings"]
 
 [dependencies]
 melior-macro = { path = "../macro", version = "0.20.0" }
-mlir-sys = "220.0.1"
+mlir-sys = "220.0.2"
 
 [dev-dependencies]
 indoc = "2.0.7"
