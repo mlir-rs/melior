@@ -372,9 +372,9 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "mlir-sys"
-version = "220.0.1"
+version = "220.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc2e25debeba9206972a9cee0b9cebbde63c15d45318a5cde1e46041b398e1cc"
+checksum = "55f8c5781dc23ebe7456f9e9aaecab9eee9e542f7e9051b95b0a31b1d5d4b61f"
 dependencies = [
  "bindgen",
 ]
