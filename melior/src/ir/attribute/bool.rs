@@ -25,7 +25,7 @@ impl<'c> BoolAttribute<'c> {
     }
 }
 
-attribute_traits!(BoolAttribute, is_string, "string");
+attribute_traits!(BoolAttribute, is_bool, "bool");
 
 #[cfg(test)]
 mod tests {
