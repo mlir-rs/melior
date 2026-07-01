@@ -5,18 +5,21 @@ use crate::{
     ir::{
         Attribute, Identifier, Location, Operation, Region, Type, Value,
         attribute::{
-            DenseI32ArrayAttribute, DenseI64ArrayAttribute, IntegerAttribute, StringAttribute,
-            TypeAttribute,
+            DenseI32ArrayAttribute, DenseI64ArrayAttribute, FlatSymbolRefAttribute,
+            IntegerAttribute, StringAttribute, TypeAttribute,
         },
         operation::OperationBuilder,
         r#type::IntegerType,
     },
 };
 pub use alloca_options::*;
+use attributes::{ICmpPredicate, Linkage};
+use global::GlobalValue;
 pub use load_store_options::*;
 
 mod alloca_options;
 pub mod attributes;
+pub mod global;
 mod load_store_options;
 pub mod r#type;
 
@@ -246,6 +249,22 @@ pub fn call_intrinsic<'c>(
     OperationBuilder::new("llvm.call_intrinsic", location)
         .add_operands(args)
         .add_attributes(&[(Identifier::new(context, "intrin"), intrin.into())])
+        .add_attributes(&[
+            // required for LLVM 20 https://github.com/llvm/llvm-project/pull/108933
+            // LLVM 19 does not.
+            // I don't understand any of this. There are NO DOCS or examples!
+            // only this! https://github.com/llvm/llvm-project/blob/656289ffa0a67a69f2cd6f356b965c489aeb6a13/mlir/lib/Conversion/FuncToLLVM/FuncToLLVM.cpp#L544-L554
+            (
+                Identifier::new(context, "operand_segment_sizes"),
+                DenseI32ArrayAttribute::new(context, &[args.len() as i32, 0]).into(),
+            ),
+            (
+                Identifier::new(context, "op_bundle_sizes"),
+                // Total sizes: First segment (callee) has 1 operand, second segment (args) has
+                // args.len() operands
+                DenseI32ArrayAttribute::new(context, &[]).into(),
+            ),
+        ])
         .add_results(results)
         .build()
         .expect("valid operation")
@@ -366,6 +385,197 @@ pub fn zext<'c>(
         .expect("valid operation")
 }
 
+/// Creates an `llvm.icmp` operation in Melior.
+/// This is used to create integer AND pointer comparisons, unlike arith::icmp.
+/// The predicate is an enum that specifies the type of comparison to be
+/// performed. The result type is always a 1-bit integer (boolean).
+/// The `lhs` and `rhs` operands are the values to be compared.
+/// The `location` parameter specifies the location of the operation in the
+/// source code.
+pub fn icmp<'a>(
+    context: &'a Context,
+    predicate: ICmpPredicate,
+    lhs: Value<'a, '_>,
+    rhs: Value<'a, '_>,
+    location: Location<'a>,
+) -> Operation<'a> {
+    OperationBuilder::new("llvm.icmp", location)
+        .add_attributes(&[(
+            Identifier::new(context, "predicate"),
+            IntegerAttribute::new(IntegerType::new(context, 64).into(), predicate as i64).into(),
+        )])
+        .add_operands(&[lhs, rhs])
+        .add_results(&[IntegerType::new(context, 1).into()])
+        .build()
+        .unwrap()
+}
+
+/// Creates an `llvm.mlir.addressof` operation to get a pointer to a global
+/// variable.
+pub fn addressof<'a>(
+    context: &'a Context,
+    global_name: &str,
+    ptr_type: Type<'a>,
+    location: Location<'a>,
+) -> Operation<'a> {
+    let location = Location::name(context, global_name, location);
+    let global_name_attr = FlatSymbolRefAttribute::new(context, global_name);
+
+    OperationBuilder::new("llvm.mlir.addressof", location)
+        .add_attributes(&[(
+            Identifier::new(context, "global_name"),
+            global_name_attr.into(),
+        )])
+        .add_results(&[ptr_type])
+        .build()
+        .unwrap()
+}
+
+/// Creates an `llvm.mlir.global` operation in Melior.
+pub fn global_variable<'a>(
+    context: &'a Context,
+    name: &str,
+    value: GlobalValue<'a>,
+    global_type: Type<'a>,
+    options: global::GlobalVariableOptions,
+    location: Location<'a>,
+) -> Operation<'a> {
+    let name_attr = StringAttribute::new(context, name);
+    let type_attr = TypeAttribute::new(global_type);
+    let addr_space_attr = IntegerAttribute::new(
+        IntegerType::new(context, 32).into(),
+        options.addr_space.unwrap_or(0).into(),
+    );
+    let alignment_attr = IntegerAttribute::new(
+        IntegerType::new(context, 64).into(),
+        options.alignment.unwrap_or(1),
+    );
+
+    let linkage_attr: Attribute<'_> =
+        attributes::linkage(context, options.linkage.unwrap_or(Linkage::Internal));
+
+    let mut op_builder = OperationBuilder::new("llvm.mlir.global", location).add_attributes(&[
+        (Identifier::new(context, "sym_name"), name_attr.into()),
+        (Identifier::new(context, "global_type"), type_attr.into()),
+        (Identifier::new(context, "linkage"), linkage_attr),
+        (
+            Identifier::new(context, "addr_space"),
+            addr_space_attr.into(),
+        ),
+        (Identifier::new(context, "alignment"), alignment_attr.into()),
+    ]);
+
+    match value {
+        GlobalValue::Value(value) => {
+            op_builder = op_builder
+                .add_attributes(&[(Identifier::new(context, "value"), value)])
+                .add_regions([Region::new()]);
+        }
+        GlobalValue::Constant(value) => {
+            op_builder = op_builder
+                .add_attributes(&[
+                    (Identifier::new(context, "value"), value),
+                    (
+                        Identifier::new(context, "constant"),
+                        Attribute::unit(context),
+                    ),
+                ])
+                .add_regions([Region::new()]);
+        }
+        GlobalValue::Complex(region) => {
+            op_builder = op_builder.add_regions([region]);
+        }
+    }
+
+    op_builder.build().expect("valid operation")
+}
+
+/// Creates an `llvm.mlir.constant` operation in Melior.
+///
+/// Supports constant arrays and other complex types.
+pub fn constant<'a>(
+    context: &'a Context,
+    value: Attribute<'a>,
+    result_type: Type<'a>,
+    location: Location<'a>,
+) -> Operation<'a> {
+    OperationBuilder::new("llvm.mlir.constant", location)
+        .add_attributes(&[(Identifier::new(context, "value"), value)])
+        .add_results(&[result_type])
+        .build()
+        .unwrap()
+}
+
+/// Creates an `llvm.call` operation in Melior.
+/// Used for calling functions declared through LLVM dialect.
+pub fn call<'a>(
+    context: &'a Context,
+    callee: &str,
+    args: &[Value<'a, '_>],
+    results: &[Type<'a>],
+    location: Location<'a>,
+) -> Operation<'a> {
+    OperationBuilder::new("llvm.call", location)
+        .add_attributes(&[(
+            Identifier::new(context, "callee"),
+            FlatSymbolRefAttribute::new(context, callee).into(),
+        )])
+        .add_operands(args)
+        .add_results(results)
+        .add_attributes(&[
+            // required for LLVM 20 https://github.com/llvm/llvm-project/pull/108933
+            // LLVM 19 does not.
+            // I don't understand any of this. There are NO DOCS or examples!
+            // only this! https://github.com/llvm/llvm-project/blob/656289ffa0a67a69f2cd6f356b965c489aeb6a13/mlir/lib/Conversion/FuncToLLVM/FuncToLLVM.cpp#L544-L554
+            (
+                Identifier::new(context, "operand_segment_sizes"),
+                DenseI32ArrayAttribute::new(context, &[args.len() as i32, 0]).into(),
+            ),
+            (
+                Identifier::new(context, "op_bundle_sizes"),
+                // Total sizes: First segment (callee) has 1 operand, second segment (args) has
+                // args.len() operands
+                DenseI32ArrayAttribute::new(context, &[]).into(),
+            ),
+        ])
+        .build()
+        .unwrap()
+}
+
+/// Creates an `llvm.call` operation in Melior.
+///
+/// This can call any function from a pointer value.
+pub fn indirect_call<'a>(
+    context: &'a Context,
+    callee: Value<'a, '_>,
+    args: &[Value<'a, '_>],
+    results: &[Type<'a>],
+    location: Location<'a>,
+) -> Operation<'a> {
+    OperationBuilder::new("llvm.call", location)
+        .add_operands(&[callee])
+        .add_operands(args)
+        .add_results(results)
+        .add_attributes(&[
+            // required for LLVM 20 https://github.com/llvm/llvm-project/pull/108933
+            // LLVM 19 does not.
+            // I don't understand any of this. There are NO DOCS or examples!
+            // only this! https://github.com/llvm/llvm-project/blob/656289ffa0a67a69f2cd6f356b965c489aeb6a13/mlir/lib/Conversion/FuncToLLVM/FuncToLLVM.cpp#L544-L554
+            (
+                Identifier::new(context, "operand_segment_sizes"),
+                DenseI32ArrayAttribute::new(context, &[args.len() as i32 + 1, 0]).into(),
+            ),
+            (
+                Identifier::new(context, "op_bundle_sizes"),
+                // Total sizes: First segment (callee) has 1 operand, second segment (args) has
+                // args.len() operands
+                DenseI32ArrayAttribute::new(context, &[]).into(),
+            ),
+        ]) // Default calling convention
+        .build()
+        .unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -392,6 +602,7 @@ mod tests {
     fn convert_module<'c>(context: &'c Context, module: &mut Module<'c>) {
         let pass_manager = PassManager::new(context);
 
+        pass_manager.enable_verifier(true);
         pass_manager.add_pass(pass::conversion::create_func_to_llvm());
         pass_manager
             .nested_under("func.func")
@@ -1259,6 +1470,438 @@ mod tests {
                     .into();
 
                 block.append_operation(func::r#return(&[res], location));
+
+                let region = Region::new();
+                region.append_block(block);
+                region
+            },
+            &[],
+            location,
+        ));
+
+        convert_module(&context, &mut module);
+
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn compile_icmp() {
+        let context = create_test_context();
+
+        let location = Location::unknown(&context);
+        let mut module = Module::new(location);
+        let integer_type = IntegerType::new(&context, 64).into();
+
+        module.body().append_operation(func::func(
+            &context,
+            StringAttribute::new(&context, "foo"),
+            TypeAttribute::new(
+                FunctionType::new(
+                    &context,
+                    &[integer_type, integer_type],
+                    &[IntegerType::new(&context, 1).into()],
+                )
+                .into(),
+            ),
+            {
+                let block = Block::new(&[(integer_type, location), (integer_type, location)]);
+
+                let res = block
+                    .append_operation(icmp(
+                        &context,
+                        ICmpPredicate::Eq,
+                        block.argument(0).unwrap().into(),
+                        block.argument(1).unwrap().into(),
+                        location,
+                    ))
+                    .result(0)
+                    .unwrap()
+                    .into();
+
+                block.append_operation(func::r#return(&[res], location));
+
+                let region = Region::new();
+                region.append_block(block);
+                region
+            },
+            &[],
+            location,
+        ));
+
+        convert_module(&context, &mut module);
+
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn compile_addressof() {
+        let context = create_test_context();
+
+        let location = Location::unknown(&context);
+        let mut module = Module::new(location);
+        let integer_type = IntegerType::new(&context, 64).into();
+        let ptr_type = r#type::pointer(&context, 0);
+
+        // First create a global variable
+        module.body().append_operation(global_variable(
+            &context,
+            "my_global",
+            GlobalValue::Constant(IntegerAttribute::new(integer_type, 42).into()),
+            integer_type,
+            global::GlobalVariableOptions::default(),
+            location,
+        ));
+
+        // Then a function that gets the address of it
+        module.body().append_operation(func::func(
+            &context,
+            StringAttribute::new(&context, "get_global_addr"),
+            TypeAttribute::new(FunctionType::new(&context, &[], &[ptr_type]).into()),
+            {
+                let block = Block::new(&[]);
+
+                let res = block
+                    .append_operation(addressof(&context, "my_global", ptr_type, location))
+                    .result(0)
+                    .unwrap()
+                    .into();
+
+                block.append_operation(func::r#return(&[res], location));
+
+                let region = Region::new();
+                region.append_block(block);
+                region
+            },
+            &[],
+            location,
+        ));
+
+        convert_module(&context, &mut module);
+
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn compile_global_variable() {
+        let context = create_test_context();
+
+        let location = Location::unknown(&context);
+        let mut module = Module::new(location);
+        let integer_type = IntegerType::new(&context, 32).into();
+
+        // Global variable with a constant value
+        module.body().append_operation(global_variable(
+            &context,
+            "const_global",
+            GlobalValue::Constant(IntegerAttribute::new(integer_type, 42).into()),
+            integer_type,
+            global::GlobalVariableOptions {
+                linkage: Some(Linkage::Internal),
+                alignment: Some(4),
+                addr_space: Some(0),
+            },
+            location,
+        ));
+
+        // Global variable with a value (not constant)
+        module.body().append_operation(global_variable(
+            &context,
+            "mutable_global",
+            GlobalValue::Value(IntegerAttribute::new(integer_type, 123).into()),
+            integer_type,
+            global::GlobalVariableOptions {
+                linkage: Some(Linkage::External),
+                alignment: Some(8),
+                addr_space: Some(0),
+            },
+            location,
+        ));
+
+        convert_module(&context, &mut module);
+
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn compile_constant() {
+        let context = create_test_context();
+
+        let location = Location::unknown(&context);
+        let mut module = Module::new(location);
+        let integer_type = IntegerType::new(&context, 32).into();
+
+        module.body().append_operation(func::func(
+            &context,
+            StringAttribute::new(&context, "get_constant"),
+            TypeAttribute::new(FunctionType::new(&context, &[], &[integer_type]).into()),
+            {
+                let block = Block::new(&[]);
+
+                let res = block
+                    .append_operation(constant(
+                        &context,
+                        IntegerAttribute::new(integer_type, 42).into(),
+                        integer_type,
+                        location,
+                    ))
+                    .result(0)
+                    .unwrap()
+                    .into();
+
+                block.append_operation(func::r#return(&[res], location));
+
+                let region = Region::new();
+                region.append_block(block);
+                region
+            },
+            &[],
+            location,
+        ));
+
+        convert_module(&context, &mut module);
+
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn compile_call() {
+        let context = create_test_context();
+
+        let location = Location::unknown(&context);
+        let mut module = Module::new(location);
+        let integer_type = IntegerType::new(&context, 32).into();
+
+        // First define a function
+        module.body().append_operation(func(
+            &context,
+            StringAttribute::new(&context, "add_one"),
+            TypeAttribute::new(function(integer_type, &[integer_type], false)),
+            {
+                let block = Block::new(&[(integer_type, location)]);
+
+                let one = block
+                    .append_operation(constant(
+                        &context,
+                        IntegerAttribute::new(integer_type, 1).into(),
+                        integer_type,
+                        location,
+                    ))
+                    .result(0)
+                    .unwrap()
+                    .into();
+
+                let result = block
+                    .append_operation(arith::addi(
+                        block.argument(0).unwrap().into(),
+                        one,
+                        location,
+                    ))
+                    .result(0)
+                    .unwrap()
+                    .into();
+
+                block.append_operation(r#return(Some(result), location));
+
+                let region = Region::new();
+                region.append_block(block);
+                region
+            },
+            &[],
+            location,
+        ));
+
+        // Then a function that calls it
+        module.body().append_operation(func::func(
+            &context,
+            StringAttribute::new(&context, "caller"),
+            TypeAttribute::new(
+                FunctionType::new(&context, &[integer_type], &[integer_type]).into(),
+            ),
+            {
+                let block = Block::new(&[(integer_type, location)]);
+
+                let res = block
+                    .append_operation(call(
+                        &context,
+                        "add_one",
+                        &[block.argument(0).unwrap().into()],
+                        &[integer_type],
+                        location,
+                    ))
+                    .result(0)
+                    .unwrap()
+                    .into();
+
+                block.append_operation(func::r#return(&[res], location));
+
+                let region = Region::new();
+                region.append_block(block);
+                region
+            },
+            &[],
+            location,
+        ));
+
+        convert_module(&context, &mut module);
+
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn compile_indirect_call() {
+        let context = create_test_context();
+
+        let location = Location::unknown(&context);
+        let mut module = Module::new(location);
+        let integer_type = IntegerType::new(&context, 32).into();
+        let fn_type = function(integer_type, &[integer_type], false);
+        let fn_ptr_type = pointer(&context, 0);
+
+        module.body().append_operation(func::func(
+            &context,
+            StringAttribute::new(&context, "call_fn_ptr"),
+            TypeAttribute::new(
+                FunctionType::new(&context, &[fn_ptr_type, integer_type], &[integer_type]).into(),
+            ),
+            {
+                let block = Block::new(&[(fn_ptr_type, location), (integer_type, location)]);
+
+                let res = block
+                    .append_operation(indirect_call(
+                        &context,
+                        block.argument(0).unwrap().into(),
+                        &[block.argument(1).unwrap().into()],
+                        &[integer_type],
+                        location,
+                    ))
+                    .result(0)
+                    .unwrap()
+                    .into();
+
+                block.append_operation(func::r#return(&[res], location));
+
+                let region = Region::new();
+                region.append_block(block);
+                region
+            },
+            &[],
+            location,
+        ));
+
+        convert_module(&context, &mut module);
+
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn compile_call_intrinsic() {
+        let context = create_test_context();
+
+        let location = Location::unknown(&context);
+        let mut module = Module::new(location);
+        let integer_type = IntegerType::new(&context, 32).into();
+
+        module.body().append_operation(func::func(
+            &context,
+            StringAttribute::new(&context, "use_intrinsic"),
+            TypeAttribute::new(
+                FunctionType::new(&context, &[integer_type], &[integer_type]).into(),
+            ),
+            {
+                let block = Block::new(&[(integer_type, location)]);
+
+                let res = block
+                    .append_operation(call_intrinsic(
+                        &context,
+                        StringAttribute::new(&context, "llvm.bitreverse.i32"),
+                        &[block.argument(0).unwrap().into()],
+                        &[integer_type],
+                        location,
+                    ))
+                    .result(0)
+                    .unwrap()
+                    .into();
+
+                block.append_operation(func::r#return(&[res], location));
+
+                let region = Region::new();
+                region.append_block(block);
+                region
+            },
+            &[],
+            location,
+        ));
+
+        convert_module(&context, &mut module);
+
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn compile_bitcast() {
+        let context = create_test_context();
+
+        let location = Location::unknown(&context);
+        let mut module = Module::new(location);
+        let i32_type = IntegerType::new(&context, 32).into();
+        let float_type = Type::float32(&context);
+
+        module.body().append_operation(func::func(
+            &context,
+            StringAttribute::new(&context, "int_bits_to_float"),
+            TypeAttribute::new(FunctionType::new(&context, &[i32_type], &[float_type]).into()),
+            {
+                let block = Block::new(&[(i32_type, location)]);
+
+                let res = block
+                    .append_operation(bitcast(
+                        block.argument(0).unwrap().into(),
+                        float_type,
+                        location,
+                    ))
+                    .result(0)
+                    .unwrap()
+                    .into();
+
+                block.append_operation(func::r#return(&[res], location));
+
+                let region = Region::new();
+                region.append_block(block);
+                region
+            },
+            &[],
+            location,
+        ));
+
+        convert_module(&context, &mut module);
+
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn compile_unreachable() {
+        let context = create_test_context();
+
+        let location = Location::unknown(&context);
+        let mut module = Module::new(location);
+
+        module.body().append_operation(func::func(
+            &context,
+            StringAttribute::new(&context, "func_with_unreachable"),
+            TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
+            {
+                let block = Block::new(&[]);
+
+                block.append_operation(unreachable(location));
 
                 let region = Region::new();
                 region.append_block(block);

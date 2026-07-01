@@ -1,0 +1,15 @@
+---
+source: melior/src/dialect/llvm.rs
+expression: module.as_operation()
+---
+module {
+  llvm.func @add_one(%arg0: i32) -> i32 {
+    %0 = llvm.mlir.constant(1 : i32) : i32
+    %1 = arith.addi %arg0, %0 : i32
+    llvm.return %1 : i32
+  }
+  llvm.func @caller(%arg0: i32) -> i32 {
+    %0 = llvm.call @add_one(%arg0) : (i32) -> i32
+    llvm.return %0 : i32
+  }
+}
