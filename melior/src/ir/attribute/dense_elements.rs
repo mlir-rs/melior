@@ -664,8 +664,8 @@ mod tests {
     fn f64_values_and_elements() {
         let context = create_test_context();
         let attr =
-            DenseElementsAttribute::f64_values(f64_tensor_type(&context, 2), &[3.14f64, -2.72f64]);
-        assert_eq!(attr.f64_element(0), Ok(3.14f64));
+            DenseElementsAttribute::f64_values(f64_tensor_type(&context, 2), &[1.25f64, -2.72f64]);
+        assert_eq!(attr.f64_element(0), Ok(1.25f64));
         assert_eq!(attr.f64_element(1), Ok(-2.72f64));
     }
 
@@ -734,9 +734,9 @@ mod tests {
     #[test]
     fn splat_f32() {
         let context = create_test_context();
-        let attr = DenseElementsAttribute::f32_splat(f32_tensor_type(&context, 4), 3.14f32);
+        let attr = DenseElementsAttribute::f32_splat(f32_tensor_type(&context, 4), 1.25f32);
         assert!(attr.is_splat());
-        assert_eq!(attr.f32_splat_value(), 3.14f32);
+        assert_eq!(attr.f32_splat_value(), 1.25f32);
     }
 
     #[test]

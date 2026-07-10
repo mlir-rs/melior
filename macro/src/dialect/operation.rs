@@ -167,7 +167,7 @@ impl<'a> Operation<'a> {
             "{} [`{}`]({}) operation",
             if article { "an" } else { "a" },
             self.operation_name,
-            &self.name
+            self.name
         )
     }
 

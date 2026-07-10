@@ -90,9 +90,9 @@ dependencies = [
 
 [[package]]
 name = "comrak"
-version = "0.52.0"
+version = "0.53.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aac0b255932a9cd52fbfd664b67957f9f2e095ae4711cb0e41b4e291edef94c2"
+checksum = "9795cb30f4deefbf33488819707e0f9630535dd56208ec273c1b3f150196377a"
 dependencies = [
  "caseless",
  "entities",
@@ -331,7 +331,7 @@ checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
 name = "melior"
-version = "0.27.1"
+version = "0.27.2"
 dependencies = [
  "indoc",
  "insta",
@@ -342,7 +342,7 @@ dependencies = [
 
 [[package]]
 name = "melior-macro"
-version = "0.20.1"
+version = "0.20.2"
 dependencies = [
  "comrak",
  "convert_case",
@@ -486,9 +486,9 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
 name = "regex"
-version = "1.12.4"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1292b7759ae1cb9ec195452d1390a074f0cd8541ab7a5a8c31cd6db45d4a6ba"
+checksum = "2a0e75113e14dc5acb068cd0786884f214f1312650a3d36d269f5c4f3cdee8a2"
 dependencies = [
  "aho-corasick",
  "memchr",

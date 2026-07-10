@@ -73,11 +73,11 @@ mod tests {
     fn checked_valid() {
         let context = create_test_context();
         let location = Location::unknown(&context);
-        let attr = FloatAttribute::checked(location, Type::float64(&context), 3.14);
+        let attr = FloatAttribute::checked(location, Type::float64(&context), 42.5);
 
         assert!(attr.is_some());
         let val = attr.unwrap().value();
-        assert!((val - 3.14).abs() < 1e-10);
+        assert!((val - 42.5).abs() < 1e-10);
     }
 
     #[test]
