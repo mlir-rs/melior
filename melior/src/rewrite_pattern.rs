@@ -264,7 +264,7 @@ mod tests {
     fn pattern_rewriter_as_rewriter_base() {
         use crate::{
             dialect::arith,
-            ir::{BlockLike, RegionLike, Type, attribute::IntegerAttribute},
+            ir::{BlockLike, Type, attribute::IntegerAttribute},
         };
 
         let context = create_test_context();

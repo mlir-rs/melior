@@ -17,7 +17,7 @@ pub fn generate(identifiers: &[Ident]) -> Result<TokenStream, Box<dyn Error>> {
                 .to_case(Case::Snake),
         );
 
-        let function_name = Ident::new(&format!("is_{}", &name), identifier.span());
+        let function_name = Ident::new(&format!("is_{}", name), identifier.span());
         let document = format!(" Returns `true` if a type is {}.", name.replace('_', " "));
 
         stream.extend(TokenStream::from(quote! {
