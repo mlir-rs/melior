@@ -271,7 +271,7 @@ pub fn intr_ctlz<'c>(
         .expect("valid operation")
 }
 
-/// Creates a `llvm.intr.ctlz` operation.
+/// Creates a `llvm.intr.cttz` operation.
 pub fn intr_cttz<'c>(
     context: &'c Context,
     value: Value<'c, '_>,
@@ -291,7 +291,7 @@ pub fn intr_cttz<'c>(
         .expect("valid operation")
 }
 
-/// Creates a `llvm.intr.ctlz` operation.
+/// Creates a `llvm.intr.ctpop` operation.
 pub fn intr_ctpop<'c>(
     value: Value<'c, '_>,
     result_type: Type<'c>,
