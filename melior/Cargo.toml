@@ -1,6 +1,6 @@
 [package]
 name = "melior"
-version = "0.27.2"
+version = "0.27.3"
 edition.workspace = true
 description = "The rustic MLIR bindings in Rust"
 documentation = "https://mlir-rs.github.io/melior/melior/"
@@ -11,7 +11,7 @@ keywords.workspace = true
 categories = ["api-bindings"]
 
 [dependencies]
-melior-macro = { path = "../macro", version = "0.20.2" }
+melior-macro = { path = "../macro", version = "0.20.3" }
 mlir-sys = "220.0.2"
 
 [dev-dependencies]
