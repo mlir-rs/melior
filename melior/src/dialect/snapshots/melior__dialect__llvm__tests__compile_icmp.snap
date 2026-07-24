@@ -1,0 +1,10 @@
+---
+source: melior/src/dialect/llvm.rs
+expression: module.as_operation()
+---
+module {
+  llvm.func @foo(%arg0: i64, %arg1: i64) -> i1 {
+    %0 = llvm.icmp "eq" %arg0, %arg1 : i64
+    llvm.return %0 : i1
+  }
+}
