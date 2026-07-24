@@ -16,6 +16,7 @@ pub use alloca_options::*;
 pub use load_store_options::*;
 
 mod alloca_options;
+pub mod arithmetic;
 pub mod attributes;
 mod load_store_options;
 pub mod r#type;
