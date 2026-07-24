@@ -1,0 +1,10 @@
+---
+source: melior/src/dialect/enzyme.rs
+expression: module.as_operation()
+---
+module {
+  func.func @foo(%arg0: tensor<4xf64>) -> tensor<4xf64> {
+    %0 = "enzyme.batch"(%arg0) {batch_shape = array<i64: 4>, fn = @square} : (tensor<4xf64>) -> tensor<4xf64>
+    return %0 : tensor<4xf64>
+  }
+}
