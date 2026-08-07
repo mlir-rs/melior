@@ -30,7 +30,8 @@ pub use self::{
     execution_engine::ExecutionEngine,
     greedy_rewrite_driver::{
         GreedyRewriteDriverConfig, GreedyRewriteStrictness, GreedySimplifyRegionLevel,
-        apply_patterns_and_fold_greedily, walk_and_apply_patterns,
+        apply_patterns_and_fold_greedily, apply_patterns_and_fold_greedily_with_op,
+        walk_and_apply_patterns,
     },
     ir_rewriter::{IrRewriter, RewriterBase},
     rewrite_pattern::{
