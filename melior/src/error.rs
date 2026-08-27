@@ -36,6 +36,10 @@ pub enum Error {
     TypeExpected(&'static str, String),
     UnknownDiagnosticSeverity(u32),
     Utf8(Utf8Error),
+    ValueCountMismatch {
+        from: usize,
+        to: usize,
+    },
     WriteBytecode,
 }
 
@@ -89,6 +93,12 @@ impl Display for Error {
             }
             Self::Utf8(error) => {
                 write!(formatter, "{error}")
+            }
+            Self::ValueCountMismatch { from, to } => {
+                write!(
+                    formatter,
+                    "value count mismatch: {from} from values, {to} to values"
+                )
             }
             Self::WriteBytecode => write!(formatter, "failed to write bytecode"),
         }

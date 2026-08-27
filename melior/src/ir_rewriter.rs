@@ -1,4 +1,5 @@
 use crate::{
+    Error,
     context::{Context, ContextRef},
     ir::{
         BlockLike, BlockRef, Location, Operation, OperationRef, RegionLike, RegionRef, Type,
@@ -283,12 +284,17 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
 
     /// Replaces all uses of the `from` values with the corresponding `to`
     /// values.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the numbers of `from` and `to` values do not match.
-    pub fn replace_all_value_range_uses_with(&self, from: &[Value], to: &[Value]) {
-        assert_eq!(from.len(), to.len());
+    pub fn replace_all_value_range_uses_with(
+        &self,
+        from: &[Value],
+        to: &[Value],
+    ) -> Result<(), Error> {
+        if from.len() != to.len() {
+            return Err(Error::ValueCountMismatch {
+                from: from.len(),
+                to: to.len(),
+            });
+        }
 
         unsafe {
             mlirRewriterBaseReplaceAllValueRangeUsesWith(
@@ -298,6 +304,8 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
                 to.as_ptr() as *const MlirValue,
             )
         }
+
+        Ok(())
     }
 
     /// Replaces all uses of the operation results with the given values.
@@ -312,14 +320,16 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
         }
     }
 
-    /// Replaces all uses of the results of an operation with the results of another.
+    /// Replaces all uses of the results of an operation with the results of
+    /// another.
     pub fn replace_all_op_uses_with_operation(&self, from: OperationRef, to: OperationRef) {
         unsafe {
             mlirRewriterBaseReplaceAllOpUsesWithOperation(self.raw, from.to_raw(), to.to_raw())
         }
     }
 
-    /// Replaces uses of the operation results with the given values within a block.
+    /// Replaces uses of the operation results with the given values within a
+    /// block.
     pub fn replace_op_uses_within_block(
         &self,
         op: OperationRef,
@@ -337,7 +347,8 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
         }
     }
 
-    /// Replaces all uses of `from` with `to`, except uses by the excepted operation.
+    /// Replaces all uses of `from` with `to`, except uses by the excepted
+    /// operation.
     pub fn replace_all_uses_except(&self, from: Value, to: Value, excepted_user: OperationRef) {
         unsafe {
             mlirRewriterBaseReplaceAllUsesExcept(
@@ -356,7 +367,7 @@ mod tests {
     use crate::{
         Context,
         dialect::arith,
-        ir::{Location, Module, Type, attribute::IntegerAttribute, operation::OperationLike},
+        ir::{Location, Module, Type, attribute::IntegerAttribute},
         test::load_all_dialects,
     };
 
@@ -506,8 +517,32 @@ mod tests {
         base.replace_all_value_range_uses_with(
             &[op2.result(0).unwrap().into()],
             &[op1.result(0).unwrap().into()],
-        );
+        )
+        .unwrap();
         base.replace_op_uses_within_block(op1, &[op2.result(0).unwrap().into()], body);
+    }
+
+    #[test]
+    fn replace_all_value_range_uses_with_mismatched_counts() {
+        let context = Context::new();
+        load_all_dialects(&context);
+
+        let module = Module::new(Location::unknown(&context));
+        let rewriter = IrRewriter::new(&context);
+        let base = rewriter.as_rewriter_base();
+
+        base.set_insertion_point_to_end(module.body());
+
+        let op = base.insert(arith::constant(
+            &context,
+            IntegerAttribute::new(Type::index(&context), 0).into(),
+            Location::unknown(&context),
+        ));
+
+        assert_eq!(
+            base.replace_all_value_range_uses_with(&[op.result(0).unwrap().into()], &[]),
+            Err(Error::ValueCountMismatch { from: 1, to: 0 })
+        );
     }
 
     #[test]
