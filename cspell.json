@@ -39,6 +39,7 @@
     "hasher",
     "impls",
     "indoc",
+    "inlines",
     "insertvalue",
     "insta",
     "interp",
