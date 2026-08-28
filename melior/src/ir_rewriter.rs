@@ -1,17 +1,26 @@
 use crate::{
+    Error,
     context::{Context, ContextRef},
-    ir::{BlockLike, BlockRef, Operation, OperationRef, RegionLike, RegionRef, Value, ValueLike},
+    ir::{
+        BlockLike, BlockRef, Location, Operation, OperationRef, RegionLike, RegionRef, Type,
+        TypeLike, Value, ValueLike,
+    },
 };
 use mlir_sys::{
     MlirRewriterBase, MlirValue, mlirIRRewriterCreate, mlirIRRewriterCreateFromOp,
     mlirIRRewriterDestroy, mlirRewriterBaseCancelOpModification,
     mlirRewriterBaseClearInsertionPoint, mlirRewriterBaseClone, mlirRewriterBaseCloneRegionBefore,
-    mlirRewriterBaseCloneWithoutRegions, mlirRewriterBaseEraseBlock, mlirRewriterBaseEraseOp,
-    mlirRewriterBaseFinalizeOpModification, mlirRewriterBaseGetBlock, mlirRewriterBaseGetContext,
-    mlirRewriterBaseGetInsertionBlock, mlirRewriterBaseInlineRegionBefore, mlirRewriterBaseInsert,
+    mlirRewriterBaseCloneWithoutRegions, mlirRewriterBaseCreateBlockBefore,
+    mlirRewriterBaseEraseBlock, mlirRewriterBaseEraseOp, mlirRewriterBaseFinalizeOpModification,
+    mlirRewriterBaseGetBlock, mlirRewriterBaseGetContext, mlirRewriterBaseGetInsertionBlock,
+    mlirRewriterBaseGetOperationAfterInsertion, mlirRewriterBaseInlineBlockBefore,
+    mlirRewriterBaseInlineRegionBefore, mlirRewriterBaseInsert, mlirRewriterBaseMergeBlocks,
     mlirRewriterBaseMoveBlockBefore, mlirRewriterBaseMoveOpAfter, mlirRewriterBaseMoveOpBefore,
-    mlirRewriterBaseReplaceAllUsesWith, mlirRewriterBaseReplaceOpWithOperation,
-    mlirRewriterBaseReplaceOpWithValues, mlirRewriterBaseSetInsertionPointAfter,
+    mlirRewriterBaseReplaceAllOpUsesWithOperation, mlirRewriterBaseReplaceAllOpUsesWithValueRange,
+    mlirRewriterBaseReplaceAllUsesExcept, mlirRewriterBaseReplaceAllUsesWith,
+    mlirRewriterBaseReplaceAllValueRangeUsesWith, mlirRewriterBaseReplaceOpUsesWithinBlock,
+    mlirRewriterBaseReplaceOpWithOperation, mlirRewriterBaseReplaceOpWithValues,
+    mlirRewriterBaseSetInsertionPointAfter, mlirRewriterBaseSetInsertionPointAfterValue,
     mlirRewriterBaseSetInsertionPointBefore, mlirRewriterBaseSetInsertionPointToEnd,
     mlirRewriterBaseSetInsertionPointToStart, mlirRewriterBaseStartOpModification,
 };
@@ -206,6 +215,150 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
     pub fn replace_all_uses_with(&self, from: Value, to: Value) {
         unsafe { mlirRewriterBaseReplaceAllUsesWith(self.raw, from.to_raw(), to.to_raw()) }
     }
+
+    /// Sets the insertion point right after the definition of the given value.
+    pub fn set_insertion_point_after_value(&self, value: Value) {
+        unsafe { mlirRewriterBaseSetInsertionPointAfterValue(self.raw, value.to_raw()) }
+    }
+
+    /// Returns the operation right after the insertion point, if any.
+    pub fn operation_after_insertion(&self) -> Option<OperationRef<'c, '_>> {
+        unsafe {
+            OperationRef::from_option_raw(mlirRewriterBaseGetOperationAfterInsertion(self.raw))
+        }
+    }
+
+    /// Creates a block with the given arguments before the given block.
+    pub fn create_block_before(
+        &self,
+        before: BlockRef,
+        arguments: &[(Type<'c>, Location<'c>)],
+    ) -> BlockRef<'c, '_> {
+        let types = arguments
+            .iter()
+            .map(|(r#type, _)| r#type.to_raw())
+            .collect::<Vec<_>>();
+        let locations = arguments
+            .iter()
+            .map(|(_, location)| location.to_raw())
+            .collect::<Vec<_>>();
+
+        unsafe {
+            BlockRef::from_raw(mlirRewriterBaseCreateBlockBefore(
+                self.raw,
+                before.to_raw(),
+                types.len() as isize,
+                types.as_ptr(),
+                locations.as_ptr(),
+            ))
+        }
+    }
+
+    /// Inlines the source block before the given operation and erases it,
+    /// replacing its arguments with the given values.
+    pub fn inline_block_before(&self, source: BlockRef, op: OperationRef, values: &[Value]) {
+        unsafe {
+            mlirRewriterBaseInlineBlockBefore(
+                self.raw,
+                source.to_raw(),
+                op.to_raw(),
+                values.len() as isize,
+                values.as_ptr() as *const MlirValue,
+            )
+        }
+    }
+
+    /// Inlines the source block at the end of the destination block and erases
+    /// it, replacing its arguments with the given values.
+    pub fn merge_blocks(&self, source: BlockRef, destination: BlockRef, values: &[Value]) {
+        unsafe {
+            mlirRewriterBaseMergeBlocks(
+                self.raw,
+                source.to_raw(),
+                destination.to_raw(),
+                values.len() as isize,
+                values.as_ptr() as *const MlirValue,
+            )
+        }
+    }
+
+    /// Replaces all uses of the `from` values with the corresponding `to`
+    /// values.
+    pub fn replace_all_value_range_uses_with(
+        &self,
+        from: &[Value],
+        to: &[Value],
+    ) -> Result<(), Error> {
+        if from.len() != to.len() {
+            return Err(Error::ValueCountMismatch {
+                from: from.len(),
+                to: to.len(),
+            });
+        }
+
+        unsafe {
+            mlirRewriterBaseReplaceAllValueRangeUsesWith(
+                self.raw,
+                from.len() as isize,
+                from.as_ptr() as *const MlirValue,
+                to.as_ptr() as *const MlirValue,
+            )
+        }
+
+        Ok(())
+    }
+
+    /// Replaces all uses of the operation results with the given values.
+    pub fn replace_all_op_uses_with_values(&self, from: OperationRef, to: &[Value]) {
+        unsafe {
+            mlirRewriterBaseReplaceAllOpUsesWithValueRange(
+                self.raw,
+                from.to_raw(),
+                to.len() as isize,
+                to.as_ptr() as *const MlirValue,
+            )
+        }
+    }
+
+    /// Replaces all uses of the results of an operation with the results of
+    /// another.
+    pub fn replace_all_op_uses_with_operation(&self, from: OperationRef, to: OperationRef) {
+        unsafe {
+            mlirRewriterBaseReplaceAllOpUsesWithOperation(self.raw, from.to_raw(), to.to_raw())
+        }
+    }
+
+    /// Replaces uses of the operation results with the given values within a
+    /// block.
+    pub fn replace_op_uses_within_block(
+        &self,
+        op: OperationRef,
+        values: &[Value],
+        block: BlockRef,
+    ) {
+        unsafe {
+            mlirRewriterBaseReplaceOpUsesWithinBlock(
+                self.raw,
+                op.to_raw(),
+                values.len() as isize,
+                values.as_ptr() as *const MlirValue,
+                block.to_raw(),
+            )
+        }
+    }
+
+    /// Replaces all uses of `from` with `to`, except uses by the excepted
+    /// operation.
+    pub fn replace_all_uses_except(&self, from: Value, to: Value, excepted_user: OperationRef) {
+        unsafe {
+            mlirRewriterBaseReplaceAllUsesExcept(
+                self.raw,
+                from.to_raw(),
+                to.to_raw(),
+                excepted_user.to_raw(),
+            )
+        }
+    }
 }
 
 #[cfg(test)]
@@ -292,5 +445,128 @@ mod tests {
         let op2_ref = base.insert(op2);
 
         base.move_op_before(op2_ref, op1_ref);
+    }
+
+    #[test]
+    fn insertion_point_after_value() {
+        let context = Context::new();
+        load_all_dialects(&context);
+
+        let module = Module::new(Location::unknown(&context));
+        let rewriter = IrRewriter::new(&context);
+        let base = rewriter.as_rewriter_base();
+        let body = module.body();
+
+        base.set_insertion_point_to_end(body);
+
+        let op = arith::constant(
+            &context,
+            IntegerAttribute::new(Type::index(&context), 0).into(),
+            Location::unknown(&context),
+        );
+
+        let op_ref = base.insert(op);
+
+        base.set_insertion_point_after_value(op_ref.result(0).unwrap().into());
+
+        assert!(base.operation_after_insertion().is_none());
+
+        base.set_insertion_point_before(op_ref);
+
+        assert!(base.operation_after_insertion().is_some());
+    }
+
+    #[test]
+    fn replace_all_op_uses() {
+        let context = Context::new();
+        load_all_dialects(&context);
+
+        let module = Module::new(Location::unknown(&context));
+        let rewriter = IrRewriter::new(&context);
+        let base = rewriter.as_rewriter_base();
+        let body = module.body();
+
+        base.set_insertion_point_to_end(body);
+
+        let index_type = Type::index(&context);
+        let location = Location::unknown(&context);
+
+        let op1 = base.insert(arith::constant(
+            &context,
+            IntegerAttribute::new(index_type, 1).into(),
+            location,
+        ));
+        let op2 = base.insert(arith::constant(
+            &context,
+            IntegerAttribute::new(index_type, 2).into(),
+            location,
+        ));
+        let sum = base.insert(arith::addi(
+            op1.result(0).unwrap().into(),
+            op1.result(0).unwrap().into(),
+            location,
+        ));
+
+        base.replace_all_op_uses_with_operation(op1, op2);
+        base.replace_all_op_uses_with_values(op2, &[op1.result(0).unwrap().into()]);
+        base.replace_all_uses_except(
+            op1.result(0).unwrap().into(),
+            op2.result(0).unwrap().into(),
+            sum,
+        );
+        base.replace_all_value_range_uses_with(
+            &[op2.result(0).unwrap().into()],
+            &[op1.result(0).unwrap().into()],
+        )
+        .unwrap();
+        base.replace_op_uses_within_block(op1, &[op2.result(0).unwrap().into()], body);
+    }
+
+    #[test]
+    fn replace_all_value_range_uses_with_mismatched_counts() {
+        let context = Context::new();
+        load_all_dialects(&context);
+
+        let module = Module::new(Location::unknown(&context));
+        let rewriter = IrRewriter::new(&context);
+        let base = rewriter.as_rewriter_base();
+
+        base.set_insertion_point_to_end(module.body());
+
+        let op = base.insert(arith::constant(
+            &context,
+            IntegerAttribute::new(Type::index(&context), 0).into(),
+            Location::unknown(&context),
+        ));
+
+        assert_eq!(
+            base.replace_all_value_range_uses_with(&[op.result(0).unwrap().into()], &[]),
+            Err(Error::ValueCountMismatch { from: 1, to: 0 })
+        );
+    }
+
+    #[test]
+    fn block_surgery() {
+        let context = Context::new();
+        load_all_dialects(&context);
+
+        let module = Module::new(Location::unknown(&context));
+        let rewriter = IrRewriter::new(&context);
+        let base = rewriter.as_rewriter_base();
+        let body = module.body();
+
+        let block = base.create_block_before(body, &[]);
+
+        base.set_insertion_point_to_end(block);
+
+        let op = arith::constant(
+            &context,
+            IntegerAttribute::new(Type::index(&context), 0).into(),
+            Location::unknown(&context),
+        );
+
+        base.insert(op);
+
+        base.merge_blocks(block, body, &[]);
     }
 }
