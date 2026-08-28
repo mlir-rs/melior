@@ -152,7 +152,7 @@ melior_macro::binary_operations!(
     ]
 );
 
-melior_macro::unary_operations!(arith, [negf, truncf]);
+melior_macro::unary_operations!(arith, [negf]);
 
 melior_macro::typed_unary_operations!(
     arith,
@@ -166,6 +166,7 @@ melior_macro::typed_unary_operations!(
         index_cast,
         index_castui,
         sitofp,
+        truncf,
         trunci,
         uitofp
     ]
@@ -522,6 +523,28 @@ mod tests {
                     &context,
                     &[IntegerType::new(&context, 32).into()],
                     &[Type::float64(&context)],
+                ),
+            );
+        }
+
+        #[test]
+        fn compile_truncf() {
+            let context = create_context();
+
+            compile_operation(
+                &context,
+                |block| {
+                    truncf(
+                        block.argument(0).unwrap().into(),
+                        Type::float32(&context),
+                        Location::unknown(&context),
+                    )
+                },
+                &[Type::float64(&context)],
+                FunctionType::new(
+                    &context,
+                    &[Type::float64(&context)],
+                    &[Type::float32(&context)],
                 ),
             );
         }

@@ -45,7 +45,7 @@ pub fn generate(
 
 fn create_function_name(prefix: &str, pass_name: &str, span: Span) -> Ident {
     Ident::new(
-        &format!("{}_{}", prefix, &pass_name.to_case(Case::Snake)),
+        &format!("{}_{}", prefix, pass_name.to_case(Case::Snake)),
         span,
     )
 }

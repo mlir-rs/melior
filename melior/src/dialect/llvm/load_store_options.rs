@@ -59,7 +59,7 @@ impl<'c> LoadStoreOptions<'c> {
     }
 
     /// Sets noalias scopes.
-    pub fn nonalias_scopes(mut self, noalias_scopes: Option<ArrayAttribute<'c>>) -> Self {
+    pub fn noalias_scopes(mut self, noalias_scopes: Option<ArrayAttribute<'c>>) -> Self {
         self.noalias_scopes = noalias_scopes;
         self
     }

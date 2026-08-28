@@ -1,6 +1,6 @@
 [package]
 name = "melior-macro"
-version = "0.20.0"
+version = "0.20.5"
 edition.workspace = true
 description = "Internal macros for Melior"
 documentation = "https://mlir-rs.github.io/melior/melior/"
@@ -13,13 +13,17 @@ keywords.workspace = true
 proc-macro = true
 
 [dependencies]
-comrak = { version = "0.52.0", default-features = false }
+comrak = { version = "0.54.0", default-features = false }
 convert_case = "0.11.0"
 proc-macro2 = "1"
 quote = "1"
 regex = "1.12.4"
-syn = { version = "2", features = ["full"] }
-tblgen = { version = "0.9.1", default-features = false, features = ["llvm22-0"] }
+syn = { version = "3.0.2", features = ["extra-traits", "full"] }
+tblgen = {
+  version = "0.9.1",
+  default-features = false,
+  features = ["llvm22-0"]
+}
 unindent = "0.2.4"
 
 [dev-dependencies]
