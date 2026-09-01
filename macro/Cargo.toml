@@ -14,7 +14,7 @@ proc-macro = true
 
 [dependencies]
 comrak = { version = "0.54.0", default-features = false }
-convert_case = "0.11.0"
+convert_case = "0.12.0"
 proc-macro2 = "1"
 quote = "1"
 regex = "1.12.4"
