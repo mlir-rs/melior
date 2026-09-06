@@ -90,4 +90,20 @@ mod tests {
             Err(Error::PositionOutOfBounds { .. })
         ));
     }
+
+    #[test]
+    fn try_from_accepts_its_own_kind() {
+        let context = create_test_context();
+        let attribute: Attribute = StridedLayoutAttribute::new(&context, 0, &[1, 2, 3]).into();
+
+        assert!(StridedLayoutAttribute::try_from(attribute).is_ok());
+    }
+
+    #[test]
+    fn try_from_rejects_another_kind() {
+        let context = create_test_context();
+        let attribute = Attribute::unit(&context);
+
+        assert!(StridedLayoutAttribute::try_from(attribute).is_err());
+    }
 }

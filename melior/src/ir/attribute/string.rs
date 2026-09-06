@@ -63,4 +63,20 @@ mod tests {
 
         assert_eq!(attr.value(), "hello");
     }
+
+    #[test]
+    fn try_from_accepts_its_own_kind() {
+        let context = create_test_context();
+        let attribute: Attribute = StringAttribute::new(&context, "foo").into();
+
+        assert!(StringAttribute::try_from(attribute).is_ok());
+    }
+
+    #[test]
+    fn try_from_rejects_another_kind() {
+        let context = create_test_context();
+        let attribute = Attribute::unit(&context);
+
+        assert!(StringAttribute::try_from(attribute).is_err());
+    }
 }
