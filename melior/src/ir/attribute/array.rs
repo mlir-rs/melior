@@ -51,12 +51,16 @@ impl<'c> ArrayAttribute<'c> {
     }
 }
 
-attribute_traits!(ArrayAttribute, is_dense_i64_array, "dense i64 array");
+attribute_traits!(ArrayAttribute, is_array, "array");
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        ir::{Type, attribute::IntegerAttribute, r#type::IntegerType},
+        ir::{
+            Type,
+            attribute::{IntegerAttribute, StringAttribute},
+            r#type::IntegerType,
+        },
         test::create_test_context,
     };
 
@@ -92,5 +96,28 @@ mod tests {
         );
 
         assert_eq!(attribute.len(), 1);
+    }
+
+    #[test]
+    fn try_from_accepts_its_own_kind() {
+        let context = create_test_context();
+        let attribute: Attribute = ArrayAttribute::new(
+            &context,
+            &[
+                StringAttribute::new(&context, "hello world").into(),
+                IntegerAttribute::new(Type::index(&context), 1).into(),
+            ],
+        )
+        .into();
+
+        assert!(ArrayAttribute::try_from(attribute).is_ok());
+    }
+
+    #[test]
+    fn try_from_rejects_another_kind() {
+        let context = create_test_context();
+        let attribute = Attribute::unit(&context);
+
+        assert!(ArrayAttribute::try_from(attribute).is_err());
     }
 }

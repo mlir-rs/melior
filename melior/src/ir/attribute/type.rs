@@ -37,4 +37,20 @@ mod tests {
 
         assert_eq!(TypeAttribute::new(r#type).value(), r#type);
     }
+
+    #[test]
+    fn try_from_accepts_its_own_kind() {
+        let context = create_test_context();
+        let attribute: Attribute = TypeAttribute::new(Type::index(&context)).into();
+
+        assert!(TypeAttribute::try_from(attribute).is_ok());
+    }
+
+    #[test]
+    fn try_from_rejects_another_kind() {
+        let context = create_test_context();
+        let attribute = Attribute::unit(&context);
+
+        assert!(TypeAttribute::try_from(attribute).is_err());
+    }
 }

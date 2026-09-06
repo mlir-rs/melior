@@ -830,4 +830,21 @@ mod tests {
             Err(Error::ElementExpected { .. })
         ));
     }
+
+    #[test]
+    fn try_from_accepts_its_own_kind() {
+        let context = create_test_context();
+        let attribute: Attribute =
+            DenseElementsAttribute::i32_values(i32_tensor_type(&context, 3), &[1, 2, 3]).into();
+
+        assert!(DenseElementsAttribute::try_from(attribute).is_ok());
+    }
+
+    #[test]
+    fn try_from_rejects_another_kind() {
+        let context = create_test_context();
+        let attribute = Attribute::unit(&context);
+
+        assert!(DenseElementsAttribute::try_from(attribute).is_err());
+    }
 }

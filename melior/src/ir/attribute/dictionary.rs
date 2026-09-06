@@ -123,4 +123,22 @@ mod tests {
         assert_eq!(attribute.element_by_name("baz"), Some(val));
         assert_eq!(attribute.element_by_name("missing"), None);
     }
+
+    #[test]
+    fn try_from_accepts_its_own_kind() {
+        let context = create_test_context();
+        let id = Identifier::new(&context, "foo");
+        let val = IntegerAttribute::new(IntegerType::new(&context, 64).into(), 42).into();
+        let attribute: Attribute = DictionaryAttribute::new(&context, &[(id, val)]).into();
+
+        assert!(DictionaryAttribute::try_from(attribute).is_ok());
+    }
+
+    #[test]
+    fn try_from_rejects_another_kind() {
+        let context = create_test_context();
+        let attribute = Attribute::unit(&context);
+
+        assert!(DictionaryAttribute::try_from(attribute).is_err());
+    }
 }

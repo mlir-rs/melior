@@ -90,4 +90,21 @@ mod tests {
 
         assert!(attr.is_none());
     }
+
+    #[test]
+    fn try_from_accepts_its_own_kind() {
+        let context = create_test_context();
+        let attribute: Attribute =
+            FloatAttribute::new(&context, Type::float64(&context), 42.0).into();
+
+        assert!(FloatAttribute::try_from(attribute).is_ok());
+    }
+
+    #[test]
+    fn try_from_rejects_another_kind() {
+        let context = create_test_context();
+        let attribute = Attribute::unit(&context);
+
+        assert!(FloatAttribute::try_from(attribute).is_err());
+    }
 }
