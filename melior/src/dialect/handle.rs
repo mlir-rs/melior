@@ -2,9 +2,10 @@ use super::DialectRegistry;
 use crate::{context::Context, dialect::Dialect, string_ref::StringRef};
 use mlir_sys::{
     MlirDialectHandle, mlirDialectHandleGetNamespace, mlirDialectHandleInsertDialect,
-    mlirDialectHandleLoadDialect, mlirDialectHandleRegisterDialect, mlirGetDialectHandle__async__,
-    mlirGetDialectHandle__cf__, mlirGetDialectHandle__func__, mlirGetDialectHandle__gpu__,
-    mlirGetDialectHandle__linalg__, mlirGetDialectHandle__llvm__, mlirGetDialectHandle__pdl__,
+    mlirDialectHandleLoadDialect, mlirDialectHandleRegisterDialect, mlirGetDialectHandle__affine__,
+    mlirGetDialectHandle__arith__, mlirGetDialectHandle__async__, mlirGetDialectHandle__cf__,
+    mlirGetDialectHandle__func__, mlirGetDialectHandle__gpu__, mlirGetDialectHandle__linalg__,
+    mlirGetDialectHandle__llvm__, mlirGetDialectHandle__memref__, mlirGetDialectHandle__pdl__,
     mlirGetDialectHandle__quant__, mlirGetDialectHandle__scf__, mlirGetDialectHandle__shape__,
     mlirGetDialectHandle__sparse_tensor__, mlirGetDialectHandle__tensor__,
 };
@@ -16,6 +17,16 @@ pub struct DialectHandle {
 }
 
 impl DialectHandle {
+    /// Creates a `affine` dialect handle.
+    pub fn affine() -> Self {
+        unsafe { Self::from_raw(mlirGetDialectHandle__affine__()) }
+    }
+
+    /// Creates a `arith` dialect handle.
+    pub fn arith() -> Self {
+        unsafe { Self::from_raw(mlirGetDialectHandle__arith__()) }
+    }
+
     /// Creates a `async` dialect handle.
     pub fn r#async() -> Self {
         unsafe { Self::from_raw(mlirGetDialectHandle__async__()) }
@@ -44,6 +55,11 @@ impl DialectHandle {
     /// Creates a `llvm` dialect handle.
     pub fn llvm() -> Self {
         unsafe { Self::from_raw(mlirGetDialectHandle__llvm__()) }
+    }
+
+    /// Creates a `memref` dialect handle.
+    pub fn memref() -> Self {
+        unsafe { Self::from_raw(mlirGetDialectHandle__memref__()) }
     }
 
     /// Creates a `pdl` dialect handle.
