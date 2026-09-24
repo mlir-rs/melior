@@ -132,7 +132,7 @@ mod tests {
     use super::*;
     use crate::{
         ir::{Location, Module},
-        pass::{self, transform::register_print_op_stats},
+        pass::{self, transform::register_print_op_stats_pass},
         test::create_test_context,
         utility::parse_pass_pipeline,
     };
@@ -197,7 +197,7 @@ mod tests {
         .unwrap();
 
         let manager = PassManager::new(&context);
-        manager.add_pass(pass::transform::create_print_op_stats());
+        manager.add_pass(pass::transform::create_print_op_stats_pass());
 
         assert_eq!(manager.run(&mut module), Ok(()));
     }
@@ -229,7 +229,7 @@ mod tests {
         let manager = PassManager::new(&context);
         manager
             .nested_under("func.func")
-            .add_pass(pass::transform::create_print_op_stats());
+            .add_pass(pass::transform::create_print_op_stats_pass());
 
         assert_eq!(manager.run(&mut module), Ok(()));
 
@@ -237,7 +237,7 @@ mod tests {
         manager
             .nested_under("builtin.module")
             .nested_under("func.func")
-            .add_pass(pass::transform::create_print_op_stats());
+            .add_pass(pass::transform::create_print_op_stats_pass());
 
         assert_eq!(manager.run(&mut module), Ok(()));
     }
@@ -248,7 +248,7 @@ mod tests {
         let manager = PassManager::new(&context);
         let function_manager = manager.nested_under("func.func");
 
-        function_manager.add_pass(pass::transform::create_print_op_stats());
+        function_manager.add_pass(pass::transform::create_print_op_stats_pass());
 
         assert_eq!(
             manager.as_operation_pass_manager().to_string(),
@@ -274,7 +274,7 @@ mod tests {
             .unwrap_err()
         );
 
-        register_print_op_stats();
+        register_print_op_stats_pass();
 
         assert_eq!(
             parse_pass_pipeline(
