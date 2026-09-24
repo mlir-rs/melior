@@ -4,7 +4,7 @@ set -e
 
 [ -n "$CI" ]
 
-llvm_version=22
+llvm_version=23
 
 if [ $(uname) = Linux ]; then
   curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | bash -s
