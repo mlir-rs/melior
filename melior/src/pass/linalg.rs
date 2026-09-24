@@ -9,7 +9,6 @@ melior_macro::passes!(
         mlirCreateLinalgConvertLinalgToLoopsPass,
         mlirCreateLinalgConvertLinalgToParallelLoopsPass,
         mlirCreateLinalgLinalgBlockPackMatmul,
-        mlirCreateLinalgLinalgDetensorizePass,
         mlirCreateLinalgLinalgElementwiseOpFusionPass,
         mlirCreateLinalgLinalgFoldIntoElementwisePass,
         mlirCreateLinalgLinalgFoldUnitExtentDimsPass,
