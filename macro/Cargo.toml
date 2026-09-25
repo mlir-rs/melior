@@ -20,14 +20,14 @@ quote = "1"
 regex = "1.12.4"
 syn = { version = "3.0.2", features = ["extra-traits", "full"] }
 tblgen = {
-  version = "0.9.1",
+  version = "0.10.0",
   default-features = false,
-  features = ["llvm22-0"]
+  features = ["llvm23-0"]
 }
 unindent = "0.2.4"
 
 [dev-dependencies]
 melior = { path = "../melior", features = ["ods-dialects"] }
-mlir-sys = "220.0.2"
+mlir-sys = "230.0.1"
 pretty_assertions = "1.4.1"
 trybuild = { version = "1.0.108", features = ["diff"] }
