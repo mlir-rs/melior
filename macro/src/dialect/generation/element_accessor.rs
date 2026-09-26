@@ -1,4 +1,7 @@
-use crate::dialect::operation::{OperationElement, VariadicKind};
+use crate::dialect::{
+    operation::{OperationElement, VariadicKind},
+    utility::segment_size_attribute_name,
+};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::Ident;
@@ -75,7 +78,7 @@ pub fn generate_element_getter(
             }
         }
         VariadicKind::AttributeSized => {
-            let segment_size_attribute = format!("{singular_kind}_segment_sizes");
+            let segment_size_attribute = segment_size_attribute_name(singular_kind);
             let get_elements = if !field.is_unfixed() {
                 quote! {
                     self.operation.#singular_kind_identifier(start)

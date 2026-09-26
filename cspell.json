@@ -63,6 +63,7 @@
     "nvgpu",
     "nvvm",
     "realloc",
+    "relayout",
     "repr",
     "rocdl",
     "rustc",

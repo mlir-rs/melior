@@ -207,6 +207,18 @@ impl<'a> Operation<'a> {
         self.operands.len()
     }
 
+    pub fn has_attribute_sized_operands(&self) -> bool {
+        self.operands
+            .iter()
+            .any(|operand| operand.variadic_kind() == &VariadicKind::AttributeSized)
+    }
+
+    pub fn has_attribute_sized_results(&self) -> bool {
+        self.results
+            .iter()
+            .any(|result| result.variadic_kind() == &VariadicKind::AttributeSized)
+    }
+
     pub fn regions(&self) -> impl Iterator<Item = &Region<'a>> {
         self.regions.iter()
     }
