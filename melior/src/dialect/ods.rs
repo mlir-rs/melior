@@ -206,7 +206,7 @@ mod tests {
                 ArrayAttribute, Attribute, IntegerAttribute, StringAttribute, TypeAttribute,
             },
             operation::OperationLike,
-            r#type::{FunctionType, IntegerType, MemRefType},
+            r#type::{FunctionType, IntegerType, MemRefType, RankedTensorType},
         },
         pass::{self, PassManager},
         test::create_test_context,
@@ -485,6 +485,70 @@ mod tests {
     }
 
     #[test]
+    fn build_linalg_matmul_on_tensors() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let element_type = Type::float32(&context);
+        let tensor_type = RankedTensorType::new(&[4, 4], element_type, None).into();
+
+        test_linalg_operation(
+            "linalg.matmul_on_tensors",
+            &context,
+            &[tensor_type, tensor_type, tensor_type],
+            |block| {
+                let region = Region::new();
+                let body = Block::new(&[
+                    (element_type, location),
+                    (element_type, location),
+                    (element_type, location),
+                ]);
+
+                let product = body.append_operation(
+                    arith::mulf(
+                        &context,
+                        body.argument(0).unwrap().into(),
+                        body.argument(1).unwrap().into(),
+                        location,
+                    )
+                    .into(),
+                );
+                let sum = body.append_operation(
+                    arith::addf(
+                        &context,
+                        body.argument(2).unwrap().into(),
+                        product.result(0).unwrap().into(),
+                        location,
+                    )
+                    .into(),
+                );
+                body.append_operation(
+                    linalg::r#yield(&context, &[sum.result(0).unwrap().into()], location).into(),
+                );
+                region.append_block(body);
+
+                // On tensors, the output is only an initial value, and the
+                // operation returns one result per tensor output.
+                let matmul = block.append_operation(
+                    linalg::matmul(
+                        &context,
+                        &[tensor_type],
+                        &[
+                            block.argument(0).unwrap().into(),
+                            block.argument(1).unwrap().into(),
+                        ],
+                        &[block.argument(2).unwrap().into()],
+                        region,
+                        location,
+                    )
+                    .into(),
+                );
+
+                assert_eq!(matmul.result_count(), 1);
+            },
+        );
+    }
+
+    #[test]
     fn build_linalg_generic() {
         let context = create_test_context();
         let location = Location::unknown(&context);
@@ -587,6 +651,71 @@ mod tests {
                     )
                     .into(),
                 );
+            },
+        );
+    }
+
+    #[test]
+    fn build_linalg_conv_2d_nhwc_hwcf() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let element_type = Type::float32(&context);
+        let input_type = MemRefType::new(element_type, &[1, 8, 8, 3], None, None).into();
+        let filter_type = MemRefType::new(element_type, &[3, 3, 3, 4], None, None).into();
+        // A stride of 2 takes the 8x8 input with a 3x3 filter to a 3x3 output.
+        let output_type = MemRefType::new(element_type, &[1, 3, 3, 4], None, None).into();
+
+        test_linalg_operation(
+            "linalg.conv_2d_nhwc_hwcf",
+            &context,
+            &[input_type, filter_type, output_type],
+            |block| {
+                let region = Region::new();
+                let body = Block::new(&[
+                    (element_type, location),
+                    (element_type, location),
+                    (element_type, location),
+                ]);
+
+                let product = body.append_operation(
+                    arith::mulf(
+                        &context,
+                        body.argument(0).unwrap().into(),
+                        body.argument(1).unwrap().into(),
+                        location,
+                    )
+                    .into(),
+                );
+                let sum = body.append_operation(
+                    arith::addf(
+                        &context,
+                        body.argument(2).unwrap().into(),
+                        product.result(0).unwrap().into(),
+                        location,
+                    )
+                    .into(),
+                );
+                body.append_operation(
+                    linalg::r#yield(&context, &[sum.result(0).unwrap().into()], location).into(),
+                );
+                region.append_block(body);
+
+                let mut convolution = linalg::conv_2_d_nhwc_hwcf(
+                    &context,
+                    &[],
+                    &[
+                        block.argument(0).unwrap().into(),
+                        block.argument(1).unwrap().into(),
+                    ],
+                    &[block.argument(2).unwrap().into()],
+                    region,
+                    location,
+                );
+                // Optional attributes are not parameters of the free function.
+                convolution
+                    .set_strides(Attribute::parse(&context, "dense<2> : tensor<2xi64>").unwrap());
+
+                block.append_operation(convolution.into());
             },
         );
     }
