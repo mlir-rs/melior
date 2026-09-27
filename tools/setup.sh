@@ -19,7 +19,7 @@ Linux | macOS)
 Windows)
   llvm_prefix=$RUNNER_TEMP/llvm
 
-  # The zlib and libxml2 development packages provide import libraries listed by llvm-config.
+  # The zlib and libxml2 development packages provide import libraries listed by `llvm-config`.
   $CONDA/Scripts/conda.exe create -y \
     -c conda-forge \
     -p $llvm_prefix \
