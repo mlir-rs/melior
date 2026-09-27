@@ -139,7 +139,7 @@ impl<'c> LlvmBlockExt<'c> for Block<'c> {
                 context,
                 value_type,
                 container,
-                DenseI64ArrayAttribute::new(context, &[index as _]).into(),
+                DenseI64ArrayAttribute::new(context, &[index as _]),
                 location,
             )
             .into(),
@@ -161,7 +161,7 @@ impl<'c> LlvmBlockExt<'c> for Block<'c> {
                 container.r#type(),
                 container,
                 value,
-                DenseI64ArrayAttribute::new(context, &[index as _]).into(),
+                DenseI64ArrayAttribute::new(context, &[index as _]),
                 location,
             )
             .into(),

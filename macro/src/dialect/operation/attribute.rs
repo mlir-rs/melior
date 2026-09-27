@@ -44,12 +44,16 @@ static ATTRIBUTE_TYPES: LazyLock<HashMap<&'static str, &'static str>> = LazyLock
     initialize_attributes!(
         ArrayAttr => ArrayAttribute,
         Attribute => Attribute,
+        BoolAttr => BoolAttribute,
         DenseElementsAttr => DenseElementsAttribute,
         DenseI32ArrayAttr => DenseI32ArrayAttribute,
+        DenseI64ArrayAttr => DenseI64ArrayAttribute,
+        DictionaryAttr => DictionaryAttribute,
         FlatSymbolRefAttr => FlatSymbolRefAttribute,
         FloatAttr => FloatAttribute,
         IntegerAttr => IntegerAttribute,
         StringAttr => StringAttribute,
+        StridedLayoutAttr => StridedLayoutAttribute,
         TypeAttr => TypeAttribute,
     );
 
