@@ -326,7 +326,7 @@ dependencies = [
 
 [[package]]
 name = "melior-macro"
-version = "0.21.0"
+version = "0.28.0"
 dependencies = [
  "comrak",
  "convert_case",
