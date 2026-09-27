@@ -1,8 +1,9 @@
 use crate::dialect::operation::{
-    Attribute, OperationBuilder, OperationElement, OperationField, TypeInference,
+    Attribute, Operation, OperationBuilder, OperationElement, OperationField, TypeInference,
 };
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use syn::Type;
 
 pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
     let result_fns = match builder.operation().type_inference() {
@@ -61,16 +62,35 @@ pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
 
     let identifier = builder.identifier();
     let doc = format!(
-        "A builder for {}.",
-        builder.operation().documentation_name()
+        "A builder for {}.{}",
+        builder.operation().documentation_name(),
+        if builder.operation().segment_arrays().next().is_none() {
+            ""
+        } else {
+            // Group sizes are recorded per declared group while the elements
+            // themselves are appended in the order the setters are called. The
+            // type parameters order the setters of required fields, but
+            // optional fields have no type parameters, so their setters are
+            // callable at any point of a builder chain.
+            "\n\nThe sizes of the operand or result groups of this operation are \
+            recorded in an `operandSegmentSizes` or `resultSegmentSizes` attribute. \
+            Setters of optional fields must be called in the order the fields are \
+            declared, as they are not ordered by the type parameters of a builder."
+        }
     );
     let type_parameters = builder.type_state().parameters().collect::<Vec<_>>();
+    let segment_fields = builder.operation().segment_arrays().map(|(kind, length)| {
+        let identifier = kind.field_identifier();
+
+        quote! { #identifier: [i32; #length] }
+    });
 
     quote! {
         #[doc = #doc]
         pub struct #identifier<'c, #(#type_parameters),*> {
             builder: ::melior::ir::operation::OperationBuilder<'c>,
             context: &'c ::melior::Context,
+            #(#segment_fields,)*
             _state: ::std::marker::PhantomData<(#(#type_parameters),*)>,
         }
 
@@ -83,6 +103,69 @@ pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
         #(#attribute_fns)*
 
         #build_fn
+    }
+}
+
+// Generates the segment-size fields of a builder struct literal. The array
+// holding the field's own group, if any, gets that group's length; every other
+// array is copied forward.
+fn generate_segment_size_fields(
+    operation: &Operation,
+    field: &impl OperationField,
+) -> Vec<TokenStream> {
+    operation
+        .segment_arrays()
+        .map(|(kind, _)| {
+            let identifier = kind.field_identifier();
+
+            match field.segment() {
+                Some((field_kind, index)) if field_kind == kind => {
+                    let size = generate_segment_size(field);
+
+                    quote! {
+                        #identifier: {
+                            let mut sizes = self.#identifier;
+                            sizes[#index] = #size;
+                            sizes
+                        }
+                    }
+                }
+                _ => quote! { #identifier: self.#identifier },
+            }
+        })
+        .collect()
+}
+
+// Generates an in-place update of the field's group length, for setters
+// mutating a builder instead of consuming it.
+fn generate_segment_size_assignment(
+    operation: &Operation,
+    field: &impl OperationField,
+) -> TokenStream {
+    match field.segment() {
+        Some((kind, index))
+            if operation
+                .segment_arrays()
+                .any(|(array_kind, _)| array_kind == kind) =>
+        {
+            let identifier = kind.field_identifier();
+            let size = generate_segment_size(field);
+
+            quote! { self.#identifier[#index] = #size; }
+        }
+        _ => quote! {},
+    }
+}
+
+// A group's length is the length of its setter's argument if that is a slice,
+// which is the case for variadic groups, and 1 otherwise.
+fn generate_segment_size(field: &impl OperationField) -> TokenStream {
+    let identifier = field.singular_identifier();
+
+    if matches!(field.parameter_type(), Type::Reference(_)) {
+        quote! { #identifier.len() as i32 }
+    } else {
+        quote! { 1 }
     }
 }
 
@@ -101,10 +184,12 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
 
     if field.is_optional() {
         let parameters = builder.type_state().parameters().collect::<Vec<_>>();
+        let segment_size_assignment = generate_segment_size_assignment(builder.operation(), field);
 
         quote! {
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#parameters),*> {
                 pub fn #identifier(mut self, #argument) -> #builder_identifier<'c, #(#parameters),*> {
+                    #segment_size_assignment
                     self.builder = self.builder.#add_identifier(#add_arguments);
                     self
                 }
@@ -114,12 +199,14 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
         let parameters = builder.type_state().parameters_without(field.name());
         let arguments_set = builder.type_state().arguments_with(field.name(), true);
         let arguments_unset = builder.type_state().arguments_with(field.name(), false);
+        let segment_size_fields = generate_segment_size_fields(builder.operation(), field);
 
         quote! {
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
                 pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
                     #builder_identifier {
                         context: self.context,
+                        #(#segment_size_fields,)*
                         builder: self.builder.#add_identifier(#add_arguments),
                         _state: Default::default(),
                     }
@@ -155,10 +242,12 @@ fn generate_same_operands_first_fn(
 
     if field.is_optional() {
         let parameters = builder.type_state().parameters().collect::<Vec<_>>();
+        let segment_size_assignment = generate_segment_size_assignment(builder.operation(), field);
         quote! {
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#parameters),*> {
                 pub fn #identifier(mut self, #argument) -> #builder_identifier<'c, #(#parameters),*> {
                     let result_type = #type_access;
+                    #segment_size_assignment
                     self.builder = self.builder
                         .add_results(&[#(#result_type_copies),*])
                         .#add_identifier(#add_arguments);
@@ -170,12 +259,14 @@ fn generate_same_operands_first_fn(
         let parameters = builder.type_state().parameters_without(field.name());
         let arguments_set = builder.type_state().arguments_with(field.name(), true);
         let arguments_unset = builder.type_state().arguments_with(field.name(), false);
+        let segment_size_fields = generate_segment_size_fields(builder.operation(), field);
         quote! {
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
                 pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
                     let result_type = #type_access;
                     #builder_identifier {
                         context: self.context,
+                        #(#segment_size_fields,)*
                         builder: self.builder
                             .add_results(&[#(#result_type_copies),*])
                             .#add_identifier(#add_arguments),
@@ -222,12 +313,14 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
         let parameters = builder.type_state().parameters_without(field.name());
         let arguments_set = builder.type_state().arguments_with(field.name(), true);
         let arguments_unset = builder.type_state().arguments_with(field.name(), false);
+        let segment_size_fields = generate_segment_size_fields(builder.operation(), field);
         quote! {
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
                 pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
                     let result_type = #type_access;
                     #builder_identifier {
                         context: self.context,
+                        #(#segment_size_fields,)*
                         builder: self.builder
                             .add_results(&[#(#result_type_copies),*])
                             .add_attributes(#add_arguments),
@@ -249,11 +342,26 @@ fn generate_build_fn(builder: &OperationBuilder) -> TokenStream {
         Some(TypeInference::Interface)
     )
     .then_some(quote! { .enable_result_type_inference() });
+    let add_segment_size_attributes = builder.operation().segment_arrays().map(|(kind, _)| {
+        let field_identifier = kind.field_identifier();
+        let name = kind.attribute_name();
+
+        quote! {
+            .add_attributes(&[(
+                ::melior::ir::Identifier::new(self.context, #name),
+                ::melior::ir::attribute::DenseI32ArrayAttribute::new(
+                    self.context,
+                    &self.#field_identifier,
+                ).into(),
+            )])
+        }
+    });
 
     quote! {
         impl<'c> #identifier<'c, #(#arguments),*> {
             pub fn build(self) -> #operation_identifier<'c> {
-                self.builder #maybe_infer.build().expect("valid operation").try_into().expect(#error)
+                self.builder #(#add_segment_size_attributes)* #maybe_infer
+                    .build().expect("valid operation").try_into().expect(#error)
             }
         }
     }
@@ -263,6 +371,11 @@ fn generate_new_fn(builder: &OperationBuilder) -> TokenStream {
     let identifier = builder.identifier();
     let name = &builder.operation().full_operation_name();
     let arguments = builder.type_state().arguments_with_all(false);
+    let segment_fields = builder.operation().segment_arrays().map(|(kind, length)| {
+        let identifier = kind.field_identifier();
+
+        quote! { #identifier: [0; #length] }
+    });
 
     quote! {
         impl<'c> #identifier<'c, #(#arguments),*> {
@@ -270,6 +383,7 @@ fn generate_new_fn(builder: &OperationBuilder) -> TokenStream {
                 Self {
                     context,
                     builder: ::melior::ir::operation::OperationBuilder::new(#name, location),
+                    #(#segment_fields,)*
                     _state: Default::default(),
                 }
             }

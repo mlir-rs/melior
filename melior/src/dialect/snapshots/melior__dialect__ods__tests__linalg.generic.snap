@@ -1,0 +1,15 @@
+---
+source: melior/src/dialect/ods.rs
+expression: module.as_operation()
+---
+#map = affine_map<(d0, d1) -> (d0, d1)>
+module {
+  func.func @foo(%arg0: memref<4x4xf32>, %arg1: memref<4x4xf32>, %arg2: memref<4x4xf32>) {
+    linalg.generic {indexing_maps = [#map, #map, #map], iterator_types = ["parallel", "parallel"]} ins(%arg0, %arg1 : memref<4x4xf32>, memref<4x4xf32>) outs(%arg2 : memref<4x4xf32>) {
+    ^bb0(%in: f32, %in_0: f32, %out: f32):
+      %0 = arith.addf %in, %in_0 : f32
+      linalg.yield %0 : f32
+    }
+    return
+  }
+}

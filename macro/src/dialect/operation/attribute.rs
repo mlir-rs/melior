@@ -1,6 +1,6 @@
 use crate::dialect::{
     error::Error,
-    operation::operation_field::OperationField,
+    operation::{SegmentKind, operation_field::OperationField},
     utility::{generate_result_type, sanitize_snake_case_identifier},
 };
 use proc_macro2::{Span, TokenStream};
@@ -160,5 +160,10 @@ impl OperationField for Attribute<'_> {
                 #name.into(),
             )]
         }
+    }
+
+    // Attributes are not operands or results, so they have no group to size.
+    fn segment(&self) -> Option<(SegmentKind, usize)> {
+        None
     }
 }

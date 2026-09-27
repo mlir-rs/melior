@@ -1,4 +1,4 @@
-use super::{OperationElement, OperationField, VariadicKind};
+use super::{OperationElement, OperationField, SegmentKind, VariadicKind};
 use crate::dialect::{
     error::Error,
     r#type::Type as ElementType,
@@ -59,7 +59,7 @@ impl OperationField for Operand<'_> {
 
         if !self.r#type.is_variadic() {
             generate_result_type(r#type)
-        } else if self.variadic_kind == VariadicKind::AttributeSized {
+        } else if matches!(self.variadic_kind, VariadicKind::AttributeSized { .. }) {
             generate_result_type(generate_iterator_type(r#type))
         } else {
             generate_iterator_type(r#type)
@@ -76,6 +76,12 @@ impl OperationField for Operand<'_> {
         } else {
             quote! { &[#name] }
         }
+    }
+
+    fn segment(&self) -> Option<(SegmentKind, usize)> {
+        self.variadic_kind
+            .segment_index()
+            .map(|index| (SegmentKind::Operand, index))
     }
 }
 
