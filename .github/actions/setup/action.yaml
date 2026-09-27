@@ -8,10 +8,6 @@ runs:
     # spell-checker: disable-next-line
     - uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
     - uses: homebrew/actions/setup-homebrew@848c272c7bfe984a197bd4d16383f4c106ec61e6 # main
-      if: runner.os == 'macOS'
-    # spell-checker: disable-next-line
-    - run: echo PATH=/home/linuxbrew/.linuxbrew/bin:$PATH >> ${{ github.env }}
-      if: runner.os == 'Linux'
-      shell: bash
+      if: runner.os != 'Windows'
     - run: tools/setup.sh
       shell: bash
