@@ -3,6 +3,7 @@ resolver = "3"
 members = ["macro", "melior"]
 
 [workspace.package]
+version = "0.28.0"
 edition = "2024"
 readme = "README.md"
 repository = "https://github.com/mlir-rs/melior"
