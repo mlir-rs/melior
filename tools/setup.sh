@@ -8,7 +8,7 @@ llvm_version=23
 
 case $RUNNER_OS in
 Linux | macOS)
-  if [ $RUNNER_OS = Linux ]; then
+  if [ $(uname) = Linux ]; then
     curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | bash -s
   fi
 
