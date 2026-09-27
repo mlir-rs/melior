@@ -77,7 +77,7 @@ pub fn generate_element_getter(
                 #get_elements
             }
         }
-        VariadicKind::AttributeSized => {
+        VariadicKind::AttributeSized { segment_index } => {
             let segment_size_attribute = segment_size_attribute_name(singular_kind);
             let get_elements = if !field.is_unfixed() {
                 quote! {
@@ -103,12 +103,12 @@ pub fn generate_element_getter(
                         self.operation
                         .attribute(#segment_size_attribute)?
                     )?;
-                let start = (0..#index)
+                let start = (0..#segment_index)
                     .map(|index| attribute.element(index))
                     .collect::<Result<Vec<_>, _>>()?
                     .into_iter()
                     .sum::<i32>() as usize;
-                let group_len = attribute.element(#index)? as usize;
+                let group_len = attribute.element(#segment_index)? as usize;
 
                 #get_elements
             }
