@@ -4,10 +4,11 @@ mod argument;
 mod block_like;
 
 pub use self::{argument::BlockArgument, block_like::BlockLike};
-use super::{Location, Type, TypeLike, Value};
+use super::{Location, OperationRef, Type, TypeLike, Value};
 use crate::{context::Context, utility::print_callback};
 use mlir_sys::{
     MlirBlock, mlirBlockCreate, mlirBlockDestroy, mlirBlockDetach, mlirBlockEqual, mlirBlockPrint,
+    mlirOperationGetNextInBlock,
 };
 use std::{
     ffi::c_void,
@@ -197,6 +198,54 @@ impl Display for BlockRef<'_, '_> {
 impl Debug for BlockRef<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         Debug::fmt(self.deref(), formatter)
+    }
+}
+
+#[derive(Clone, Copy)]
+#[doc(hidden)]
+pub struct BlockIterator<'c, 'a> {
+    current: Option<OperationRef<'c, 'a>>,
+}
+
+impl<'c, 'a> BlockIterator<'c, 'a> {
+    fn new(block: BlockRef<'c, 'a>) -> Self {
+        Self {
+            current: block.first_operation(),
+        }
+    }
+}
+
+impl<'c, 'a> Iterator for BlockIterator<'c, 'a> {
+    type Item = OperationRef<'c, 'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.current {
+            None => None,
+            Some(op) => {
+                self.current = unsafe {
+                    OperationRef::from_option_raw(mlirOperationGetNextInBlock(op.to_raw()))
+                };
+                Some(op)
+            }
+        }
+    }
+}
+
+impl<'c, 'a> IntoIterator for BlockRef<'c, 'a> {
+    type Item = OperationRef<'c, 'a>;
+    type IntoIter = BlockIterator<'c, 'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        BlockIterator::new(self)
+    }
+}
+
+impl<'c, 'a> IntoIterator for &'a Block<'c> {
+    type Item = OperationRef<'c, 'a>;
+    type IntoIter = BlockIterator<'c, 'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        BlockIterator::new(unsafe { BlockRef::from_raw(self.to_raw()) })
     }
 }
 
@@ -511,5 +560,29 @@ mod tests {
                 index: 0,
             }
         );
+    }
+
+    #[test]
+    fn block_iterator() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let block = Block::new(&[]);
+
+        let first_operation = block.append_operation(
+            OperationBuilder::new("foo", Location::unknown(&context))
+                .build()
+                .unwrap(),
+        );
+        let second_operation = block.insert_operation_after(
+            first_operation,
+            OperationBuilder::new("foo", Location::unknown(&context))
+                .build()
+                .unwrap(),
+        );
+
+        let mut iter = block.into_iter();
+        assert_eq!(iter.next(), Some(first_operation));
+        assert_eq!(iter.next(), Some(second_operation));
+        assert_eq!(iter.next(), None);
     }
 }
