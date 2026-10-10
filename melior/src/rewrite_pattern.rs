@@ -1,6 +1,6 @@
 use crate::{
-    context::Context, ir_rewriter::RewriterBase, logical_result::LogicalResult,
-    string_ref::StringRef,
+    Error, context::Context, ir::OperationRef, ir_rewriter::RewriterBase,
+    logical_result::LogicalResult, string_ref::StringRef,
 };
 use mlir_sys::{
     MlirFrozenRewritePatternSet, MlirOperation, MlirPatternRewriter, MlirRewritePattern,
@@ -8,7 +8,12 @@ use mlir_sys::{
     mlirFrozenRewritePatternSetDestroy, mlirOpRewritePatternCreate, mlirPatternRewriterAsBase,
     mlirRewritePatternSetAdd, mlirRewritePatternSetCreate, mlirRewritePatternSetDestroy,
 };
-use std::{ffi::c_void, marker::PhantomData, mem::forget};
+use std::{
+    ffi::c_void,
+    marker::PhantomData,
+    mem::forget,
+    panic::{AssertUnwindSafe, catch_unwind},
+};
 
 /// A set of rewrite patterns.
 pub struct RewritePatternSet<'c> {
@@ -109,8 +114,10 @@ impl PatternRewriter {
 /// Creates an op rewrite pattern that matches operations with the given root
 /// name.
 ///
-/// The `callback` receives the pattern, the matched operation, and a pattern
-/// rewriter. It should perform the rewrite and return `true` on success.
+/// The `callback` receives the matched operation and a pattern rewriter. It
+/// should perform the rewrite and return `Ok(())` on success, or an error if
+/// the pattern does not match. Panics in the callback are caught and treated
+/// as match failures.
 pub fn create_op_rewrite_pattern<F>(
     root_name: &str,
     benefit: u32,
@@ -119,7 +126,7 @@ pub fn create_op_rewrite_pattern<F>(
     generated_names: &[&str],
 ) -> RewritePattern
 where
-    F: FnMut(MlirRewritePattern, MlirOperation, MlirPatternRewriter) -> bool + 'static,
+    F: FnMut(OperationRef, &PatternRewriter) -> Result<(), Error> + 'static,
 {
     unsafe extern "C" fn destruct<F>(user_data: *mut c_void) {
         unsafe {
@@ -128,16 +135,24 @@ where
     }
 
     unsafe extern "C" fn match_and_rewrite<F>(
-        pattern: MlirRewritePattern,
+        _pattern: MlirRewritePattern,
         op: MlirOperation,
         rewriter: MlirPatternRewriter,
         user_data: *mut c_void,
     ) -> mlir_sys::MlirLogicalResult
     where
-        F: FnMut(MlirRewritePattern, MlirOperation, MlirPatternRewriter) -> bool,
+        F: FnMut(OperationRef, &PatternRewriter) -> Result<(), Error>,
     {
-        let cb = unsafe { &mut *(user_data as *mut F) };
-        let success = cb(pattern, op, rewriter);
+        let success = catch_unwind(AssertUnwindSafe(|| unsafe {
+            let callback = &mut *(user_data as *mut F);
+
+            callback(
+                OperationRef::from_raw(op),
+                &PatternRewriter::from_raw(rewriter),
+            )
+            .is_ok()
+        }))
+        .unwrap_or(false);
 
         LogicalResult::from(success).to_raw()
     }
@@ -210,13 +225,8 @@ mod tests {
     fn create_and_add_op_rewrite_pattern() {
         let context = create_test_context();
 
-        let pattern = create_op_rewrite_pattern(
-            "arith.constant",
-            1,
-            &context,
-            |_pattern, _op, _rewriter| true,
-            &[],
-        );
+        let pattern =
+            create_op_rewrite_pattern("arith.constant", 1, &context, |_op, _rewriter| Ok(()), &[]);
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);
@@ -230,7 +240,7 @@ mod tests {
             "arith.constant",
             1,
             &context,
-            |_pattern, _op, _rewriter| true,
+            |_op, _rewriter| Ok(()),
             &["arith.addi"],
         );
 
@@ -243,13 +253,8 @@ mod tests {
         let context = create_test_context();
         let module = Module::new(Location::unknown(&context));
 
-        let pattern = create_op_rewrite_pattern(
-            "arith.constant",
-            1,
-            &context,
-            |_pattern, _op, _rewriter| true,
-            &[],
-        );
+        let pattern =
+            create_op_rewrite_pattern("arith.constant", 1, &context, |_op, _rewriter| Ok(()), &[]);
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);
@@ -284,13 +289,10 @@ mod tests {
             "arith.constant",
             1,
             &context,
-            |_pattern, op, rewriter| {
-                let rewriter = unsafe { PatternRewriter::from_raw(rewriter) };
-                let base = rewriter.as_rewriter_base();
-                let op = unsafe { crate::ir::OperationRef::from_raw(op) };
+            |op, rewriter| {
+                rewriter.as_rewriter_base().erase_op(op);
 
-                base.erase_op(op);
-                true
+                Ok(())
             },
             &[],
         );
@@ -302,5 +304,43 @@ mod tests {
         let config = GreedyRewriteDriverConfig::new();
 
         assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+        assert!(body.first_operation().is_none());
+    }
+
+    #[test]
+    fn panicking_pattern_is_caught() {
+        use crate::{
+            dialect::arith,
+            ir::{BlockLike, Type, attribute::IntegerAttribute},
+        };
+
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+
+        module.body().append_operation(arith::constant(
+            &context,
+            IntegerAttribute::new(Type::index(&context), 0).into(),
+            Location::unknown(&context),
+        ));
+
+        let pattern = create_op_rewrite_pattern(
+            "arith.constant",
+            1,
+            &context,
+            |_op, _rewriter| panic!("pattern panic"),
+            &[],
+        );
+
+        let set = RewritePatternSet::new(&context);
+        set.add(pattern);
+
+        assert!(
+            apply_patterns_and_fold_greedily(
+                &module,
+                set.freeze(),
+                &GreedyRewriteDriverConfig::new()
+            )
+            .is_ok()
+        );
     }
 }
