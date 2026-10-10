@@ -1,8 +1,10 @@
 mod region_like;
 
 pub use self::region_like::RegionLike;
-use super::Block;
-use mlir_sys::{MlirRegion, mlirRegionCreate, mlirRegionDestroy, mlirRegionEqual};
+use super::{Block, BlockRef};
+use mlir_sys::{
+    MlirRegion, mlirBlockGetNextInRegion, mlirRegionCreate, mlirRegionDestroy, mlirRegionEqual,
+};
 use std::{
     marker::PhantomData,
     mem::{forget, transmute},
@@ -117,6 +119,53 @@ impl PartialEq for RegionRef<'_, '_> {
 
 impl Eq for RegionRef<'_, '_> {}
 
+#[derive(Clone, Copy)]
+#[doc(hidden)]
+pub struct RegionIterator<'c, 'a> {
+    current: Option<BlockRef<'c, 'a>>,
+}
+
+impl<'c, 'a> RegionIterator<'c, 'a> {
+    fn new(region: RegionRef<'c, 'a>) -> Self {
+        Self {
+            current: region.first_block(),
+        }
+    }
+}
+
+impl<'c, 'a> Iterator for RegionIterator<'c, 'a> {
+    type Item = BlockRef<'c, 'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.current {
+            None => None,
+            Some(op) => {
+                self.current =
+                    unsafe { BlockRef::from_option_raw(mlirBlockGetNextInRegion(op.to_raw())) };
+                Some(op)
+            }
+        }
+    }
+}
+
+impl<'c, 'a> IntoIterator for RegionRef<'c, 'a> {
+    type Item = BlockRef<'c, 'a>;
+    type IntoIter = RegionIterator<'c, 'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        RegionIterator::new(self)
+    }
+}
+
+impl<'c, 'a> IntoIterator for &'a Region<'c> {
+    type Item = BlockRef<'c, 'a>;
+    type IntoIter = RegionIterator<'c, 'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        RegionIterator::new(unsafe { RegionRef::from_raw(self.to_raw()) })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -171,5 +220,18 @@ mod tests {
     #[test]
     fn not_equal() {
         assert_ne!(Region::new(), Region::new());
+    }
+
+    #[test]
+    fn region_iterator() {
+        let region = Region::new();
+
+        let block1 = region.append_block(Block::new(&[]));
+        let block2 = region.insert_block_after(block1, Block::new(&[]));
+
+        let mut iter = region.into_iter();
+        assert_eq!(iter.next(), Some(block1));
+        assert_eq!(iter.next(), Some(block2));
+        assert_eq!(iter.next(), None);
     }
 }
