@@ -1,4 +1,4 @@
-use super::OperationField;
+use super::{OperationField, SegmentKind};
 use crate::dialect::{
     error::Error,
     utility::{generate_iterator_type, generate_result_type, sanitize_snake_case_identifier},
@@ -78,5 +78,10 @@ impl OperationField for Region<'_> {
         } else {
             quote! { [#name] }
         }
+    }
+
+    // MLIR has no segment size attribute for regions.
+    fn segment(&self) -> Option<(SegmentKind, usize)> {
+        None
     }
 }
