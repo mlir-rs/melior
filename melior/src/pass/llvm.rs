@@ -9,6 +9,5 @@ melior_macro::passes!(
         mlirCreateLLVMLLVMLegalizeForExportPass,
         mlirCreateLLVMLLVMRequestCWrappersPass,
         mlirCreateLLVMLLVMUseDefaultVisibilityPass,
-        mlirCreateLLVMNVVMOptimizeForTargetPass,
     ]
 );

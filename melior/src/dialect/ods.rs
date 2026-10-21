@@ -47,11 +47,6 @@ melior_macro::dialect! {
 }
 
 melior_macro::dialect! {
-    name: "amx",
-    files: ["mlir/Dialect/AMX/AMX.td"],
-}
-
-melior_macro::dialect! {
     name: "builtin",
     files: ["mlir/IR/BuiltinOps.td"],
 }
@@ -191,8 +186,8 @@ melior_macro::dialect! {
 }
 
 melior_macro::dialect! {
-    name: "x86vector",
-    files: ["mlir/Dialect/X86Vector/X86Vector.td"],
+    name: "x86",
+    files: ["mlir/Dialect/X86/X86.td"],
 }
 
 #[cfg(test)]

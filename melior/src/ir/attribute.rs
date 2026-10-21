@@ -25,7 +25,7 @@ pub use self::{
     strided_layout::StridedLayoutAttribute, string::StringAttribute, r#type::TypeAttribute,
 };
 use crate::{context::Context, string_ref::StringRef, utility::print_callback};
-use distinct::DisctinctAttribute;
+use distinct::DistinctAttribute;
 use mlir_sys::{
     MlirAttribute, mlirAttributeEqual, mlirAttributeGetNull, mlirAttributeParseGet,
     mlirAttributePrint, mlirUnitAttrGet,
@@ -147,7 +147,7 @@ from_subtypes!(
     StringAttribute,
     StridedLayoutAttribute,
     TypeAttribute,
-    DisctinctAttribute,
+    DistinctAttribute,
 );
 
 #[cfg(test)]
