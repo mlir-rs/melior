@@ -218,6 +218,8 @@ impl<'c, 'a> BlockIterator<'c, 'a> {
 impl<'c, 'a> Iterator for BlockIterator<'c, 'a> {
     type Item = OperationRef<'c, 'a>;
 
+    // TODO Prevent use-after-free when the next operation is erased during
+    // iteration.
     fn next(&mut self) -> Option<Self::Item> {
         match self.current {
             None => None,

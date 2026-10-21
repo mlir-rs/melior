@@ -136,6 +136,8 @@ impl<'c, 'a> RegionIterator<'c, 'a> {
 impl<'c, 'a> Iterator for RegionIterator<'c, 'a> {
     type Item = BlockRef<'c, 'a>;
 
+    // TODO Prevent use-after-free when the next block is erased during
+    // iteration.
     fn next(&mut self) -> Option<Self::Item> {
         match self.current {
             None => None,
