@@ -5,13 +5,14 @@ mod operation_element;
 mod operation_field;
 mod region;
 mod result;
+mod segment_kind;
 mod successor;
 mod variadic_kind;
 
 pub use self::{
     attribute::Attribute, builder::OperationBuilder, operand::Operand,
     operation_element::OperationElement, region::Region, result::OperationResult,
-    successor::Successor, variadic_kind::VariadicKind,
+    segment_kind::SegmentKind, successor::Successor, variadic_kind::VariadicKind,
 };
 use super::utility::{sanitize_documentation, sanitize_snake_case_identifier};
 use crate::dialect::{
@@ -205,6 +206,25 @@ impl<'a> Operation<'a> {
 
     pub fn operand_len(&self) -> usize {
         self.operands.len()
+    }
+
+    // The segment size arrays a builder for this operation fills in, with their
+    // lengths. Result types are not set by the builder if they are inferred, so
+    // their group sizes cannot be computed either.
+    pub fn segment_arrays(&self) -> impl Iterator<Item = (SegmentKind, usize)> {
+        let operands = self
+            .operands
+            .iter()
+            .any(|operand| operand.variadic_kind().segment_index().is_some())
+            .then_some((SegmentKind::Operand, self.operand_len()));
+        let results = (self.type_inference.is_none()
+            && self
+                .results
+                .iter()
+                .any(|result| result.variadic_kind().segment_index().is_some()))
+        .then_some((SegmentKind::Result, self.result_len()));
+
+        operands.into_iter().chain(results)
     }
 
     pub fn regions(&self) -> impl Iterator<Item = &Region<'a>> {
@@ -410,7 +430,7 @@ impl<'a> Operation<'a> {
                         *preceding_simple_count += 1;
                     }
                 }
-                VariadicKind::AttributeSized => {}
+                VariadicKind::AttributeSized { segment_index } => *segment_index += 1,
             }
         }
 

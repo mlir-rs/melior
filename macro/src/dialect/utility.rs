@@ -7,6 +7,13 @@ use syn::{Type, parse_quote};
 
 const RESERVED_NAMES: &[&str] = &["name", "operation", "builder"];
 
+/// Returns the name of the attribute MLIR uses to store the sizes of the
+/// operand or result groups of an operation with the
+/// `AttrSizedOperandSegments` or `AttrSizedResultSegments` trait.
+pub fn segment_size_attribute_name(singular_kind: &str) -> String {
+    format!("{singular_kind}SegmentSizes")
+}
+
 pub fn generate_result_type(r#type: Type) -> Type {
     parse_quote!(Result<#r#type, ::melior::Error>)
 }
