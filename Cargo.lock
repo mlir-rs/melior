@@ -333,6 +333,7 @@ dependencies = [
  "melior-macro",
  "mlir-sys",
  "pretty_assertions",
+ "trybuild",
 ]
 
 [[package]]

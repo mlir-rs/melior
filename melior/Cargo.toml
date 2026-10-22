@@ -18,6 +18,7 @@ mlir-sys = "230.0.2"
 indoc = "2.0.7"
 insta = "1.47.2"
 pretty_assertions = "1.4.1"
+trybuild = { version = "1.0.108", features = ["diff"] }
 
 [features]
 # Enable the BlockExt trait (requires ods feature)

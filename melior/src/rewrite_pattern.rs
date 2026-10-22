@@ -90,28 +90,6 @@ impl RewritePattern {
 /// A pattern rewriter available inside a match-and-rewrite callback.
 ///
 /// This is a non-owning reference; it must not outlive the callback invocation.
-/// Thus, the following code that keeps a rewriter after a callback returns does
-/// not compile.
-///
-/// ```compile_fail
-/// use melior::{Context, PatternRewriter, create_op_rewrite_pattern};
-/// use std::{cell::Cell, rc::Rc};
-///
-/// let context = Context::new();
-/// let rewriter = Rc::new(Cell::new(None::<PatternRewriter>));
-/// let inner_rewriter = rewriter.clone();
-///
-/// let _pattern = create_op_rewrite_pattern(
-///     "arith.constant",
-///     1,
-///     &context,
-///     move |_, rewriter| {
-///         inner_rewriter.set(Some(*rewriter));
-///         Ok(())
-///     },
-///     &[],
-/// );
-/// ```
 #[derive(Clone, Copy)]
 pub struct PatternRewriter<'a> {
     raw: MlirPatternRewriter,
