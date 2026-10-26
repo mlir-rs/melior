@@ -1,0 +1,5 @@
+error: expected prefix `mlirCreateConversion`
+ --> tests/ui/invalid_conversion_pass_name.rs:3:5
+  |
+3 |     mlirCreateTransformsCSEPass,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,0 +1,5 @@
+error: expected prefix `mlirTypeIsA`
+ --> tests/ui/invalid_type_check_function_name.rs:1:57
+  |
+1 | melior_macro::type_check_functions!(mlirTypeIsAInteger, mlirAttributeIsAInteger);
+  |                                                         ^^^^^^^^^^^^^^^^^^^^^^^
