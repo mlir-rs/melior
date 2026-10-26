@@ -9,7 +9,7 @@ mod utility;
 use dialect::DialectInput;
 use parse::{DialectOperationSet, IdentifierList, PassSet};
 use proc_macro::TokenStream;
-use quote::quote;
+use proc_macro2::Span;
 use std::error::Error;
 use syn::parse_macro_input;
 
@@ -92,8 +92,8 @@ pub fn passes(stream: TokenStream) -> TokenStream {
 
 fn convert_result(result: Result<TokenStream, Box<dyn Error>>) -> TokenStream {
     result.unwrap_or_else(|error| {
-        let message = error.to_string();
-
-        quote! { compile_error!(#message) }.into()
+        syn::Error::new(Span::call_site(), error)
+            .to_compile_error()
+            .into()
     })
 }
