@@ -201,7 +201,7 @@ mod tests {
     use crate::{
         Context, dialect,
         ir::{
-            Block, BlockLike, Location, Module, Region, RegionLike, Type,
+            Block, BlockLike, Location, Module, Region, RegionLike, Type, Value, ValueLike,
             attribute::{
                 ArrayAttribute, Attribute, DenseI64ArrayAttribute, IntegerAttribute,
                 StringAttribute, TypeAttribute,
@@ -768,6 +768,45 @@ mod tests {
     }
 
     #[test]
+    fn build_gpu_spmm_buffer_size_with_async_token() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let index_type = Type::index(&context);
+        let token_type = Type::parse(&context, "!gpu.async.token").unwrap();
+        let dense_tensor_type = Type::parse(&context, "!gpu.sparse.dntensor_handle").unwrap();
+
+        let block = Block::new(&[
+            (token_type, location),
+            (
+                Type::parse(&context, "!gpu.sparse.spmat_handle").unwrap(),
+                location,
+            ),
+            (dense_tensor_type, location),
+            (dense_tensor_type, location),
+        ]);
+        let operation = gpu::SpMMBufferSizeOperation::builder(&context, location)
+            .buffer_szs(&[index_type])
+            .async_token(token_type)
+            .async_dependencies(&[block.argument(0).unwrap().into()])
+            .spmat_a(block.argument(1).unwrap().into())
+            .dnmat_b(block.argument(2).unwrap().into())
+            .dnmat_c(block.argument(3).unwrap().into())
+            .compute_type(TypeAttribute::new(Type::float32(&context)))
+            .build();
+
+        assert!(operation.as_operation().verify());
+        assert_eq!(
+            operation
+                .buffer_szs()
+                .unwrap()
+                .map(|result| result.r#type())
+                .collect::<Vec<_>>(),
+            [index_type]
+        );
+        assert_eq!(operation.async_token().unwrap().r#type(), token_type);
+    }
+
+    #[test]
     fn read_operand_groups_of_attribute_sized_operation() {
         let context = create_test_context();
         let location = Location::unknown(&context);
@@ -786,7 +825,13 @@ mod tests {
             location,
         );
 
-        assert_eq!(operation.dynamic_sizes().unwrap().count(), 2);
+        assert_eq!(
+            operation.dynamic_sizes().unwrap().collect::<Vec<_>>(),
+            [
+                Value::from(block.argument(0).unwrap()),
+                Value::from(block.argument(1).unwrap()),
+            ]
+        );
         assert_eq!(operation.symbol_operands().unwrap().count(), 0);
     }
 }

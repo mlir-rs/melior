@@ -24,3 +24,9 @@ def OperandTest_AttributeSizedOp :
     let arguments = (ins Variadic<I32>:$sizes, Variadic<I32>:$others);
     let results = (outs I32:$res);
 }
+
+def OperandTest_AttributeSizedOptionalOp :
+        OperandTest_Op<"attribute_sized_optional", [AttrSizedOperandSegments]> {
+    let arguments = (ins I32:$first, Optional<I32>:$optional, Variadic<I32>:$others);
+    let results = (outs I32:$res);
+}

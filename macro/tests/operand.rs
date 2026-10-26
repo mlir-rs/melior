@@ -106,3 +106,84 @@ fn attribute_sized_variadic_named_sizes() {
     assert_eq!(operation.others().unwrap().count(), 2);
     assert_eq!(operation.as_operation().operand_count(), 3);
 }
+
+#[test]
+fn attribute_sized_with_optional() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let r#type = Type::parse(&context, "i32").unwrap();
+    let block = Block::new(&[
+        (r#type, location),
+        (r#type, location),
+        (r#type, location),
+        (r#type, location),
+    ]);
+    let operation = operand_test::AttributeSizedOptionalOperation::builder(&context, location)
+        .res(r#type)
+        .first(block.argument(0).unwrap().into())
+        .optional(block.argument(1).unwrap().into())
+        .others(&[
+            block.argument(2).unwrap().into(),
+            block.argument(3).unwrap().into(),
+        ])
+        .build();
+
+    assert_eq!(
+        operation.first().unwrap(),
+        block.argument(0).unwrap().into()
+    );
+    assert_eq!(
+        operation.optional().unwrap(),
+        block.argument(1).unwrap().into()
+    );
+    assert_eq!(
+        operation.others().unwrap().next(),
+        Some(block.argument(2).unwrap().into())
+    );
+    assert_eq!(
+        operation.others().unwrap().nth(1),
+        Some(block.argument(3).unwrap().into())
+    );
+    assert_eq!(operation.others().unwrap().count(), 2);
+    assert_eq!(operation.as_operation().operand_count(), 4);
+}
+
+#[test]
+fn attribute_sized_without_optional() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let r#type = Type::parse(&context, "i32").unwrap();
+    let block = Block::new(&[(r#type, location), (r#type, location), (r#type, location)]);
+    let operation = operand_test::attribute_sized_optional(
+        &context,
+        r#type,
+        block.argument(0).unwrap().into(),
+        &[
+            block.argument(1).unwrap().into(),
+            block.argument(2).unwrap().into(),
+        ],
+        location,
+    );
+
+    assert_eq!(
+        operation.first().unwrap(),
+        block.argument(0).unwrap().into()
+    );
+    assert!(operation.optional().is_err());
+    assert_eq!(
+        operation.others().unwrap().next(),
+        Some(block.argument(1).unwrap().into())
+    );
+    assert_eq!(
+        operation.others().unwrap().nth(1),
+        Some(block.argument(2).unwrap().into())
+    );
+    assert_eq!(operation.others().unwrap().count(), 2);
+    assert_eq!(operation.as_operation().operand_count(), 3);
+}
