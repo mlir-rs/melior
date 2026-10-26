@@ -18,3 +18,9 @@ def OperandTest_VariadicOp : OperandTest_Op<"variadic"> {
     let arguments = (ins I32:$first, Variadic<I32>:$others);
     let results = (outs I32:$res);
 }
+
+def OperandTest_AttributeSizedOp :
+        OperandTest_Op<"attribute_sized", [AttrSizedOperandSegments]> {
+    let arguments = (ins Variadic<I32>:$sizes, Variadic<I32>:$others);
+    let results = (outs I32:$res);
+}

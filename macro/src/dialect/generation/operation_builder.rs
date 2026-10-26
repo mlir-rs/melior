@@ -1,7 +1,7 @@
 use crate::dialect::operation::{
     Attribute, Operation, OperationBuilder, OperationElement, OperationField, TypeInference,
 };
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
 use syn::Type;
 
@@ -121,12 +121,15 @@ fn generate_segment_size_fields(
             match field.segment() {
                 Some((field_kind, index)) if field_kind == kind => {
                     let size = generate_segment_size(field);
+                    // The mixed site hygiene keeps the local variable from
+                    // shadowing a setter argument of the same name.
+                    let sizes = Ident::new("sizes", Span::mixed_site());
 
                     quote! {
                         #identifier: {
-                            let mut sizes = self.#identifier;
-                            sizes[#index] = #size;
-                            sizes
+                            let mut #sizes = self.#identifier;
+                            #sizes[#index] = #size;
+                            #sizes
                         }
                     }
                 }

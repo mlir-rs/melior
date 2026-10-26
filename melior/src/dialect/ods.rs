@@ -203,7 +203,8 @@ mod tests {
         ir::{
             Block, BlockLike, Location, Module, Region, RegionLike, Type,
             attribute::{
-                ArrayAttribute, Attribute, IntegerAttribute, StringAttribute, TypeAttribute,
+                ArrayAttribute, Attribute, DenseI64ArrayAttribute, IntegerAttribute,
+                StringAttribute, TypeAttribute,
             },
             operation::OperationLike,
             r#type::{FunctionType, IntegerType, MemRefType, RankedTensorType},
@@ -741,6 +742,29 @@ mod tests {
 
             block.append_operation(func::r#return(&context, &[], location).into());
         });
+    }
+
+    #[test]
+    fn build_memref_subview_with_static_sizes() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+
+        let block = Block::new(&[(Type::parse(&context, "memref<8x8xf32>").unwrap(), location)]);
+        let operation = memref::subview(
+            &context,
+            Type::parse(&context, "memref<4x4xf32, strided<[8, 1]>>").unwrap(),
+            block.argument(0).unwrap().into(),
+            &[],
+            &[],
+            &[],
+            DenseI64ArrayAttribute::new(&context, &[0, 0]),
+            DenseI64ArrayAttribute::new(&context, &[4, 4]),
+            DenseI64ArrayAttribute::new(&context, &[1, 1]),
+            location,
+        );
+
+        assert!(operation.as_operation().verify());
+        assert_eq!(operation.sizes().unwrap().count(), 0);
     }
 
     #[test]
