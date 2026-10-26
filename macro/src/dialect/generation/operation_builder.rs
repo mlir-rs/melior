@@ -121,8 +121,6 @@ fn generate_segment_size_fields(
             match field.segment() {
                 Some((field_kind, index)) if field_kind == kind => {
                     let size = generate_segment_size(field);
-                    // The mixed site hygiene keeps the local variable from
-                    // shadowing a setter argument of the same name.
                     let sizes = Ident::new("sizes", Span::mixed_site());
 
                     quote! {
