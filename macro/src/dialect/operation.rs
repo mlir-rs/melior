@@ -404,8 +404,20 @@ impl<'a> Operation<'a> {
         attribute_sized: bool,
     ) -> Result<(Vec<T>, usize), Error> {
         let unfixed_count = Self::count_unfixed_elements(elements);
-        let kind = VariadicKind::new(unfixed_count, same_size, attribute_sized)
-            .map_err(|msg| Error::InvalidIdentifier(msg.to_owned()))?;
+        let kind = if unfixed_count == 0 {
+            None
+        } else if same_size {
+            Some(VariadicKind::SameSize)
+        } else if attribute_sized {
+            Some(VariadicKind::AttributeSized)
+        } else {
+            // TODO: Support multiple variadic operands/results without these traits.
+            return Err(Error::InvalidIdentifier(
+                "multiple variadic operands/results require SameVariadicOperandSize, \
+                SameVariadicResultSize, or AttrSizedOperandSegments/AttrSizedResultSegments trait"
+                    .to_owned(),
+            ));
+        };
 
         Ok((
             elements
