@@ -13,18 +13,18 @@ impl VariadicKind {
         same_size: bool,
         attribute_sized: bool,
     ) -> Result<Self, &'static str> {
-        if unfixed_count <= 1 {
-            Ok(Self::Simple)
+        Ok(if unfixed_count <= 1 {
+            Self::Simple
         } else if same_size {
-            Ok(Self::SameSize)
+            Self::SameSize
         } else if attribute_sized {
-            Ok(Self::AttributeSized)
+            Self::AttributeSized
         } else {
             // TODO: Support multiple variadic operands/results without these traits.
-            Err(
+            return Err(
                 "multiple variadic operands/results require SameVariadicOperandSize, \
                 SameVariadicResultSize, or AttrSizedOperandSegments/AttrSizedResultSegments trait",
-            )
-        }
+            );
+        })
     }
 }
