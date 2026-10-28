@@ -8,21 +8,35 @@ const REGION_PREFIX: &str = "R";
 const SUCCESSOR_PREFIX: &str = "S";
 const ATTRIBUTE_PREFIX: &str = "A";
 
+// A field whose setter appends elements to an operation. Its setter must be
+// called before the ones of the later fields of the same kind.
+#[derive(Debug)]
+pub struct OrderedField {
+    name: String,
+    optional: bool,
+}
+
+impl OrderedField {
+    pub const fn new(name: String, optional: bool) -> Self {
+        Self { name, optional }
+    }
+}
+
 #[derive(Debug)]
 pub struct TypeState {
-    results: Vec<String>,
-    operands: Vec<String>,
-    regions: Vec<String>,
-    successors: Vec<String>,
+    results: Vec<OrderedField>,
+    operands: Vec<OrderedField>,
+    regions: Vec<OrderedField>,
+    successors: Vec<OrderedField>,
     attributes: Vec<String>,
 }
 
 impl TypeState {
     pub const fn new(
-        results: Vec<String>,
-        operands: Vec<String>,
-        regions: Vec<String>,
-        successors: Vec<String>,
+        results: Vec<OrderedField>,
+        operands: Vec<OrderedField>,
+        regions: Vec<OrderedField>,
+        successors: Vec<OrderedField>,
         attributes: Vec<String>,
     ) -> Self {
         Self {
@@ -34,7 +48,7 @@ impl TypeState {
         }
     }
 
-    fn ordered_fields(&self) -> impl Iterator<Item = (&[String], &'static str)> {
+    fn ordered_fields(&self) -> impl Iterator<Item = (&[OrderedField], &'static str)> {
         [
             (self.results.as_slice(), RESULT_PREFIX),
             (&self.operands, OPERAND_PREFIX),
@@ -48,13 +62,22 @@ impl TypeState {
         [(self.attributes.as_slice(), ATTRIBUTE_PREFIX)].into_iter()
     }
 
-    fn all_fields(&self) -> impl Iterator<Item = (&[String], &'static str)> {
-        self.ordered_fields().chain(self.unordered_fields())
+    pub fn has_parameter(&self, field: &str) -> bool {
+        self.ordered_fields()
+            .any(|(fields, _)| fields.iter().any(|other| other.name == field))
+            || self
+                .unordered_fields()
+                .any(|(fields, _)| fields.iter().any(|other| other == field))
     }
 
     pub fn parameters(&self) -> impl Iterator<Item = GenericArgument> + '_ {
-        self.all_fields()
-            .flat_map(|(fields, prefix)| Self::build_parameters(fields, prefix))
+        self.ordered_fields()
+            .map(|(fields, prefix)| (fields.len(), prefix))
+            .chain(
+                self.unordered_fields()
+                    .map(|(fields, prefix)| (fields.len(), prefix)),
+            )
+            .flat_map(|(count, prefix)| Self::build_parameters(count, prefix))
     }
 
     pub fn parameters_without<'a>(
@@ -84,30 +107,66 @@ impl TypeState {
             }))
     }
 
-    pub fn arguments_with_all(&self, set: bool) -> impl Iterator<Item = GenericArgument> + '_ {
-        self.all_fields()
-            .flat_map(move |(fields, _)| Self::build_arguments_with_all(fields, set))
+    // The arguments of a new builder, where no field is set.
+    pub fn initial_arguments(&self) -> impl Iterator<Item = GenericArgument> + '_ {
+        self.parameters().map(|_| Self::build_argument(false))
     }
 
-    fn build_parameters<'a>(
-        fields: &[String],
+    // The parameters and arguments of a builder ready to build an operation,
+    // where all the required fields are set.
+    pub fn final_parameters(&self) -> impl Iterator<Item = GenericArgument> + '_ {
+        self.ordered_fields()
+            .flat_map(|(fields, prefix)| Self::build_optional_parameters(fields, prefix))
+    }
+
+    pub fn final_arguments(&self) -> impl Iterator<Item = GenericArgument> + '_ {
+        self.ordered_fields()
+            .flat_map(|(fields, prefix)| Self::build_set_arguments(fields, prefix))
+            .chain(
+                self.unordered_fields()
+                    .flat_map(|(fields, _)| repeat_n(Self::build_argument(true), fields.len())),
+            )
+    }
+
+    fn build_parameters(count: usize, prefix: &str) -> impl Iterator<Item = GenericArgument> + '_ {
+        (0..count).map(|index| Self::build_generic_argument(prefix, index))
+    }
+
+    fn build_optional_parameters<'a>(
+        fields: &'a [OrderedField],
         prefix: &'a str,
     ) -> impl Iterator<Item = GenericArgument> + 'a {
-        (0..fields.len()).map(|index| Self::build_generic_argument(prefix, index))
+        fields
+            .iter()
+            .enumerate()
+            .filter(|(_, field)| field.optional)
+            .map(|(index, _)| Self::build_generic_argument(prefix, index))
+    }
+
+    // Required fields are set while optional ones are either set or unset.
+    fn build_set_arguments<'a>(
+        fields: &'a [OrderedField],
+        prefix: &'a str,
+    ) -> impl Iterator<Item = GenericArgument> + 'a {
+        fields.iter().enumerate().map(|(index, field)| {
+            if field.optional {
+                Self::build_generic_argument(prefix, index)
+            } else {
+                Self::build_argument(true)
+            }
+        })
     }
 
     fn build_ordered_parameters_without<'a>(
-        fields: &'a [String],
+        fields: &'a [OrderedField],
         prefix: &'a str,
         field: &'a str,
-    ) -> impl Iterator<Item = GenericArgument> + 'a {
-        Self::build_parameters(fields, prefix).skip(
-            fields
-                .iter()
-                .position(|other| *other == field)
-                .map(|index| index + 1)
-                .unwrap_or(0),
-        )
+    ) -> Box<dyn Iterator<Item = GenericArgument> + 'a> {
+        let Some(index) = fields.iter().position(|other| other.name == field) else {
+            return Box::new(Self::build_parameters(fields.len(), prefix));
+        };
+
+        Box::new(Self::build_optional_parameters(&fields[..index], prefix))
     }
 
     fn build_unordered_parameters_without<'a>(
@@ -122,20 +181,25 @@ impl TypeState {
             .map(|(index, _)| Self::build_generic_argument(prefix, index))
     }
 
+    // The later fields are unset so that a setter cannot be called after their
+    // setters.
     fn build_ordered_arguments_with<'a>(
-        fields: &'a [String],
+        fields: &'a [OrderedField],
         prefix: &'a str,
         field: &'a str,
         set: bool,
     ) -> Box<dyn Iterator<Item = GenericArgument> + 'a> {
-        let Some(index) = fields.iter().position(|other| *other == field) else {
-            return Box::new(Self::build_parameters(fields, prefix));
+        let Some(index) = fields.iter().position(|other| other.name == field) else {
+            return Box::new(Self::build_parameters(fields.len(), prefix));
         };
 
         Box::new(
-            repeat_n(Self::build_argument(true), index)
+            Self::build_set_arguments(&fields[..index], prefix)
                 .chain([Self::build_argument(set)])
-                .chain(Self::build_parameters(fields, prefix).skip(index + 1)),
+                .chain(repeat_n(
+                    Self::build_argument(false),
+                    fields.len() - index - 1,
+                )),
         )
     }
 
@@ -152,13 +216,6 @@ impl TypeState {
                 Self::build_generic_argument(prefix, index)
             }
         })
-    }
-
-    fn build_arguments_with_all(
-        fields: &[String],
-        set: bool,
-    ) -> impl Iterator<Item = GenericArgument> {
-        repeat_n(Self::build_argument(set), fields.len())
     }
 
     fn build_generic_argument(prefix: &str, index: usize) -> GenericArgument {

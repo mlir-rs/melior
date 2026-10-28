@@ -1,0 +1,12 @@
+error[E0599]: no method named `sgpr_offset` found for struct `RawBufferLoadOperationBuilder<'_, melior::dialect::ods::__private::Set, melior::dialect::ods::__private::Set, melior::dialect::ods::__private::Unset, melior::dialect::ods::__private::Unset>` in the current scope
+  --> tests/ui/optional_operand_before_earlier_operand.rs:16:10
+   |
+13 | /     amdgpu::RawBufferLoadOperation::builder(&context, location)
+14 | |         .value(r#type)
+15 | |         .memref(block.argument(0).unwrap().into())
+16 | |         .sgpr_offset(block.argument(0).unwrap().into())
+   | |         -^^^^^^^^^^^ method not found in `RawBufferLoadOperationBuilder<'_, melior::dialect::ods::__private::Set, melior::dialect::ods::__private::Set, melior::dialect::ods::__private::Unset, melior::dialect::ods::__private::Unset>`
+   | |_________|
+   |
+   |
+   = note: the method was found for `RawBufferLoadOperationBuilder<'c, T0, melior::dialect::ods::__private::Set, melior::dialect::ods::__private::Set, melior::dialect::ods::__private::Unset>`
