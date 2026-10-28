@@ -401,7 +401,7 @@ impl<'a> Operation<'a> {
         attribute_sized: bool,
     ) -> Result<(Vec<T>, usize), Error> {
         let unfixed_count = Self::count_unfixed_elements(elements);
-        let variadic_kind = if unfixed_count == 0 {
+        let variadic_kind = if unfixed_count <= 1 {
             None
         } else if same_size {
             Some(VariadicKind::SameSize)
