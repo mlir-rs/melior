@@ -216,13 +216,10 @@ impl<'a> Operation<'a> {
         let operands = self
             .operands
             .iter()
-            .any(|operand| operand.position().segment_index().is_some())
+            .any(|operand| operand.segment().is_some())
             .then_some((SegmentKind::Operand, self.operand_len()));
         let results = (self.type_inference.is_none()
-            && self
-                .results
-                .iter()
-                .any(|result| result.position().segment_index().is_some()))
+            && self.results.iter().any(|result| result.segment().is_some()))
         .then_some((SegmentKind::Result, self.result_len()));
 
         operands.into_iter().chain(results)
@@ -404,7 +401,7 @@ impl<'a> Operation<'a> {
         attribute_sized: bool,
     ) -> Result<(Vec<T>, usize), Error> {
         let unfixed_count = Self::count_unfixed_elements(elements);
-        let kind = if unfixed_count == 0 {
+        let variadic_kind = if unfixed_count == 0 {
             None
         } else if same_size {
             Some(VariadicKind::SameSize)
@@ -428,10 +425,10 @@ impl<'a> Operation<'a> {
                         name,
                         *r#type,
                         ElementPosition::new(
-                            kind,
                             index,
                             Self::count_unfixed_elements(&elements[..index]),
                             unfixed_count,
+                            variadic_kind,
                         ),
                     )
                 })

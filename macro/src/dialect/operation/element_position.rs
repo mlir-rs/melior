@@ -2,29 +2,25 @@ use super::VariadicKind;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ElementPosition {
-    kind: Option<VariadicKind>,
     index: usize,
     preceding_unfixed_count: usize,
     unfixed_count: usize,
+    variadic_kind: Option<VariadicKind>,
 }
 
 impl ElementPosition {
     pub const fn new(
-        kind: Option<VariadicKind>,
         index: usize,
         preceding_unfixed_count: usize,
         unfixed_count: usize,
+        variadic_kind: Option<VariadicKind>,
     ) -> Self {
         Self {
-            kind,
             index,
             preceding_unfixed_count,
             unfixed_count,
+            variadic_kind,
         }
-    }
-
-    pub const fn kind(&self) -> Option<VariadicKind> {
-        self.kind
     }
 
     pub const fn index(&self) -> usize {
@@ -39,12 +35,7 @@ impl ElementPosition {
         self.unfixed_count
     }
 
-    // The position of an element's group in its operation's segment size
-    // attribute, if the operation sizes its groups by one.
-    pub const fn segment_index(&self) -> Option<usize> {
-        match self.kind {
-            Some(VariadicKind::AttributeSized) => Some(self.index),
-            _ => None,
-        }
+    pub const fn variadic_kind(&self) -> Option<VariadicKind> {
+        self.variadic_kind
     }
 }

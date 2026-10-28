@@ -20,7 +20,7 @@ pub fn generate_element_getter(
     let position = field.position();
     let index = position.index();
 
-    let body = match position.kind() {
+    let body = match position.variadic_kind() {
         None => {
             if field.is_optional() {
                 // Optional element, and some singular elements.

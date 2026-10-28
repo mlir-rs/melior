@@ -61,7 +61,7 @@ impl OperationField for OperationResult<'_> {
 
         if !self.r#type.is_variadic() {
             generate_result_type(r#type)
-        } else if self.position.kind() == Some(VariadicKind::AttributeSized) {
+        } else if self.position.variadic_kind() == Some(VariadicKind::AttributeSized) {
             generate_result_type(generate_iterator_type(r#type))
         } else {
             generate_iterator_type(r#type)
@@ -81,9 +81,8 @@ impl OperationField for OperationResult<'_> {
     }
 
     fn segment(&self) -> Option<(SegmentKind, usize)> {
-        self.position
-            .segment_index()
-            .map(|index| (SegmentKind::Result, index))
+        (self.position.variadic_kind() == Some(VariadicKind::AttributeSized))
+            .then_some((SegmentKind::Result, self.position.index()))
     }
 }
 
