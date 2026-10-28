@@ -12,7 +12,7 @@ impl VariadicKind {
         same_size: bool,
         attribute_sized: bool,
     ) -> Result<Option<Self>, &'static str> {
-        Ok(if unfixed_count <= 1 {
+        Ok(if unfixed_count == 0 {
             None
         } else if same_size {
             Some(Self::SameSize)
