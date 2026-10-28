@@ -4,7 +4,7 @@ use super::VariadicKind;
 // operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ElementPosition {
-    kind: VariadicKind,
+    kind: Option<VariadicKind>,
     index: usize,
     preceding_unfixed_count: usize,
     unfixed_count: usize,
@@ -12,7 +12,7 @@ pub struct ElementPosition {
 
 impl ElementPosition {
     pub const fn new(
-        kind: VariadicKind,
+        kind: Option<VariadicKind>,
         index: usize,
         preceding_unfixed_count: usize,
         unfixed_count: usize,
@@ -25,7 +25,7 @@ impl ElementPosition {
         }
     }
 
-    pub const fn kind(&self) -> VariadicKind {
+    pub const fn kind(&self) -> Option<VariadicKind> {
         self.kind
     }
 
@@ -45,7 +45,7 @@ impl ElementPosition {
     // attribute, if the operation sizes its groups by one.
     pub const fn segment_index(&self) -> Option<usize> {
         match self.kind {
-            VariadicKind::AttributeSized => Some(self.index),
+            Some(VariadicKind::AttributeSized) => Some(self.index),
             _ => None,
         }
     }

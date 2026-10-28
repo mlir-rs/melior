@@ -21,7 +21,7 @@ pub fn generate_element_getter(
     let index = position.index();
 
     let body = match position.kind() {
-        VariadicKind::Simple => {
+        None => {
             if field.is_optional() {
                 // Optional element, and some singular elements.
                 // Only present if the amount of groups is at least the number of
@@ -55,7 +55,7 @@ pub fn generate_element_getter(
                 }
             }
         }
-        VariadicKind::SameSize => {
+        Some(VariadicKind::SameSize) => {
             let unfixed_count = position.unfixed_count();
             let preceding_unfixed_count = position.preceding_unfixed_count();
             let preceding_fixed_count = index - preceding_unfixed_count;
@@ -77,7 +77,7 @@ pub fn generate_element_getter(
                 #get_elements
             }
         }
-        VariadicKind::AttributeSized => {
+        Some(VariadicKind::AttributeSized) => {
             let segment_size_attribute = segment_size_attribute_name(singular_kind);
             let get_elements = if !field.is_unfixed() {
                 quote! {

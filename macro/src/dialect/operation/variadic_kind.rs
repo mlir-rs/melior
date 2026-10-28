@@ -1,6 +1,7 @@
+// A way an operation sizes its groups of operands or results when more than one
+// of them is unfixed.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum VariadicKind {
-    Simple,
     SameSize,
     AttributeSized,
     // TODO Support variadic-of-variadic operands.
@@ -12,13 +13,13 @@ impl VariadicKind {
         unfixed_count: usize,
         same_size: bool,
         attribute_sized: bool,
-    ) -> Result<Self, &'static str> {
+    ) -> Result<Option<Self>, &'static str> {
         Ok(if unfixed_count <= 1 {
-            Self::Simple
+            None
         } else if same_size {
-            Self::SameSize
+            Some(Self::SameSize)
         } else if attribute_sized {
-            Self::AttributeSized
+            Some(Self::AttributeSized)
         } else {
             // TODO: Support multiple variadic operands/results without these traits.
             return Err(

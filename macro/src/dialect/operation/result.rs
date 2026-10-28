@@ -61,7 +61,7 @@ impl OperationField for OperationResult<'_> {
 
         if !self.r#type.is_variadic() {
             generate_result_type(r#type)
-        } else if self.position.kind() == VariadicKind::AttributeSized {
+        } else if self.position.kind() == Some(VariadicKind::AttributeSized) {
             generate_result_type(generate_iterator_type(r#type))
         } else {
             generate_iterator_type(r#type)
