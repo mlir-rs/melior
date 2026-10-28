@@ -1,7 +1,5 @@
 use super::VariadicKind;
 
-// A position of an operand or result among the elements of the same kind in its
-// operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ElementPosition {
     kind: Option<VariadicKind>,

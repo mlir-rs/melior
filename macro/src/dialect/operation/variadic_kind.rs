@@ -1,5 +1,3 @@
-// A way an operation sizes its groups of operands or results when more than one
-// of them is unfixed.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum VariadicKind {
     SameSize,
