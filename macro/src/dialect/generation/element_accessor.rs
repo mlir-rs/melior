@@ -11,16 +11,17 @@ pub fn generate_element_getter(
     singular_kind: &str,
     plural_kind: &str,
     error_variant: &Ident,
-    index: usize,
     length: usize,
 ) -> TokenStream {
     let singular_kind_identifier = Ident::new(singular_kind, Span::call_site());
     let plural_kind_identifier = Ident::new(plural_kind, Span::call_site());
     let count = Ident::new(&format!("{singular_kind}_count"), Span::call_site());
     let name = field.name();
+    let position = field.position();
+    let index = position.index();
 
-    let body = match field.variadic_kind() {
-        VariadicKind::Simple { unfixed_seen } => {
+    let body = match position.kind() {
+        VariadicKind::Simple => {
             if field.is_optional() {
                 // Optional element, and some singular elements.
                 // Only present if the amount of groups is at least the number of
@@ -40,7 +41,7 @@ pub fn generate_element_getter(
                     let group_length = self.operation.#count() - #length + 1;
                     self.operation.#plural_kind_identifier().skip(#index).take(group_length)
                 }
-            } else if *unfixed_seen {
+            } else if position.preceding_unfixed_count() > 0 {
                 // Single element after unfixed group
                 // Compute the length of that variable group and take the next element
                 quote! {
@@ -54,11 +55,10 @@ pub fn generate_element_getter(
                 }
             }
         }
-        VariadicKind::SameSize {
-            unfixed_count,
-            preceding_simple_count,
-            preceding_variadic_count,
-        } => {
+        VariadicKind::SameSize => {
+            let unfixed_count = position.unfixed_count();
+            let preceding_unfixed_count = position.preceding_unfixed_count();
+            let preceding_fixed_count = index - preceding_unfixed_count;
             let get_elements = if field.is_unfixed() {
                 quote! {
                     self.operation.#plural_kind_identifier().skip(start).take(group_len)
@@ -72,12 +72,12 @@ pub fn generate_element_getter(
             quote! {
                 let total_var_len = self.operation.#count() - #unfixed_count + 1;
                 let group_len = total_var_len / #unfixed_count;
-                let start = #preceding_simple_count + #preceding_variadic_count * group_len;
+                let start = #preceding_fixed_count + #preceding_unfixed_count * group_len;
 
                 #get_elements
             }
         }
-        VariadicKind::AttributeSized { segment_index } => {
+        VariadicKind::AttributeSized => {
             let segment_size_attribute = segment_size_attribute_name(singular_kind);
             let get_elements = if !field.is_unfixed() {
                 quote! {
@@ -103,12 +103,12 @@ pub fn generate_element_getter(
                         self.operation
                         .attribute(#segment_size_attribute)?
                     )?;
-                let start = (0..#segment_index)
+                let start = (0..#index)
                     .map(|index| attribute.element(index))
                     .collect::<Result<Vec<_>, _>>()?
                     .into_iter()
                     .sum::<i32>() as usize;
-                let group_len = attribute.element(#segment_index)? as usize;
+                let group_len = attribute.element(#index)? as usize;
 
                 #get_elements
             }

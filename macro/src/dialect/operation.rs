@@ -1,5 +1,6 @@
 mod attribute;
 mod builder;
+mod element_position;
 mod operand;
 mod operation_element;
 mod operation_field;
@@ -10,8 +11,8 @@ mod successor;
 mod variadic_kind;
 
 pub use self::{
-    attribute::Attribute, builder::OperationBuilder, operand::Operand,
-    operation_element::OperationElement, region::Region, result::OperationResult,
+    attribute::Attribute, builder::OperationBuilder, element_position::ElementPosition,
+    operand::Operand, operation_element::OperationElement, region::Region, result::OperationResult,
     segment_kind::SegmentKind, successor::Successor, variadic_kind::VariadicKind,
 };
 use super::utility::{sanitize_documentation, sanitize_snake_case_identifier};
@@ -215,13 +216,13 @@ impl<'a> Operation<'a> {
         let operands = self
             .operands
             .iter()
-            .any(|operand| operand.variadic_kind().segment_index().is_some())
+            .any(|operand| operand.position().segment_index().is_some())
             .then_some((SegmentKind::Operand, self.operand_len()));
         let results = (self.type_inference.is_none()
             && self
                 .results
                 .iter()
-                .any(|result| result.variadic_kind().segment_index().is_some()))
+                .any(|result| result.position().segment_index().is_some()))
         .then_some((SegmentKind::Result, self.result_len()));
 
         operands.into_iter().chain(results)
@@ -398,43 +399,40 @@ impl<'a> Operation<'a> {
 
     fn collect_elements<T>(
         elements: &[(&'a str, Type)],
-        create: impl Fn(&'a str, Type, VariadicKind) -> Result<T, Error>,
+        create: impl Fn(&'a str, Type, ElementPosition) -> Result<T, Error>,
         same_size: bool,
         attribute_sized: bool,
     ) -> Result<(Vec<T>, usize), Error> {
-        let unfixed_count = elements
+        let unfixed_count = Self::count_unfixed_elements(elements);
+        let kind = VariadicKind::new(unfixed_count, same_size, attribute_sized)
+            .map_err(|msg| Error::InvalidIdentifier(msg.to_owned()))?;
+
+        Ok((
+            elements
+                .iter()
+                .enumerate()
+                .map(|(index, (name, r#type))| {
+                    create(
+                        name,
+                        *r#type,
+                        ElementPosition::new(
+                            kind,
+                            index,
+                            Self::count_unfixed_elements(&elements[..index]),
+                            unfixed_count,
+                        ),
+                    )
+                })
+                .collect::<Result<_, _>>()?,
+            unfixed_count,
+        ))
+    }
+
+    fn count_unfixed_elements(elements: &[(&str, Type)]) -> usize {
+        elements
             .iter()
             .filter(|(_, r#type)| r#type.is_unfixed())
-            .count();
-        let mut variadic_kind = VariadicKind::new(unfixed_count, same_size, attribute_sized)
-            .map_err(|msg| Error::InvalidIdentifier(msg.to_owned()))?;
-        let mut fields = vec![];
-
-        for (name, r#type) in elements {
-            fields.push(create(name, *r#type, variadic_kind.clone())?);
-
-            match &mut variadic_kind {
-                VariadicKind::Simple { unfixed_seen } => {
-                    if r#type.is_unfixed() {
-                        *unfixed_seen = true;
-                    }
-                }
-                VariadicKind::SameSize {
-                    preceding_simple_count,
-                    preceding_variadic_count,
-                    ..
-                } => {
-                    if r#type.is_unfixed() {
-                        *preceding_variadic_count += 1;
-                    } else {
-                        *preceding_simple_count += 1;
-                    }
-                }
-                VariadicKind::AttributeSized { segment_index } => *segment_index += 1,
-            }
-        }
-
-        Ok((fields, unfixed_count))
+            .count()
     }
 
     fn collect_attributes(
