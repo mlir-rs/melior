@@ -52,6 +52,7 @@
     "relayout",
     "rocdl",
     "sccp",
+    "sgpr",
     "shli",
     "shrsi",
     "shrui",

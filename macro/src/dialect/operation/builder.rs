@@ -1,6 +1,6 @@
 mod type_state;
 
-use self::type_state::TypeState;
+use self::type_state::{OrderedField, TypeState};
 use super::{Operation, OperationField};
 use quote::format_ident;
 use syn::Ident;
@@ -34,12 +34,20 @@ impl<'a> OperationBuilder<'a> {
 
     fn create_type_state(operation: &Operation) -> TypeState {
         TypeState::new(
-            Self::build_names(operation.required_results()),
-            Self::build_names(operation.required_operands()),
-            Self::build_names(operation.required_regions()),
-            Self::build_names(operation.required_successors()),
+            Self::build_ordered_fields(operation.non_inferred_results()),
+            Self::build_ordered_fields(operation.operands()),
+            Self::build_ordered_fields(operation.regions()),
+            Self::build_ordered_fields(operation.successors()),
             Self::build_names(operation.required_attributes()),
         )
+    }
+
+    fn build_ordered_fields<'b>(
+        fields: impl Iterator<Item = &'b (impl OperationField + 'b)>,
+    ) -> Vec<OrderedField> {
+        fields
+            .map(|field| OrderedField::new(field.name().into(), field.is_optional()))
+            .collect()
     }
 
     fn build_names<'b>(
