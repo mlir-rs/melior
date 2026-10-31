@@ -12,3 +12,9 @@ keywords = ["llvm", "mlir"]
 
 [profile.release]
 lto = true
+
+# LLVM 24 support is not released yet: build against the branches that add it.
+# Drop this once mlir-sys 240.0.0 and a tblgen release with `llvm24-0` are on crates.io.
+[patch.crates-io]
+mlir-sys = { git = "https://github.com/yw-furiosa/mlir-sys", branch = "llvm-24" }
+tblgen = { git = "https://github.com/yw-furiosa/tblgen-rs", branch = "llvm-24" }
