@@ -1,4 +1,4 @@
-use super::{OperationElement, OperationField, SegmentKind, VariadicKind};
+use super::{ElementPosition, OperationElement, OperationField, SegmentKind, VariadicKind};
 use crate::dialect::{
     error::Error,
     r#type::Type as ElementType,
@@ -13,20 +13,20 @@ pub struct OperationResult<'a> {
     name: &'a str,
     singular_identifier: Ident,
     r#type: ElementType,
-    variadic_kind: VariadicKind,
+    position: ElementPosition,
 }
 
 impl<'a> OperationResult<'a> {
     pub fn new(
         name: &'a str,
         r#type: ElementType,
-        variadic_kind: VariadicKind,
+        position: ElementPosition,
     ) -> Result<Self, Error> {
         Ok(Self {
             name,
             singular_identifier: sanitize_snake_case_identifier(name)?,
             r#type,
-            variadic_kind,
+            position,
         })
     }
 }
@@ -61,7 +61,7 @@ impl OperationField for OperationResult<'_> {
 
         if !self.r#type.is_variadic() {
             generate_result_type(r#type)
-        } else if matches!(self.variadic_kind, VariadicKind::AttributeSized { .. }) {
+        } else if self.position.variadic_kind() == Some(VariadicKind::AttributeSized) {
             generate_result_type(generate_iterator_type(r#type))
         } else {
             generate_iterator_type(r#type)
@@ -81,9 +81,8 @@ impl OperationField for OperationResult<'_> {
     }
 
     fn segment(&self) -> Option<(SegmentKind, usize)> {
-        self.variadic_kind
-            .segment_index()
-            .map(|index| (SegmentKind::Result, index))
+        (self.position.variadic_kind() == Some(VariadicKind::AttributeSized))
+            .then_some((SegmentKind::Result, self.position.index()))
     }
 }
 
@@ -92,7 +91,7 @@ impl OperationElement for OperationResult<'_> {
         self.r#type.is_variadic()
     }
 
-    fn variadic_kind(&self) -> &VariadicKind {
-        &self.variadic_kind
+    fn position(&self) -> ElementPosition {
+        self.position
     }
 }
