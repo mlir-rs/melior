@@ -242,9 +242,10 @@ impl<'a> Operation<'a> {
     }
 
     pub fn required_results(&self) -> impl Iterator<Item = &'_ OperationResult<'_>> {
-        match self.type_inference {
-            Some(_) => Default::default(),
-            None => self.results.iter(),
+        if self.type_inference.is_some() {
+            Default::default()
+        } else {
+            self.results.iter()
         }
         .filter(|field| !field.is_optional())
     }

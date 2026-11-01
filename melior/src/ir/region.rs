@@ -139,13 +139,12 @@ impl<'c, 'a> Iterator for RegionIterator<'c, 'a> {
     // TODO Prevent use-after-free when the next block is erased during
     // iteration.
     fn next(&mut self) -> Option<Self::Item> {
-        match self.current {
-            None => None,
-            Some(op) => {
-                self.current =
-                    unsafe { BlockRef::from_option_raw(mlirBlockGetNextInRegion(op.to_raw())) };
-                Some(op)
-            }
+        if let Some(op) = self.current {
+            self.current =
+                unsafe { BlockRef::from_option_raw(mlirBlockGetNextInRegion(op.to_raw())) };
+            Some(op)
+        } else {
+            None
         }
     }
 }

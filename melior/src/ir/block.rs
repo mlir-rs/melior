@@ -221,14 +221,12 @@ impl<'c, 'a> Iterator for BlockIterator<'c, 'a> {
     // TODO Prevent use-after-free when the next operation is erased during
     // iteration.
     fn next(&mut self) -> Option<Self::Item> {
-        match self.current {
-            None => None,
-            Some(op) => {
-                self.current = unsafe {
-                    OperationRef::from_option_raw(mlirOperationGetNextInBlock(op.to_raw()))
-                };
-                Some(op)
-            }
+        if let Some(op) = self.current {
+            self.current =
+                unsafe { OperationRef::from_option_raw(mlirOperationGetNextInBlock(op.to_raw())) };
+            Some(op)
+        } else {
+            None
         }
     }
 }

@@ -6,13 +6,14 @@ use quote::{format_ident, quote};
 use syn::Type;
 
 pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
-    let result_fns = match builder.operation().type_inference() {
-        Some(_) => Default::default(),
-        None => builder
+    let result_fns = if builder.operation().type_inference().is_some() {
+        Default::default()
+    } else {
+        builder
             .operation()
             .results()
             .map(|result| generate_field_fn(builder, result))
-            .collect::<Vec<_>>(),
+            .collect::<Vec<_>>()
     };
     let infer_from_operands = matches!(
         builder.operation().type_inference(),
@@ -118,20 +119,21 @@ fn generate_segment_size_fields(
         .map(|(kind, _)| {
             let identifier = kind.field_identifier();
 
-            match field.segment() {
-                Some((field_kind, index)) if field_kind == kind => {
-                    let size = generate_segment_size(field);
-                    let sizes = Ident::new("sizes", Span::mixed_site());
+            if let Some((field_kind, index)) = field.segment()
+                && field_kind == kind
+            {
+                let size = generate_segment_size(field);
+                let sizes = Ident::new("sizes", Span::mixed_site());
 
-                    quote! {
-                        #identifier: {
-                            let mut #sizes = self.#identifier;
-                            #sizes[#index] = #size;
-                            #sizes
-                        }
+                quote! {
+                    #identifier: {
+                        let mut #sizes = self.#identifier;
+                        #sizes[#index] = #size;
+                        #sizes
                     }
                 }
-                _ => quote! { #identifier: self.#identifier },
+            } else {
+                quote! { #identifier: self.#identifier }
             }
         })
         .collect()
@@ -143,18 +145,17 @@ fn generate_segment_size_assignment(
     operation: &Operation,
     field: &impl OperationField,
 ) -> TokenStream {
-    match field.segment() {
-        Some((kind, index))
-            if operation
-                .segment_arrays()
-                .any(|(array_kind, _)| array_kind == kind) =>
-        {
-            let identifier = kind.field_identifier();
-            let size = generate_segment_size(field);
+    if let Some((kind, index)) = field.segment()
+        && operation
+            .segment_arrays()
+            .any(|(array_kind, _)| array_kind == kind)
+    {
+        let identifier = kind.field_identifier();
+        let size = generate_segment_size(field);
 
-            quote! { self.#identifier[#index] = #size; }
-        }
-        _ => quote! {},
+        quote! { self.#identifier[#index] = #size; }
+    } else {
+        quote! {}
     }
 }
 
