@@ -38,14 +38,14 @@ pub fn generate_element_getter(
                 // Length computed by subtracting the amount of other
                 // singular elements from the number of elements.
                 quote! {
-                    let group_length = self.operation.#count() - #length + 1;
+                    let group_length = self.operation.#count() + 1 - #length;
                     self.operation.#plural_kind_identifier().skip(#index).take(group_length)
                 }
             } else if position.preceding_unfixed_count() > 0 {
                 // Single element after unfixed group
                 // Compute the length of that variable group and take the next element
                 quote! {
-                    let group_length = self.operation.#count() - #length + 1;
+                    let group_length = self.operation.#count() + 1 - #length;
                     self.operation.#singular_kind_identifier(#index + group_length - 1)
                 }
             } else {
