@@ -19,6 +19,16 @@ def OperandTest_VariadicOp : OperandTest_Op<"variadic"> {
     let results = (outs I32:$res);
 }
 
+def OperandTest_VariadicBeforeSingleOp : OperandTest_Op<"variadic_before_single"> {
+    let arguments = (ins Variadic<I32>:$others, I32:$last);
+    let results = (outs I32:$res);
+}
+
+def OperandTest_OptionalBeforeSingleOp : OperandTest_Op<"optional_before_single"> {
+    let arguments = (ins Optional<I32>:$optional, I32:$last);
+    let results = (outs I32:$res);
+}
+
 def OperandTest_AttributeSizedOp :
         OperandTest_Op<"attribute_sized", [AttrSizedOperandSegments]> {
     let arguments = (ins Variadic<I32>:$sizes, Variadic<I32>:$others);

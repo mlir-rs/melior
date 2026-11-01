@@ -71,6 +71,130 @@ fn variadic_after_single() {
 }
 
 #[test]
+fn empty_variadic_after_single() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let r#type = Type::parse(&context, "i32").unwrap();
+    let block = Block::new(&[(r#type, location)]);
+    let operation = operand_test::variadic(
+        &context,
+        r#type,
+        block.argument(0).unwrap().into(),
+        &[],
+        location,
+    );
+
+    assert_eq!(
+        operation.first().unwrap(),
+        block.argument(0).unwrap().into()
+    );
+    assert_eq!(operation.others().count(), 0);
+    assert_eq!(operation.as_operation().operand_count(), 1);
+}
+
+#[test]
+fn variadic_before_single() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let r#type = Type::parse(&context, "i32").unwrap();
+    let block = Block::new(&[(r#type, location), (r#type, location), (r#type, location)]);
+    let operation = operand_test::variadic_before_single(
+        &context,
+        r#type,
+        &[
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        ],
+        block.argument(2).unwrap().into(),
+        location,
+    );
+
+    assert_eq!(
+        operation.others().next(),
+        Some(block.argument(0).unwrap().into())
+    );
+    assert_eq!(
+        operation.others().nth(1),
+        Some(block.argument(1).unwrap().into())
+    );
+    assert_eq!(operation.others().count(), 2);
+    assert_eq!(operation.last().unwrap(), block.argument(2).unwrap().into());
+    assert_eq!(operation.as_operation().operand_count(), 3);
+}
+
+#[test]
+fn empty_variadic_before_single() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let r#type = Type::parse(&context, "i32").unwrap();
+    let block = Block::new(&[(r#type, location)]);
+    let operation = operand_test::variadic_before_single(
+        &context,
+        r#type,
+        &[],
+        block.argument(0).unwrap().into(),
+        location,
+    );
+
+    assert_eq!(operation.others().count(), 0);
+    assert_eq!(operation.last().unwrap(), block.argument(0).unwrap().into());
+    assert_eq!(operation.as_operation().operand_count(), 1);
+}
+
+#[test]
+fn optional_before_single() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let r#type = Type::parse(&context, "i32").unwrap();
+    let block = Block::new(&[(r#type, location), (r#type, location)]);
+    let operation = operand_test::OptionalBeforeSingleOperation::builder(&context, location)
+        .res(r#type)
+        .optional(block.argument(0).unwrap().into())
+        .last(block.argument(1).unwrap().into())
+        .build();
+
+    assert_eq!(
+        operation.optional().unwrap(),
+        block.argument(0).unwrap().into()
+    );
+    assert_eq!(operation.last().unwrap(), block.argument(1).unwrap().into());
+    assert_eq!(operation.as_operation().operand_count(), 2);
+}
+
+#[test]
+fn absent_optional_before_single() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let r#type = Type::parse(&context, "i32").unwrap();
+    let block = Block::new(&[(r#type, location)]);
+    let operation = operand_test::optional_before_single(
+        &context,
+        r#type,
+        block.argument(0).unwrap().into(),
+        location,
+    );
+
+    assert!(operation.optional().is_err());
+    assert_eq!(operation.last().unwrap(), block.argument(0).unwrap().into());
+    assert_eq!(operation.as_operation().operand_count(), 1);
+}
+
+#[test]
 fn attribute_sized_variadic_named_sizes() {
     let context = create_test_context();
     context.set_allow_unregistered_dialects(true);
