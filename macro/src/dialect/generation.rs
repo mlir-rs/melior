@@ -28,13 +28,11 @@ pub fn generate_operation(operation: &Operation) -> TokenStream {
 
     let result_accessors = operation
         .results()
-        .enumerate()
-        .map(|(index, result)| generate_result_accessor(result, index, operation.result_len()))
+        .map(|result| generate_result_accessor(result, operation.result_len()))
         .collect::<Vec<_>>();
     let operand_accessors = operation
         .operands()
-        .enumerate()
-        .map(|(index, operand)| generate_operand_accessor(operand, index, operation.operand_len()))
+        .map(|operand| generate_operand_accessor(operand, operation.operand_len()))
         .collect::<Vec<_>>();
     let region_accessors = operation
         .regions()
