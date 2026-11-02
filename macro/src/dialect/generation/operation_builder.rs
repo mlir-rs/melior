@@ -105,8 +105,14 @@ fn generate_segment_size_fields(
             if let Some((field_kind, index)) = field.segment()
                 && field_kind == kind
             {
-                let size = generate_segment_size(field);
                 let sizes = Ident::new("sizes", Span::mixed_site());
+                let size = if matches!(field.parameter_type(), Type::Reference(_)) {
+                    let identifier = field.singular_identifier();
+
+                    quote! { #identifier.len() as i32 }
+                } else {
+                    quote! { 1 }
+                };
 
                 quote! {
                     #identifier: {
@@ -120,18 +126,6 @@ fn generate_segment_size_fields(
             }
         })
         .collect()
-}
-
-// A group's length is the length of its setter's argument if that is a slice,
-// which is the case for variadic groups, and 1 otherwise.
-fn generate_segment_size(field: &impl OperationField) -> TokenStream {
-    let identifier = field.singular_identifier();
-
-    if matches!(field.parameter_type(), Type::Reference(_)) {
-        quote! { #identifier.len() as i32 }
-    } else {
-        quote! { 1 }
-    }
 }
 
 // TODO Split this function for different kinds of fields.
