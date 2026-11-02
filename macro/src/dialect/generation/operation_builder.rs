@@ -202,6 +202,7 @@ fn generate_same_operands_first_fn(
         impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
             pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
                 let result_type = #type_access;
+
                 #builder_identifier {
                     context: self.context,
                     #(#segment_size_fields,)*
