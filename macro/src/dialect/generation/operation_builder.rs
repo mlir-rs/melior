@@ -102,20 +102,21 @@ fn generate_segment_size_fields(
         .map(|(kind, _)| {
             let identifier = kind.field_identifier();
 
-            match field.segment() {
-                Some((field_kind, index)) if field_kind == kind => {
-                    let size = generate_segment_size(field);
-                    let sizes = Ident::new("sizes", Span::mixed_site());
+            if let Some((field_kind, index)) = field.segment()
+                && field_kind == kind
+            {
+                let size = generate_segment_size(field);
+                let sizes = Ident::new("sizes", Span::mixed_site());
 
-                    quote! {
-                        #identifier: {
-                            let mut #sizes = self.#identifier;
-                            #sizes[#index] = #size;
-                            #sizes
-                        }
+                quote! {
+                    #identifier: {
+                        let mut #sizes = self.#identifier;
+                        #sizes[#index] = #size;
+                        #sizes
                     }
                 }
-                _ => quote! { #identifier: self.#identifier },
+            } else {
+                quote! { #identifier: self.#identifier }
             }
         })
         .collect()

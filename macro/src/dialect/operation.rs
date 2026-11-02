@@ -243,9 +243,10 @@ impl<'a> Operation<'a> {
 
     // Results whose types are given to builders rather than inferred.
     pub fn non_inferred_results(&self) -> impl Iterator<Item = &OperationResult<'a>> {
-        match self.type_inference {
-            Some(_) => Default::default(),
-            None => self.results.iter(),
+        if self.type_inference.is_some() {
+            Default::default()
+        } else {
+            self.results.iter()
         }
     }
 
