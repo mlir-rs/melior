@@ -141,14 +141,8 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
     let parameter_type = field.parameter_type();
     let argument = quote! { #identifier: #parameter_type };
     let add_identifier = format_ident!("add_{}", field.plural_kind_identifier());
-
-    // Argument types can be singular and variadic. But `add` functions in Melior
-    // are always variadic, so we need to create a slice or `Vec` for singular
-    // arguments.
     let add_arguments = field.add_arguments(identifier);
 
-    // Fields without type parameters are optional attributes, which can be set
-    // at any point.
     if !builder.type_state().has_parameter(field.name()) {
         let parameters = builder.type_state().parameters().collect::<Vec<_>>();
 
