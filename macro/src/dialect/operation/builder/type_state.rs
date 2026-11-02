@@ -1,3 +1,6 @@
+mod ordered_field;
+
+pub use self::ordered_field::OrderedField;
 use quote::format_ident;
 use std::iter::repeat_n;
 use syn::{GenericArgument, parse_quote};
@@ -7,20 +10,6 @@ const OPERAND_PREFIX: &str = "O";
 const REGION_PREFIX: &str = "R";
 const SUCCESSOR_PREFIX: &str = "S";
 const ATTRIBUTE_PREFIX: &str = "A";
-
-// A field whose setter appends elements to an operation. Its setter must be
-// called before the ones of the later fields of the same kind.
-#[derive(Debug)]
-pub struct OrderedField {
-    name: String,
-    optional: bool,
-}
-
-impl OrderedField {
-    pub const fn new(name: String, optional: bool) -> Self {
-        Self { name, optional }
-    }
-}
 
 #[derive(Debug)]
 pub struct TypeState {
@@ -64,7 +53,7 @@ impl TypeState {
 
     pub fn has_parameter(&self, field: &str) -> bool {
         self.ordered_fields()
-            .any(|(fields, _)| fields.iter().any(|other| other.name == field))
+            .any(|(fields, _)| fields.iter().any(|other| other.name() == field))
             || self
                 .unordered_fields()
                 .any(|(fields, _)| fields.iter().any(|other| other == field))
@@ -139,7 +128,7 @@ impl TypeState {
         fields
             .iter()
             .enumerate()
-            .filter(|(_, field)| field.optional)
+            .filter(|(_, field)| field.is_optional())
             .map(|(index, _)| Self::build_generic_argument(prefix, index))
     }
 
@@ -149,7 +138,7 @@ impl TypeState {
         prefix: &'a str,
     ) -> impl Iterator<Item = GenericArgument> + 'a {
         fields.iter().enumerate().map(|(index, field)| {
-            if field.optional {
+            if field.is_optional() {
                 Self::build_generic_argument(prefix, index)
             } else {
                 Self::build_argument(true)
@@ -162,7 +151,7 @@ impl TypeState {
         prefix: &'a str,
         field: &'a str,
     ) -> Box<dyn Iterator<Item = GenericArgument> + 'a> {
-        let Some(index) = fields.iter().position(|other| other.name == field) else {
+        let Some(index) = fields.iter().position(|other| other.name() == field) else {
             return Box::new(Self::build_parameters(fields.len(), prefix));
         };
 
@@ -189,7 +178,7 @@ impl TypeState {
         field: &'a str,
         set: bool,
     ) -> Box<dyn Iterator<Item = GenericArgument> + 'a> {
-        let Some(index) = fields.iter().position(|other| other.name == field) else {
+        let Some(index) = fields.iter().position(|other| other.name() == field) else {
             return Box::new(Self::build_parameters(fields.len(), prefix));
         };
 
