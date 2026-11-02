@@ -191,6 +191,7 @@ mod tests {
         ir::{Location, Module},
         test::create_test_context,
     };
+    use indoc::indoc;
 
     #[test]
     fn new_pattern_set() {
@@ -264,26 +265,24 @@ mod tests {
 
     #[test]
     fn pattern_rewriter_as_rewriter_base() {
-        use crate::{
-            dialect::arith,
-            ir::{BlockLike, Type, attribute::IntegerAttribute},
-        };
-
         let context = create_test_context();
-        let module = Module::new(Location::unknown(&context));
-        let body = module.body();
-        let location = Location::unknown(&context);
-
-        let op = arith::constant(
+        let module = Module::parse(
             &context,
-            IntegerAttribute::new(Type::index(&context), 0).into(),
-            location,
-        );
+            indoc!(
+                "
+                func.func private @foo()
 
-        body.append_operation(op);
+                func.func @bar() {
+                    func.call @foo() : () -> ()
+                    return
+                }
+                "
+            ),
+        )
+        .unwrap();
 
         let pattern = create_op_rewrite_pattern(
-            "arith.constant",
+            "func.call",
             1,
             &context,
             |op, rewriter| {
@@ -301,6 +300,6 @@ mod tests {
         let config = GreedyRewriteDriverConfig::new();
 
         assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
-        assert!(body.first_operation().is_none());
+        insta::assert_snapshot!(module.as_operation());
     }
 }
