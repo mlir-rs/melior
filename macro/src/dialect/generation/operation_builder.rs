@@ -203,6 +203,7 @@ fn generate_same_operands_first_fn(
     let arguments_set = builder.type_state().arguments_with(field.name(), true);
     let arguments_unset = builder.type_state().arguments_with(field.name(), false);
     let segment_size_fields = generate_segment_size_fields(builder.operation(), field);
+
     quote! {
         impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
             pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
@@ -256,6 +257,7 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
         let arguments_set = builder.type_state().arguments_with(field.name(), true);
         let arguments_unset = builder.type_state().arguments_with(field.name(), false);
         let segment_size_fields = generate_segment_size_fields(builder.operation(), field);
+
         quote! {
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
                 pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
