@@ -53,10 +53,12 @@ impl TypeState {
 
     pub fn has_parameter(&self, field: &str) -> bool {
         self.ordered_fields()
-            .any(|(fields, _)| fields.iter().any(|other| other.name() == field))
-            || self
-                .unordered_fields()
-                .any(|(fields, _)| fields.iter().any(|other| other == field))
+            .flat_map(|(fields, _)| fields.iter().map(|other| other.name()))
+            .chain(
+                self.unordered_fields()
+                    .flat_map(|(fields, _)| fields.iter().map(|field| field.as_str())),
+            )
+            .any(|other| other == field)
     }
 
     pub fn parameters(&self) -> impl Iterator<Item = GenericArgument> + '_ {
