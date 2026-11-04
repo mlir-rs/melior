@@ -4,7 +4,7 @@ expression: module.as_operation()
 ---
 module {
   llvm.func @foo(%arg0: !llvm.ptr, %arg1: i64) {
-    llvm.store volatile %arg1, %arg0 {alignment = 4 : i64, nontemporal} : i64, !llvm.ptr
+    llvm.store volatile %arg1, %arg0 <alignment = 4, nontemporal> : i64, !llvm.ptr
     llvm.return
   }
 }

@@ -4,7 +4,7 @@ set -e
 
 [ -n "$CI" ]
 
-llvm_version=23
+llvm_version=24
 
 case $RUNNER_OS in
 Linux | macOS)
