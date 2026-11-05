@@ -76,6 +76,7 @@ impl<'a> Operation<'a> {
         let regions = Self::collect_regions(definition)?;
         let (results, unfixed_result_count) = Self::collect_results(
             definition,
+            &arguments,
             trait_names.contains("::mlir::OpTrait::SameVariadicResultSize"),
             trait_names.contains("::mlir::OpTrait::AttrSizedResultSegments"),
         )?;
@@ -357,21 +358,40 @@ impl<'a> Operation<'a> {
 
     fn collect_results(
         definition: Record<'a>,
+        arguments: &[(Option<&'a str>, Record<'a>)],
         same_size: bool,
         attribute_sized: bool,
     ) -> Result<(Vec<OperationResult>, usize), Error> {
+        let results = Self::dag_constraints(definition, "results")?;
         // Unnamed results (e.g. `(outs AnyType)` without `$name`) get generated
         // names so that they are preserved in builders and accessors.
-        let named = Self::dag_constraints(definition, "results")?
-            .into_iter()
+        let taken = results
+            .iter()
+            .chain(arguments)
+            .filter_map(|(name, _)| *name)
+            .collect::<HashSet<_>>();
+        let named = results
+            .iter()
             .enumerate()
             .map(|(index, (name, constraint))| {
-                (
-                    name.map_or_else(|| format!("result_{index}"), Into::into),
-                    Type::new(constraint),
-                )
+                let name = match name {
+                    Some(name) => (*name).into(),
+                    None => {
+                        let name = format!("result_{index}");
+
+                        if taken.contains(name.as_str()) {
+                            return Err(OdsError::GeneratedNameConflict(name)
+                                .with_location(definition)
+                                .into());
+                        }
+
+                        name
+                    }
+                };
+
+                Ok((name, Type::new(*constraint)))
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, Error>>()?;
 
         Self::collect_elements(
             definition,
@@ -565,6 +585,38 @@ mod tests {
                 .map(OperationField::name)
                 .collect::<Vec<_>>(),
             ["result_0", "result_1"]
+        );
+    }
+
+    #[test]
+    fn fail_to_generate_conflicting_result_name() {
+        let keeper = TableGenParser::new()
+            .add_include_directory(LLVM_INCLUDE_DIRECTORY)
+            .add_source(&unindent::unindent(
+                r#"
+                include "mlir/IR/OpBase.td"
+
+                def Test_Dialect : Dialect {
+                    let name = "test";
+                }
+
+                def Test_FooOp : Op<Test_Dialect, "foo"> {
+                    let results = (outs I32:$result_1, I32);
+                }
+                "#,
+            ))
+            .unwrap()
+            .parse()
+            .unwrap();
+
+        assert_eq!(
+            Operation::new(keeper.def("Test_FooOp").unwrap())
+                .unwrap_err()
+                .add_source_info(keeper.source_info())
+                .to_string(),
+            "invalid ODS input: error: generated name result_1 for an unnamed \
+            result conflicts with a named element\n\
+            def Test_FooOp : Op<Test_Dialect, \"foo\"> {\n    ^\n"
         );
     }
 }
