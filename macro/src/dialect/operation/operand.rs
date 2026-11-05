@@ -70,7 +70,9 @@ impl OperationField for Operand<'_> {
         self.r#type.is_optional()
     }
 
-    fn add_arguments(&self, name: &Ident) -> TokenStream {
+    fn add_arguments(&self) -> TokenStream {
+        let name = &self.singular_identifier;
+
         if self.r#type.is_variadic() {
             quote! { #name }
         } else {

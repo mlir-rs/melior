@@ -135,7 +135,7 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
     let parameter_type = field.parameter_type();
     let argument = quote! { #identifier: #parameter_type };
     let add_identifier = format_ident!("add_{}", field.plural_kind_identifier());
-    let add_arguments = field.add_arguments(identifier);
+    let add_arguments = field.add_arguments();
 
     if !builder.type_state().has_parameter(field.name()) {
         let parameters = builder.type_state().parameters().collect::<Vec<_>>();
@@ -181,7 +181,7 @@ fn generate_same_operands_first_fn(
     let parameter_type = field.parameter_type();
     let argument = quote! { #identifier: #parameter_type };
     let add_identifier = format_ident!("add_{}", field.plural_kind_identifier());
-    let add_arguments = field.add_arguments(identifier);
+    let add_arguments = field.add_arguments();
     let result_count = builder.operation().result_len();
     let result_type_copies: Vec<_> = (0..result_count).map(|_| quote! { result_type }).collect();
     // For variadic operands the parameter is `&[Value]`; index into it for the
@@ -223,7 +223,7 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
     let identifier = field.singular_identifier();
     let parameter_type = field.parameter_type();
     let argument = quote! { #identifier: #parameter_type };
-    let add_arguments = field.add_arguments(identifier);
+    let add_arguments = field.add_arguments();
     let result_count = builder.operation().result_len();
     let result_type_copies: Vec<_> = (0..result_count).map(|_| quote! { result_type }).collect();
     // If the attribute is a TypeAttr, use its wrapped type; otherwise use the

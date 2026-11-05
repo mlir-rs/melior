@@ -72,7 +72,9 @@ impl OperationField for Region<'_> {
         false
     }
 
-    fn add_arguments(&self, name: &Ident) -> TokenStream {
+    fn add_arguments(&self) -> TokenStream {
+        let name = &self.singular_identifier;
+
         if self.is_variadic() {
             quote! { #name }
         } else {

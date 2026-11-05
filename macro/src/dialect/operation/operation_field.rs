@@ -9,7 +9,7 @@ pub trait OperationField {
     fn parameter_type(&self) -> Type;
     fn return_type(&self) -> Type;
     fn is_optional(&self) -> bool;
-    fn add_arguments(&self, name: &Ident) -> TokenStream;
+    fn add_arguments(&self) -> TokenStream;
 
     // The segment size array and slot recording this field's group length, for
     // operands and results of operations that size their groups by an
