@@ -1,6 +1,6 @@
 use crate::{
-    Error, context::Context, ir::OperationRef, ir_rewriter::RewriterBase,
-    logical_result::LogicalResult, string_ref::StringRef,
+    context::Context, ir::OperationRef, ir_rewriter::RewriterBase, logical_result::LogicalResult,
+    string_ref::StringRef,
 };
 use mlir_sys::{
     MlirFrozenRewritePatternSet, MlirOperation, MlirPatternRewriter, MlirRewritePattern,
@@ -114,9 +114,9 @@ impl PatternRewriter<'_> {
 /// name.
 ///
 /// The `callback` receives the matched operation and a pattern rewriter. It
-/// should perform the rewrite and return `Ok(())` on success, or an error if
-/// the pattern does not match. Panics in the callback abort the process
-/// because they might leave the IR partially rewritten.
+/// should rewrite the operation and return `true`, or return `false` without
+/// modifying the IR if the pattern does not match. Panics in the callback abort
+/// the process because they might leave the IR partially rewritten.
 pub fn create_op_rewrite_pattern<F>(
     root_name: &str,
     benefit: u32,
@@ -125,7 +125,7 @@ pub fn create_op_rewrite_pattern<F>(
     generated_names: &[&str],
 ) -> RewritePattern
 where
-    F: FnMut(OperationRef, &PatternRewriter) -> Result<(), Error> + 'static,
+    F: FnMut(OperationRef, &PatternRewriter) -> bool + 'static,
 {
     unsafe extern "C" fn destruct<F>(user_data: *mut c_void) {
         unsafe {
@@ -140,17 +140,14 @@ where
         user_data: *mut c_void,
     ) -> mlir_sys::MlirLogicalResult
     where
-        F: FnMut(OperationRef, &PatternRewriter) -> Result<(), Error>,
+        F: FnMut(OperationRef, &PatternRewriter) -> bool,
     {
-        LogicalResult::from(
-            unsafe {
-                (*(user_data as *mut F))(
-                    OperationRef::from_raw(op),
-                    &PatternRewriter::from_raw(rewriter),
-                )
-            }
-            .is_ok(),
-        )
+        LogicalResult::from(unsafe {
+            (*(user_data as *mut F))(
+                OperationRef::from_raw(op),
+                &PatternRewriter::from_raw(rewriter),
+            )
+        })
         .to_raw()
     }
 
@@ -224,7 +221,7 @@ mod tests {
         let context = create_test_context();
 
         let pattern =
-            create_op_rewrite_pattern("arith.constant", 1, &context, |_op, _rewriter| Ok(()), &[]);
+            create_op_rewrite_pattern("arith.constant", 1, &context, |_op, _rewriter| false, &[]);
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);
@@ -238,7 +235,7 @@ mod tests {
             "arith.constant",
             1,
             &context,
-            |_op, _rewriter| Ok(()),
+            |_op, _rewriter| false,
             &["arith.addi"],
         );
 
@@ -252,7 +249,7 @@ mod tests {
         let module = Module::new(Location::unknown(&context));
 
         let pattern =
-            create_op_rewrite_pattern("arith.constant", 1, &context, |_op, _rewriter| Ok(()), &[]);
+            create_op_rewrite_pattern("arith.constant", 1, &context, |_op, _rewriter| false, &[]);
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);
@@ -288,13 +285,58 @@ mod tests {
             |op, rewriter| {
                 rewriter.as_rewriter_base().erase_op(op);
 
-                Ok(())
+                true
             },
             &[],
         );
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);
+
+        let frozen = set.freeze();
+        let config = GreedyRewriteDriverConfig::new();
+
+        assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn fall_back_to_next_pattern() {
+        let context = create_test_context();
+        let module = Module::parse(
+            &context,
+            indoc!(
+                "
+                func.func private @foo()
+
+                func.func @bar() {
+                    func.call @foo() : () -> ()
+                    return
+                }
+                "
+            ),
+        )
+        .unwrap();
+
+        let set = RewritePatternSet::new(&context);
+        set.add(create_op_rewrite_pattern(
+            "func.call",
+            2,
+            &context,
+            |_op, _rewriter| false,
+            &[],
+        ));
+        set.add(create_op_rewrite_pattern(
+            "func.call",
+            1,
+            &context,
+            |op, rewriter| {
+                rewriter.as_rewriter_base().erase_op(op);
+
+                true
+            },
+            &[],
+        ));
 
         let frozen = set.freeze();
         let config = GreedyRewriteDriverConfig::new();

@@ -12,7 +12,7 @@ fn main() {
         &context,
         move |_, rewriter| {
             inner_rewriter.set(Some(*rewriter));
-            Ok(())
+            false
         },
         &[],
     );
