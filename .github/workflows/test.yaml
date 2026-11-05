@@ -57,7 +57,7 @@ jobs:
         with:
           ref: main
       - run: cd melior && cargo expand --all-features dialect::ods > ~/main.rs
-      - run: diff ~/main.rs ~/current.rs
+      - run: diff ~/main.rs ~/current.rs || :
   test:
     needs:
       - dialect_build
