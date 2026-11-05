@@ -40,10 +40,6 @@ impl OperationField for OperationResult<'_> {
         &self.singular_identifier
     }
 
-    fn add_identifier(&self) -> Ident {
-        Ident::new("add_results", Span::call_site())
-    }
-
     // TODO Share this logic with `Operand`.
     fn parameter_type(&self) -> Type {
         let r#type: Type = parse_quote!(::melior::ir::Type<'c>);
@@ -70,6 +66,10 @@ impl OperationField for OperationResult<'_> {
 
     fn is_optional(&self) -> bool {
         self.r#type.is_optional()
+    }
+
+    fn add_identifier(&self) -> Ident {
+        Ident::new("add_results", Span::call_site())
     }
 
     fn add_arguments(&self) -> TokenStream {

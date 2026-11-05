@@ -40,10 +40,6 @@ impl OperationField for Operand<'_> {
         &self.singular_identifier
     }
 
-    fn add_identifier(&self) -> Ident {
-        format_ident!("add_operands")
-    }
-
     fn parameter_type(&self) -> Type {
         let r#type: Type = parse_quote!(::melior::ir::Value<'c, '_>);
 
@@ -68,6 +64,10 @@ impl OperationField for Operand<'_> {
 
     fn is_optional(&self) -> bool {
         self.r#type.is_optional()
+    }
+
+    fn add_identifier(&self) -> Ident {
+        format_ident!("add_operands")
     }
 
     fn add_arguments(&self) -> TokenStream {

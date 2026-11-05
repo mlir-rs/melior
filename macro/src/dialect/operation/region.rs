@@ -37,17 +37,6 @@ impl OperationField for Region<'_> {
         &self.singular_identifier
     }
 
-    fn add_identifier(&self) -> Ident {
-        Ident::new(
-            if self.variadic {
-                "add_regions_vec"
-            } else {
-                "add_regions"
-            },
-            Span::call_site(),
-        )
-    }
-
     fn parameter_type(&self) -> Type {
         let r#type: Type = parse_quote!(::melior::ir::Region<'c>);
 
@@ -70,6 +59,17 @@ impl OperationField for Region<'_> {
 
     fn is_optional(&self) -> bool {
         false
+    }
+
+    fn add_identifier(&self) -> Ident {
+        Ident::new(
+            if self.variadic {
+                "add_regions_vec"
+            } else {
+                "add_regions"
+            },
+            Span::call_site(),
+        )
     }
 
     fn add_arguments(&self) -> TokenStream {

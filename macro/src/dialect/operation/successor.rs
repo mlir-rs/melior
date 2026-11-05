@@ -37,10 +37,6 @@ impl OperationField for Successor<'_> {
         &self.singular_identifier
     }
 
-    fn add_identifier(&self) -> Ident {
-        Ident::new("add_successors", Span::call_site())
-    }
-
     fn parameter_type(&self) -> Type {
         let r#type: Type = parse_quote!(&::melior::ir::Block<'c>);
 
@@ -63,6 +59,10 @@ impl OperationField for Successor<'_> {
 
     fn is_optional(&self) -> bool {
         false
+    }
+
+    fn add_identifier(&self) -> Ident {
+        Ident::new("add_successors", Span::call_site())
     }
 
     fn add_arguments(&self) -> TokenStream {
