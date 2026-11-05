@@ -115,6 +115,7 @@ impl<'a> Operation<'a> {
             },
             results,
             operands: Self::collect_operands(
+                definition,
                 &arguments,
                 trait_names.contains("::mlir::OpTrait::SameVariadicOperandSize"),
                 trait_names.contains("::mlir::OpTrait::AttrSizedOperandSegments"),
@@ -372,6 +373,7 @@ impl<'a> Operation<'a> {
         attribute_sized: bool,
     ) -> Result<(Vec<OperationResult<'a>>, usize), Error> {
         Self::collect_elements(
+            definition,
             &Self::dag_constraints(definition, "results")?
                 .into_iter()
                 .map(|(name, constraint)| (name, Type::new(constraint)))
@@ -383,11 +385,13 @@ impl<'a> Operation<'a> {
     }
 
     fn collect_operands(
+        definition: Record<'a>,
         arguments: &[(&'a str, Record<'a>)],
         same_size: bool,
         attribute_sized: bool,
     ) -> Result<Vec<Operand<'a>>, Error> {
         Ok(Self::collect_elements(
+            definition,
             &arguments
                 .iter()
                 .filter(|(_, definition)| definition.subclass_of("TypeConstraint"))
@@ -401,6 +405,7 @@ impl<'a> Operation<'a> {
     }
 
     fn collect_elements<T>(
+        definition: Record<'a>,
         elements: &[(&'a str, Type)],
         create: impl Fn(&'a str, Type, ElementPosition) -> Result<T, Error>,
         same_size: bool,
@@ -415,11 +420,9 @@ impl<'a> Operation<'a> {
             Some(VariadicKind::AttributeSized)
         } else {
             // TODO: Support multiple variadic operands/results without these traits.
-            return Err(Error::InvalidIdentifier(
-                "multiple variadic operands/results require SameVariadicOperandSize, \
-                SameVariadicResultSize, or AttrSizedOperandSegments/AttrSizedResultSegments trait"
-                    .to_owned(),
-            ));
+            return Err(OdsError::MissingVariadicSizeTrait
+                .with_location(definition)
+                .into());
         };
 
         Ok((
@@ -486,5 +489,46 @@ impl<'a> Operation<'a> {
                 }
             })
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dialect::LLVM_INCLUDE_DIRECTORY;
+    use pretty_assertions::assert_eq;
+    use tblgen::TableGenParser;
+
+    #[test]
+    fn fail_to_create_operation_without_variadic_size_trait() {
+        let keeper = TableGenParser::new()
+            .add_include_directory(LLVM_INCLUDE_DIRECTORY)
+            .add_source(&unindent::unindent(
+                r#"
+                include "mlir/IR/OpBase.td"
+
+                def Test_Dialect : Dialect {
+                    let name = "test";
+                }
+
+                def Test_FooOp : Op<Test_Dialect, "foo"> {
+                    let arguments = (ins Variadic<I32>:$lhs, Variadic<I32>:$rhs);
+                }
+                "#,
+            ))
+            .unwrap()
+            .parse()
+            .unwrap();
+
+        assert_eq!(
+            Operation::new(keeper.def("Test_FooOp").unwrap())
+                .unwrap_err()
+                .add_source_info(keeper.source_info())
+                .to_string(),
+            "invalid ODS input: error: multiple variadic operands/results require \
+            SameVariadicOperandSize, SameVariadicResultSize, or \
+            AttrSizedOperandSegments/AttrSizedResultSegments trait\n\
+            def Test_FooOp : Op<Test_Dialect, \"foo\"> {\n    ^\n"
+        );
     }
 }

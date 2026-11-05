@@ -19,7 +19,6 @@ use proc_macro2::Span;
 use quote::quote;
 use std::{
     env,
-    fmt::Display,
     path::{Component, Path},
     str,
 };
@@ -55,7 +54,7 @@ pub fn generate_dialect(input: DialectInput) -> Result<TokenStream, Error> {
         keeper
             .all_derived_definitions("Dialect")
             .find(|definition| definition.str_value("name") == Ok(input.name()))
-            .ok_or_else(|| create_syn_error("dialect not found"))?,
+            .ok_or_else(|| syn::Error::new(Span::call_site(), "dialect not found"))?,
         &keeper,
     )
     .map_err(|error| error.add_source_info(keeper.source_info()))?;
@@ -214,8 +213,4 @@ fn resolve_include_directory(path: &str) -> String {
     }
     .display()
     .to_string()
-}
-
-fn create_syn_error(error: impl Display) -> syn::Error {
-    syn::Error::new(Span::call_site(), format!("{error}"))
 }
