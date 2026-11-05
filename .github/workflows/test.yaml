@@ -48,6 +48,8 @@ jobs:
       - run: cargo bench
   dialect_build:
     # TODO Remove this job when refactoring of dialect macros is done.
+    permissions:
+      pull-requests: write
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v7.0.1
@@ -58,7 +60,42 @@ jobs:
         with:
           ref: main
       - run: cd melior && cargo expand --all-features dialect::ods > ~/main.rs
-      - run: diff ~/main.rs ~/current.rs
+      - run: |
+          diff -u ~/main.rs ~/current.rs > ~/dialect.diff || [ $? -eq 1 ]
+          cat ~/dialect.diff
+      # Pull requests from forks get read-only tokens, so their diffs are only in the log above.
+      - run: |
+          marker='<!-- dialect-diff -->'
+          id=$(gh api --paginate repos/$GITHUB_REPOSITORY/issues/$PULL_REQUEST/comments --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n 1)
+
+          if [ ! -s ~/dialect.diff ] && [ -z "$id" ]; then
+            exit
+          fi
+
+          {
+            echo "$marker"
+
+            if [ -s ~/dialect.diff ]; then
+              echo 'Generated dialect code differs from `main`.'
+              echo '```diff'
+              awk '(size += length + 1) <= 60000' ~/dialect.diff
+              echo '```'
+              echo "See [the job log]($RUN_URL) for the full diff."
+            else
+              echo 'Generated dialect code is identical to `main`.'
+            fi
+          } > ~/comment.md
+
+          if [ -n "$id" ]; then
+            gh api --method PATCH repos/$GITHUB_REPOSITORY/issues/comments/$id -F body=@$HOME/comment.md
+          else
+            gh api repos/$GITHUB_REPOSITORY/issues/$PULL_REQUEST/comments -F body=@$HOME/comment.md
+          fi
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       - uses: actions/checkout@v7.0.1
   test:
     needs:
