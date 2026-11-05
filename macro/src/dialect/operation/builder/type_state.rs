@@ -53,7 +53,7 @@ impl TypeState {
 
     pub fn has_parameter(&self, field: &str) -> bool {
         self.ordered_fields()
-            .flat_map(|(fields, _)| fields.iter().map(|other| other.name()))
+            .flat_map(|(fields, _)| fields.iter().map(|field| field.name()))
             .chain(
                 self.unordered_fields()
                     .flat_map(|(fields, _)| fields.iter().map(|field| field.as_str())),
