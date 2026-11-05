@@ -131,7 +131,6 @@ impl TypeState {
             .map(|(index, _)| Self::build_generic_argument(prefix, index))
     }
 
-    // Required fields are set while optional ones are either set or unset.
     fn build_set_arguments<'a>(
         fields: &'a [OrderedField],
         prefix: &'a str,
