@@ -60,6 +60,7 @@ jobs:
         with:
           ref: main
       - run: cd melior && cargo expand --all-features dialect::ods > ~/main.rs
+      - uses: actions/checkout@v7.0.1
       - run: |
           diff -u ~/main.rs ~/current.rs > ~/dialect.diff || [ $? -eq 1 ]
           cat ~/dialect.diff
@@ -74,16 +75,7 @@ jobs:
 
           {
             echo "$marker"
-
-            if [ -s ~/dialect.diff ]; then
-              echo 'Generated dialect code differs from `main`.'
-              echo '```diff'
-              awk '(size += length + 1) <= 60000' ~/dialect.diff
-              echo '```'
-              echo "See [the job log]($RUN_URL) for the full diff."
-            else
-              echo 'Generated dialect code is identical to `main`.'
-            fi
+            tools/dialect_diff_report.sh ~/dialect.diff $RUN_URL
           } > ~/comment.md
 
           if [ -n "$id" ]; then
@@ -96,7 +88,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PULL_REQUEST: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      - uses: actions/checkout@v7.0.1
   test:
     needs:
       - build
