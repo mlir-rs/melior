@@ -42,7 +42,7 @@ pub fn generate_operation(operation: &Operation) -> TokenStream {
     let successor_accessors = operation
         .successors()
         .enumerate()
-        .map(|(index, region)| generate_successor_accessor(region, index))
+        .map(|(index, successor)| generate_successor_accessor(successor, index))
         .collect::<Vec<_>>();
     let attribute_accessors = operation
         .all_attributes()
