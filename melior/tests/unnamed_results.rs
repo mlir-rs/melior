@@ -1,4 +1,5 @@
 //! Tests for builders and accessors generated for unnamed ODS results.
+#![cfg(feature = "ods-dialects")]
 
 use melior::{
     Context,
@@ -35,6 +36,17 @@ fn build_single_unnamed_result() {
 
     assert_eq!(operation.as_operation().result_count(), 1);
     assert_eq!(operation.result_0().unwrap().r#type(), r#type);
+
+    // The generated convenience constructor takes required results first, then
+    // operands.
+    let operation = unnamed_results::single(
+        &context,
+        r#type,
+        block.argument(0).unwrap().into(),
+        location,
+    );
+
+    assert_eq!(operation.as_operation().result_count(), 1);
 }
 
 #[test]
