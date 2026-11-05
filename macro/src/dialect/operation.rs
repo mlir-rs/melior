@@ -241,13 +241,18 @@ impl<'a> Operation<'a> {
         self.attributes().chain(&self.derived_attributes)
     }
 
-    pub fn required_results(&self) -> impl Iterator<Item = &'_ OperationResult<'_>> {
+    // Results whose types are given to builders rather than inferred.
+    pub fn non_inferred_results(&self) -> impl Iterator<Item = &OperationResult<'a>> {
         if self.type_inference.is_some() {
             Default::default()
         } else {
             self.results.iter()
         }
-        .filter(|field| !field.is_optional())
+    }
+
+    pub fn required_results(&self) -> impl Iterator<Item = &OperationResult<'a>> {
+        self.non_inferred_results()
+            .filter(|field| !field.is_optional())
     }
 
     pub fn required_operands(&self) -> impl Iterator<Item = &'_ Operand<'_>> {
