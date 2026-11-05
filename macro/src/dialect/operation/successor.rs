@@ -1,4 +1,4 @@
-use super::OperationField;
+use super::{OperationField, SegmentKind};
 use crate::dialect::{
     error::Error,
     utility::{generate_iterator_type, generate_result_type, sanitize_snake_case_identifier},
@@ -37,10 +37,6 @@ impl OperationField for Successor<'_> {
         &self.singular_identifier
     }
 
-    fn plural_kind_identifier(&self) -> Ident {
-        Ident::new("successors", Span::call_site())
-    }
-
     fn parameter_type(&self) -> Type {
         let r#type: Type = parse_quote!(&::melior::ir::Block<'c>);
 
@@ -65,11 +61,22 @@ impl OperationField for Successor<'_> {
         false
     }
 
-    fn add_arguments(&self, name: &Ident) -> TokenStream {
+    fn add_identifier(&self) -> Ident {
+        Ident::new("add_successors", Span::call_site())
+    }
+
+    fn add_arguments(&self) -> TokenStream {
+        let name = &self.singular_identifier;
+
         if self.is_variadic() {
             quote! { #name }
         } else {
             quote! { &[#name] }
         }
+    }
+
+    // MLIR has no segment size attribute for successors.
+    fn segment(&self) -> Option<(SegmentKind, usize)> {
+        None
     }
 }

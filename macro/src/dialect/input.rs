@@ -2,7 +2,6 @@ mod input_field;
 
 use self::input_field::InputField;
 use proc_macro2::Span;
-use std::ops::Deref;
 use syn::{Token, parse::Parse, punctuated::Punctuated};
 
 pub struct DialectInput {
@@ -18,17 +17,17 @@ impl DialectInput {
     }
 
     pub fn files(&self) -> impl Iterator<Item = &str> {
-        self.files.iter().map(Deref::deref)
+        self.files.iter().map(String::as_str)
     }
 
     pub fn directories(&self) -> impl Iterator<Item = &str> {
-        self.directories.iter().map(Deref::deref)
+        self.directories.iter().map(String::as_str)
     }
 
-    pub fn directory_env_vars(&self) -> impl Iterator<Item = (&str, &Span)> {
+    pub fn directory_env_vars(&self) -> impl Iterator<Item = (&str, Span)> {
         self.directory_env_vars
             .iter()
-            .map(|(value, span)| (value.deref(), span))
+            .map(|(value, span)| (value.as_str(), *span))
     }
 }
 

@@ -1,94 +1,41 @@
 use crate::dialect::{
     error::Error,
-    operation::operation_field::OperationField,
+    operation::{SegmentKind, operation_field::OperationField},
     utility::{generate_result_type, sanitize_snake_case_identifier},
 };
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use std::{collections::HashMap, sync::LazyLock};
 use syn::{Ident, Type, parse_quote};
 use tblgen::{Record, error::TableGenError};
-
-macro_rules! prefixed_string {
-    ($prefix:literal, $name:ident) => {
-        concat!($prefix, stringify!($name))
-    };
-}
-
-macro_rules! mlir_attribute {
-    ($name:ident) => {
-        prefixed_string!("::mlir::", $name)
-    };
-}
-
-macro_rules! melior_attribute {
-    ($name:ident) => {
-        prefixed_string!("::melior::ir::attribute::", $name)
-    };
-}
-
-static ATTRIBUTE_TYPES: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
-    let mut map = HashMap::new();
-
-    macro_rules! initialize_attributes {
-        ($($mlir:ident => $melior:ident),* $(,)*) => {
-            $(
-                map.insert(
-                    mlir_attribute!($mlir),
-                    melior_attribute!($melior),
-                );
-            )*
-        };
-    }
-
-    initialize_attributes!(
-        ArrayAttr => ArrayAttribute,
-        Attribute => Attribute,
-        BoolAttr => BoolAttribute,
-        DenseElementsAttr => DenseElementsAttribute,
-        DenseI32ArrayAttr => DenseI32ArrayAttribute,
-        DenseI64ArrayAttr => DenseI64ArrayAttribute,
-        DictionaryAttr => DictionaryAttribute,
-        FlatSymbolRefAttr => FlatSymbolRefAttribute,
-        FloatAttr => FloatAttribute,
-        IntegerAttr => IntegerAttribute,
-        StringAttr => StringAttribute,
-        StridedLayoutAttr => StridedLayoutAttribute,
-        TypeAttr => TypeAttribute,
-    );
-
-    map
-});
 
 #[derive(Debug)]
 pub struct Attribute<'a> {
     name: &'a str,
     singular_identifier: Ident,
-    storage_type_string: String,
     set_identifier: Ident,
     remove_identifier: Ident,
-    storage_type: Type,
+    storage_type: Ident,
     optional: bool,
     default: bool,
 }
 
 impl<'a> Attribute<'a> {
     pub fn new(name: &'a str, record: Record<'a>) -> Result<Self, Error> {
-        // TODO Handle `?` attribute initializers properly.
-        let storage_type_string = record.string_value("storageType").unwrap_or_default();
-
         Ok(Self {
             name,
             singular_identifier: sanitize_snake_case_identifier(name)?,
             set_identifier: sanitize_snake_case_identifier(&format!("set_{name}"))?,
             remove_identifier: sanitize_snake_case_identifier(&format!("remove_{name}"))?,
-            storage_type: syn::parse_str(
-                ATTRIBUTE_TYPES
-                    .get(storage_type_string.trim())
-                    .copied()
-                    .unwrap_or(melior_attribute!(Attribute)),
-            )?,
-            storage_type_string,
+            storage_type: Ident::new(
+                Self::build_storage_type(
+                    // TODO Handle `?` attribute initializers properly.
+                    record
+                        .string_value("storageType")
+                        .unwrap_or_default()
+                        .trim(),
+                ),
+                Span::call_site(),
+            ),
             optional: record.bit_value("isOptional")?,
             default: match record.string_value("defaultValue") {
                 Ok(value) => !value.is_empty(),
@@ -112,12 +59,26 @@ impl<'a> Attribute<'a> {
         &self.remove_identifier
     }
 
-    pub fn is_unit(&self) -> bool {
-        self.storage_type_string == mlir_attribute!(UnitAttr)
+    pub fn is_type(&self) -> bool {
+        self.storage_type == "TypeAttribute"
     }
 
-    pub fn is_type(&self) -> bool {
-        self.storage_type_string.trim() == mlir_attribute!(TypeAttr)
+    fn build_storage_type(storage_type: &str) -> &'static str {
+        match storage_type {
+            "::mlir::ArrayAttr" => "ArrayAttribute",
+            "::mlir::BoolAttr" => "BoolAttribute",
+            "::mlir::DenseElementsAttr" => "DenseElementsAttribute",
+            "::mlir::DenseI32ArrayAttr" => "DenseI32ArrayAttribute",
+            "::mlir::DenseI64ArrayAttr" => "DenseI64ArrayAttribute",
+            "::mlir::DictionaryAttr" => "DictionaryAttribute",
+            "::mlir::FlatSymbolRefAttr" => "FlatSymbolRefAttribute",
+            "::mlir::FloatAttr" => "FloatAttribute",
+            "::mlir::IntegerAttr" => "IntegerAttribute",
+            "::mlir::StringAttr" => "StringAttribute",
+            "::mlir::StridedLayoutAttr" => "StridedLayoutAttribute",
+            "::mlir::TypeAttr" => "TypeAttribute",
+            _ => "Attribute",
+        }
     }
 }
 
@@ -130,32 +91,26 @@ impl OperationField for Attribute<'_> {
         &self.singular_identifier
     }
 
-    fn plural_kind_identifier(&self) -> Ident {
-        Ident::new("attributes", Span::call_site())
-    }
-
     fn parameter_type(&self) -> Type {
-        if self.is_unit() {
-            parse_quote!(bool)
-        } else {
-            let r#type = &self.storage_type;
-            parse_quote!(#r#type<'c>)
-        }
+        let r#type = &self.storage_type;
+
+        parse_quote!(::melior::ir::attribute::#r#type<'c>)
     }
 
     fn return_type(&self) -> Type {
-        if self.is_unit() {
-            parse_quote!(bool)
-        } else {
-            generate_result_type(self.parameter_type())
-        }
+        generate_result_type(self.parameter_type())
     }
 
     fn is_optional(&self) -> bool {
         self.optional || self.default
     }
 
-    fn add_arguments(&self, name: &Ident) -> TokenStream {
+    fn add_identifier(&self) -> Ident {
+        Ident::new("add_attributes", Span::call_site())
+    }
+
+    fn add_arguments(&self) -> TokenStream {
+        let name = &self.singular_identifier;
         let name_string = &self.name;
 
         quote! {
@@ -164,5 +119,10 @@ impl OperationField for Attribute<'_> {
                 #name.into(),
             )]
         }
+    }
+
+    // Attributes are not operands or results, so they have no group to size.
+    fn segment(&self) -> Option<(SegmentKind, usize)> {
+        None
     }
 }

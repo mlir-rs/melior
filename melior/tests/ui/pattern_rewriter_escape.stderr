@@ -1,0 +1,14 @@
+error[E0521]: borrowed data escapes outside of closure
+  --> tests/ui/pattern_rewriter_escape.rs:14:13
+   |
+ 7 |     let inner_rewriter = rewriter.clone();
+   |         -------------- `inner_rewriter` declared here, outside of the closure body
+...
+13 |         move |_, rewriter| {
+   |                  -------- `rewriter` is a reference that is only valid in the closure body
+14 |             inner_rewriter.set(Some(*rewriter));
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `rewriter` escapes the closure body here
+   |
+   = note: requirement occurs because of the type `Cell<Option<PatternRewriter<'_>>>`, which makes the generic argument `Option<PatternRewriter<'_>>` invariant
+   = note: the struct `Cell<T>` is invariant over the parameter `T`
+   = help: see <https://doc.rust-lang.org/nomicon/subtyping.html> for more information about variance

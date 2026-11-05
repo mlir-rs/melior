@@ -1,9 +1,8 @@
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::quote;
-use std::error::Error;
 
-pub fn generate_binary(dialect: &Ident, names: &[Ident]) -> Result<TokenStream, Box<dyn Error>> {
+pub fn generate_binary(dialect: &Ident, names: &[Ident]) -> TokenStream {
     let mut stream = TokenStream::new();
 
     for name in names {
@@ -37,10 +36,10 @@ pub fn generate_binary(dialect: &Ident, names: &[Ident]) -> Result<TokenStream, 
         }
     }));
 
-    Ok(stream)
+    stream
 }
 
-pub fn generate_unary(dialect: &Ident, names: &[Ident]) -> Result<TokenStream, Box<dyn Error>> {
+pub fn generate_unary(dialect: &Ident, names: &[Ident]) -> TokenStream {
     let mut stream = TokenStream::new();
 
     for name in names {
@@ -72,13 +71,10 @@ pub fn generate_unary(dialect: &Ident, names: &[Ident]) -> Result<TokenStream, B
         }
     }));
 
-    Ok(stream)
+    stream
 }
 
-pub fn generate_typed_unary(
-    dialect: &Ident,
-    names: &[Ident],
-) -> Result<TokenStream, Box<dyn Error>> {
+pub fn generate_typed_unary(dialect: &Ident, names: &[Ident]) -> TokenStream {
     let mut stream = TokenStream::new();
 
     for name in names {
@@ -112,7 +108,7 @@ pub fn generate_typed_unary(
         }
     }));
 
-    Ok(stream)
+    stream
 }
 
 fn create_document(dialect: &Ident, name: &Ident) -> String {

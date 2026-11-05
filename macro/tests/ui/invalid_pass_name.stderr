@@ -1,0 +1,5 @@
+error: expected prefix `mlirCreateTransforms`
+ --> tests/ui/invalid_pass_name.rs:5:9
+  |
+5 |         mlirCreateFuncDuplicateFunctionEliminationPass,
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

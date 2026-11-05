@@ -1,5 +1,5 @@
 use crate::{
-    context::Context, ir_rewriter::RewriterBase, logical_result::LogicalResult,
+    context::Context, ir::OperationRef, ir_rewriter::RewriterBase, logical_result::LogicalResult,
     string_ref::StringRef,
 };
 use mlir_sys::{
@@ -86,18 +86,22 @@ impl RewritePattern {
 ///
 /// This is a non-owning reference; it must not outlive the callback invocation.
 #[derive(Clone, Copy)]
-pub struct PatternRewriter {
+pub struct PatternRewriter<'a> {
     raw: MlirPatternRewriter,
+    _reference: PhantomData<&'a MlirPatternRewriter>,
 }
 
-impl PatternRewriter {
+impl PatternRewriter<'_> {
     /// Creates a pattern rewriter from a raw object.
     ///
     /// # Safety
     ///
     /// A raw object must be valid.
     pub unsafe fn from_raw(raw: MlirPatternRewriter) -> Self {
-        Self { raw }
+        Self {
+            raw,
+            _reference: PhantomData,
+        }
     }
 
     /// Returns the underlying rewriter base.
@@ -109,8 +113,10 @@ impl PatternRewriter {
 /// Creates an op rewrite pattern that matches operations with the given root
 /// name.
 ///
-/// The `callback` receives the pattern, the matched operation, and a pattern
-/// rewriter. It should perform the rewrite and return `true` on success.
+/// The `callback` receives the matched operation and a pattern rewriter. It
+/// should rewrite the operation and return `true`, or return `false` without
+/// modifying the IR if the pattern does not match. Panics in the callback abort
+/// the process because they might leave the IR partially rewritten.
 pub fn create_op_rewrite_pattern<F>(
     root_name: &str,
     benefit: u32,
@@ -119,7 +125,7 @@ pub fn create_op_rewrite_pattern<F>(
     generated_names: &[&str],
 ) -> RewritePattern
 where
-    F: FnMut(MlirRewritePattern, MlirOperation, MlirPatternRewriter) -> bool + 'static,
+    F: FnMut(OperationRef, &PatternRewriter) -> bool + 'static,
 {
     unsafe extern "C" fn destruct<F>(user_data: *mut c_void) {
         unsafe {
@@ -128,18 +134,21 @@ where
     }
 
     unsafe extern "C" fn match_and_rewrite<F>(
-        pattern: MlirRewritePattern,
+        _pattern: MlirRewritePattern,
         op: MlirOperation,
         rewriter: MlirPatternRewriter,
         user_data: *mut c_void,
     ) -> mlir_sys::MlirLogicalResult
     where
-        F: FnMut(MlirRewritePattern, MlirOperation, MlirPatternRewriter) -> bool,
+        F: FnMut(OperationRef, &PatternRewriter) -> bool,
     {
-        let cb = unsafe { &mut *(user_data as *mut F) };
-        let success = cb(pattern, op, rewriter);
-
-        LogicalResult::from(success).to_raw()
+        LogicalResult::from(unsafe {
+            (*(user_data as *mut F))(
+                OperationRef::from_raw(op),
+                &PatternRewriter::from_raw(rewriter),
+            )
+        })
+        .to_raw()
     }
 
     let callbacks = MlirRewritePatternCallbacks {
@@ -179,6 +188,7 @@ mod tests {
         ir::{Location, Module},
         test::create_test_context,
     };
+    use indoc::indoc;
 
     #[test]
     fn new_pattern_set() {
@@ -210,13 +220,8 @@ mod tests {
     fn create_and_add_op_rewrite_pattern() {
         let context = create_test_context();
 
-        let pattern = create_op_rewrite_pattern(
-            "arith.constant",
-            1,
-            &context,
-            |_pattern, _op, _rewriter| true,
-            &[],
-        );
+        let pattern =
+            create_op_rewrite_pattern("arith.constant", 1, &context, |_op, _rewriter| false, &[]);
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);
@@ -230,7 +235,7 @@ mod tests {
             "arith.constant",
             1,
             &context,
-            |_pattern, _op, _rewriter| true,
+            |_op, _rewriter| false,
             &["arith.addi"],
         );
 
@@ -243,13 +248,8 @@ mod tests {
         let context = create_test_context();
         let module = Module::new(Location::unknown(&context));
 
-        let pattern = create_op_rewrite_pattern(
-            "arith.constant",
-            1,
-            &context,
-            |_pattern, _op, _rewriter| true,
-            &[],
-        );
+        let pattern =
+            create_op_rewrite_pattern("arith.constant", 1, &context, |_op, _rewriter| false, &[]);
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);
@@ -262,34 +262,29 @@ mod tests {
 
     #[test]
     fn pattern_rewriter_as_rewriter_base() {
-        use crate::{
-            dialect::arith,
-            ir::{BlockLike, Type, attribute::IntegerAttribute},
-        };
-
         let context = create_test_context();
-        let module = Module::new(Location::unknown(&context));
-        let body = module.body();
-        let location = Location::unknown(&context);
-
-        let op = arith::constant(
+        let module = Module::parse(
             &context,
-            IntegerAttribute::new(Type::index(&context), 0).into(),
-            location,
-        );
+            indoc!(
+                "
+                func.func private @foo()
 
-        body.append_operation(op);
+                func.func @bar() {
+                    func.call @foo() : () -> ()
+                    return
+                }
+                "
+            ),
+        )
+        .unwrap();
 
         let pattern = create_op_rewrite_pattern(
-            "arith.constant",
+            "func.call",
             1,
             &context,
-            |_pattern, op, rewriter| {
-                let rewriter = unsafe { PatternRewriter::from_raw(rewriter) };
-                let base = rewriter.as_rewriter_base();
-                let op = unsafe { crate::ir::OperationRef::from_raw(op) };
+            |op, rewriter| {
+                rewriter.as_rewriter_base().erase_op(op);
 
-                base.erase_op(op);
                 true
             },
             &[],
@@ -302,5 +297,51 @@ mod tests {
         let config = GreedyRewriteDriverConfig::new();
 
         assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn fall_back_to_next_pattern() {
+        let context = create_test_context();
+        let module = Module::parse(
+            &context,
+            indoc!(
+                "
+                func.func private @foo()
+
+                func.func @bar() {
+                    func.call @foo() : () -> ()
+                    return
+                }
+                "
+            ),
+        )
+        .unwrap();
+
+        let set = RewritePatternSet::new(&context);
+        set.add(create_op_rewrite_pattern(
+            "func.call",
+            2,
+            &context,
+            |_op, _rewriter| false,
+            &[],
+        ));
+        set.add(create_op_rewrite_pattern(
+            "func.call",
+            1,
+            &context,
+            |op, rewriter| {
+                rewriter.as_rewriter_base().erase_op(op);
+
+                true
+            },
+            &[],
+        ));
+
+        let frozen = set.freeze();
+        let config = GreedyRewriteDriverConfig::new();
+
+        assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+        insta::assert_snapshot!(module.as_operation());
     }
 }

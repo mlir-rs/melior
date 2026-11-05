@@ -23,7 +23,7 @@ pub use self::{
     location::Location,
     module::Module,
     operation::{Operation, OperationRef},
-    region::{Region, RegionLike, RegionRef},
+    region::{Region, RegionIterator, RegionLike, RegionRef},
     r#type::{ShapedTypeLike, Type, TypeLike},
     value::{Value, ValueLike},
 };

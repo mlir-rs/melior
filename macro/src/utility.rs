@@ -1,3 +1,4 @@
+use proc_macro2::Ident;
 use regex::{Captures, Regex};
 use std::sync::LazyLock;
 
@@ -14,9 +15,18 @@ pub fn map_name(name: &str) -> String {
         .into()
 }
 
+pub fn strip_prefix(identifier: &Ident, prefix: &str) -> syn::Result<String> {
+    identifier
+        .to_string()
+        .strip_prefix(prefix)
+        .map(ToOwned::to_owned)
+        .ok_or_else(|| syn::Error::new(identifier.span(), format!("expected prefix `{prefix}`")))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proc_macro2::Span;
 
     #[test]
     fn map_normal_type_name() {
@@ -34,5 +44,30 @@ mod tests {
         assert_eq!(map_name("f_64"), "f64");
         assert_eq!(map_name("float_8_e_5_m_2"), "float8e5m2");
         assert_eq!(map_name("float_8_e_4_m_3_fn"), "float8e4m3fn");
+    }
+
+    #[test]
+    fn strip_identifier_prefix() {
+        assert_eq!(
+            strip_prefix(
+                &Ident::new("mlirTypeIsAInteger", Span::call_site()),
+                "mlirTypeIsA"
+            )
+            .unwrap(),
+            "Integer"
+        );
+    }
+
+    #[test]
+    fn fail_to_strip_identifier_prefix() {
+        assert_eq!(
+            strip_prefix(
+                &Ident::new("mlirTypeIsAInteger", Span::call_site()),
+                "mlirAttributeIsA"
+            )
+            .unwrap_err()
+            .to_string(),
+            "expected prefix `mlirAttributeIsA`"
+        );
     }
 }

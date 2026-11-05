@@ -1,17 +1,19 @@
 mod attribute;
 mod builder;
+mod element_position;
 mod operand;
 mod operation_element;
 mod operation_field;
 mod region;
 mod result;
+mod segment_kind;
 mod successor;
 mod variadic_kind;
 
 pub use self::{
-    attribute::Attribute, builder::OperationBuilder, operand::Operand,
-    operation_element::OperationElement, region::Region, result::OperationResult,
-    successor::Successor, variadic_kind::VariadicKind,
+    attribute::Attribute, builder::OperationBuilder, element_position::ElementPosition,
+    operand::Operand, operation_element::OperationElement, region::Region, result::OperationResult,
+    segment_kind::SegmentKind, successor::Successor, variadic_kind::VariadicKind,
 };
 use super::utility::{sanitize_documentation, sanitize_snake_case_identifier};
 use crate::dialect::{
@@ -113,6 +115,7 @@ impl<'a> Operation<'a> {
             },
             results,
             operands: Self::collect_operands(
+                definition,
                 &arguments,
                 trait_names.contains("::mlir::OpTrait::SameVariadicOperandSize"),
                 trait_names.contains("::mlir::OpTrait::AttrSizedOperandSegments"),
@@ -207,6 +210,22 @@ impl<'a> Operation<'a> {
         self.operands.len()
     }
 
+    // The segment size arrays a builder for this operation fills in, with their
+    // lengths. Result types are not set by the builder if they are inferred, so
+    // their group sizes cannot be computed either.
+    pub fn segment_arrays(&self) -> impl Iterator<Item = (SegmentKind, usize)> {
+        let operands = self
+            .operands
+            .iter()
+            .any(|operand| operand.segment().is_some())
+            .then_some((SegmentKind::Operand, self.operand_len()));
+        let results = (self.type_inference.is_none()
+            && self.results.iter().any(|result| result.segment().is_some()))
+        .then_some((SegmentKind::Result, self.result_len()));
+
+        operands.into_iter().chain(results)
+    }
+
     pub fn regions(&self) -> impl Iterator<Item = &Region<'a>> {
         self.regions.iter()
     }
@@ -223,24 +242,22 @@ impl<'a> Operation<'a> {
         self.attributes().chain(&self.derived_attributes)
     }
 
-    pub fn required_results(&self) -> impl Iterator<Item = &'_ OperationResult<'_>> {
-        match self.type_inference {
-            Some(_) => Default::default(),
-            None => self.results.iter(),
+    // Results whose types are given to builders rather than inferred.
+    pub fn non_inferred_results(&self) -> impl Iterator<Item = &OperationResult<'a>> {
+        if self.type_inference.is_some() {
+            Default::default()
+        } else {
+            self.results.iter()
         }
-        .filter(|field| !field.is_optional())
+    }
+
+    pub fn required_results(&self) -> impl Iterator<Item = &OperationResult<'a>> {
+        self.non_inferred_results()
+            .filter(|field| !field.is_optional())
     }
 
     pub fn required_operands(&self) -> impl Iterator<Item = &'_ Operand<'_>> {
         self.operands.iter().filter(|field| !field.is_optional())
-    }
-
-    pub fn required_regions(&self) -> impl Iterator<Item = &'_ Region<'_>> {
-        self.regions.iter().filter(|field| !field.is_optional())
-    }
-
-    pub fn required_successors(&self) -> impl Iterator<Item = &'_ Successor<'_>> {
-        self.successors.iter().filter(|field| !field.is_optional())
     }
 
     pub fn required_attributes(&self) -> impl Iterator<Item = &'_ Attribute<'_>> {
@@ -255,8 +272,8 @@ impl<'a> Operation<'a> {
         self.required_results()
             .map(convert)
             .chain(self.required_operands().map(convert))
-            .chain(self.required_regions().map(convert))
-            .chain(self.required_successors().map(convert))
+            .chain(self.regions().map(convert))
+            .chain(self.successors().map(convert))
             .chain(self.required_attributes().map(convert))
     }
 
@@ -348,6 +365,7 @@ impl<'a> Operation<'a> {
         attribute_sized: bool,
     ) -> Result<(Vec<OperationResult<'a>>, usize), Error> {
         Self::collect_elements(
+            definition,
             &Self::dag_constraints(definition, "results")?
                 .into_iter()
                 .map(|(name, constraint)| (name, Type::new(constraint)))
@@ -359,11 +377,13 @@ impl<'a> Operation<'a> {
     }
 
     fn collect_operands(
+        definition: Record<'a>,
         arguments: &[(&'a str, Record<'a>)],
         same_size: bool,
         attribute_sized: bool,
     ) -> Result<Vec<Operand<'a>>, Error> {
         Ok(Self::collect_elements(
+            definition,
             &arguments
                 .iter()
                 .filter(|(_, definition)| definition.subclass_of("TypeConstraint"))
@@ -377,44 +397,52 @@ impl<'a> Operation<'a> {
     }
 
     fn collect_elements<T>(
+        definition: Record<'a>,
         elements: &[(&'a str, Type)],
-        create: impl Fn(&'a str, Type, VariadicKind) -> Result<T, Error>,
+        create: impl Fn(&'a str, Type, ElementPosition) -> Result<T, Error>,
         same_size: bool,
         attribute_sized: bool,
     ) -> Result<(Vec<T>, usize), Error> {
-        let unfixed_count = elements
+        let unfixed_count = Self::count_unfixed_elements(elements);
+        let variadic_kind = if unfixed_count <= 1 {
+            None
+        } else if same_size {
+            Some(VariadicKind::SameSize)
+        } else if attribute_sized {
+            Some(VariadicKind::AttributeSized)
+        } else {
+            // TODO: Support multiple variadic operands/results without these traits.
+            return Err(OdsError::MissingVariadicSizeTrait
+                .with_location(definition)
+                .into());
+        };
+
+        Ok((
+            elements
+                .iter()
+                .enumerate()
+                .map(|(index, (name, r#type))| {
+                    create(
+                        name,
+                        *r#type,
+                        ElementPosition::new(
+                            index,
+                            Self::count_unfixed_elements(&elements[..index]),
+                            unfixed_count,
+                            variadic_kind,
+                        ),
+                    )
+                })
+                .collect::<Result<_, _>>()?,
+            unfixed_count,
+        ))
+    }
+
+    fn count_unfixed_elements(elements: &[(&str, Type)]) -> usize {
+        elements
             .iter()
             .filter(|(_, r#type)| r#type.is_unfixed())
-            .count();
-        let mut variadic_kind = VariadicKind::new(unfixed_count, same_size, attribute_sized)
-            .map_err(|msg| Error::InvalidIdentifier(msg.to_owned()))?;
-        let mut fields = vec![];
-
-        for (name, r#type) in elements {
-            fields.push(create(name, *r#type, variadic_kind.clone())?);
-
-            match &mut variadic_kind {
-                VariadicKind::Simple { unfixed_seen } => {
-                    if r#type.is_unfixed() {
-                        *unfixed_seen = true;
-                    }
-                }
-                VariadicKind::SameSize {
-                    preceding_simple_count,
-                    preceding_variadic_count,
-                    ..
-                } => {
-                    if r#type.is_unfixed() {
-                        *preceding_variadic_count += 1;
-                    } else {
-                        *preceding_simple_count += 1;
-                    }
-                }
-                VariadicKind::AttributeSized => {}
-            }
-        }
-
-        Ok((fields, unfixed_count))
+            .count()
     }
 
     fn collect_attributes(
@@ -453,5 +481,46 @@ impl<'a> Operation<'a> {
                 }
             })
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dialect::LLVM_INCLUDE_DIRECTORY;
+    use pretty_assertions::assert_eq;
+    use tblgen::TableGenParser;
+
+    #[test]
+    fn fail_to_create_operation_without_variadic_size_trait() {
+        let keeper = TableGenParser::new()
+            .add_include_directory(LLVM_INCLUDE_DIRECTORY)
+            .add_source(&unindent::unindent(
+                r#"
+                include "mlir/IR/OpBase.td"
+
+                def Test_Dialect : Dialect {
+                    let name = "test";
+                }
+
+                def Test_FooOp : Op<Test_Dialect, "foo"> {
+                    let arguments = (ins Variadic<I32>:$lhs, Variadic<I32>:$rhs);
+                }
+                "#,
+            ))
+            .unwrap()
+            .parse()
+            .unwrap();
+
+        assert_eq!(
+            Operation::new(keeper.def("Test_FooOp").unwrap())
+                .unwrap_err()
+                .add_source_info(keeper.source_info())
+                .to_string(),
+            "invalid ODS input: error: multiple variadic operands/results require \
+            SameVariadicOperandSize, SameVariadicResultSize, or \
+            AttrSizedOperandSegments/AttrSizedResultSegments trait\n\
+            def Test_FooOp : Op<Test_Dialect, \"foo\"> {\n    ^\n"
+        );
     }
 }
