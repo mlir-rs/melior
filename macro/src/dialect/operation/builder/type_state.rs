@@ -98,13 +98,10 @@ impl TypeState {
             }))
     }
 
-    // The arguments of a new builder, where no field is set.
     pub fn initial_arguments(&self) -> impl Iterator<Item = GenericArgument> + '_ {
         self.parameters().map(|_| Self::build_argument(false))
     }
 
-    // The parameters and arguments of a builder ready to build an operation,
-    // where all the required fields are set.
     pub fn final_parameters(&self) -> impl Iterator<Item = GenericArgument> + '_ {
         self.ordered_fields()
             .flat_map(|(fields, prefix)| Self::build_optional_parameters(fields, prefix))
