@@ -890,6 +890,7 @@ mod tests {
 
         let operation = linalg::reduce(
             &context,
+            &[],
             &[
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
