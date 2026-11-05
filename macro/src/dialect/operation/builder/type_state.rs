@@ -169,8 +169,6 @@ impl TypeState {
             .map(|(index, _)| Self::build_generic_argument(prefix, index))
     }
 
-    // The later fields are unset so that a setter cannot be called after their
-    // setters.
     fn build_ordered_arguments_with<'a>(
         fields: &'a [OrderedField],
         prefix: &'a str,
