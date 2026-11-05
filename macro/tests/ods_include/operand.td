@@ -40,3 +40,21 @@ def OperandTest_AttributeSizedOptionalOp :
     let arguments = (ins I32:$first, Optional<I32>:$optional, Variadic<I32>:$others);
     let results = (outs I32:$res);
 }
+
+def OperandTest_SameSizeOp :
+        OperandTest_Op<"same_size", [SameVariadicOperandSize]> {
+    let arguments = (ins Variadic<I32>:$lhs, Variadic<I32>:$rhs);
+    let results = (outs I32:$res);
+}
+
+def OperandTest_SameSizeWithSinglesOp :
+        OperandTest_Op<"same_size_with_singles", [SameVariadicOperandSize]> {
+    let arguments = (ins
+        I32:$first,
+        Variadic<I32>:$lhs,
+        I32:$middle,
+        Variadic<I32>:$rhs,
+        I32:$last
+    );
+    let results = (outs I32:$res);
+}

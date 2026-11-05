@@ -16,3 +16,8 @@ def ResultTest_AttributeSizedOp :
         Variadic<AnyType>:$others
     );
 }
+
+def ResultTest_SameSizeOp :
+        ResultTest_Op<"same_size", [SameVariadicResultSize]> {
+    let results = (outs Variadic<AnyType>:$lhs, Variadic<AnyType>:$rhs);
+}
