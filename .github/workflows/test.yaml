@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: $/.github/actions/setup
-      - run: sed -i s/stable/nightly/ rust-toolchain.toml
+      - run: yq -i '.toolchain.channel = "nightly"' rust-toolchain.toml
       - run: cargo test -Zbuild-std --target x86_64-unknown-linux-gnu
   bench:
     runs-on: ubuntu-24.04-arm
