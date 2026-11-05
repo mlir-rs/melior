@@ -6,8 +6,6 @@ use proc_macro2::Span;
 use std::{
     error,
     fmt::{self, Display, Formatter},
-    io,
-    string::FromUtf8Error,
 };
 use tblgen::{
     SourceInfo,
@@ -18,12 +16,10 @@ use tblgen::{
 pub enum Error {
     Format(fmt::Error),
     InvalidIdentifier(String),
-    Io(io::Error),
     Ods(SourceError<OdsError>),
     Parse(tblgen::Error),
     Syn(syn::Error),
     TableGen(tblgen::Error),
-    Utf8(FromUtf8Error),
 }
 
 impl Error {
@@ -32,11 +28,7 @@ impl Error {
             Self::TableGen(error) => error.add_source_info(info).into(),
             Self::Ods(error) => error.add_source_info(info).into(),
             Self::Parse(error) => Self::Parse(error.add_source_info(info)),
-            Self::Format(_)
-            | Self::InvalidIdentifier(_)
-            | Self::Io(_)
-            | Self::Syn(_)
-            | Self::Utf8(_) => self,
+            Self::Format(_) | Self::InvalidIdentifier(_) | Self::Syn(_) => self,
         }
     }
 
@@ -47,9 +39,7 @@ impl Error {
             | Self::Ods(_)
             | Self::Parse(_)
             | Self::Format(_)
-            | Self::InvalidIdentifier(_)
-            | Self::Io(_)
-            | Self::Utf8(_) => syn::Error::new(Span::call_site(), self)
+            | Self::InvalidIdentifier(_) => syn::Error::new(Span::call_site(), self)
                 .to_compile_error()
                 .into(),
         }
@@ -63,12 +53,10 @@ impl Display for Error {
             Self::InvalidIdentifier(identifier) => {
                 write!(formatter, "invalid identifier: {identifier}")
             }
-            Self::Io(error) => write!(formatter, "{error}"),
             Self::Ods(error) => write!(formatter, "invalid ODS input: {error}"),
             Self::Parse(error) => write!(formatter, "failed to parse TableGen source: {error}"),
             Self::Syn(error) => write!(formatter, "failed to parse macro input: {error}"),
             Self::TableGen(error) => write!(formatter, "invalid ODS input: {error}"),
-            Self::Utf8(error) => write!(formatter, "{error}"),
         }
     }
 }
@@ -96,17 +84,5 @@ impl From<syn::Error> for Error {
 impl From<fmt::Error> for Error {
     fn from(error: fmt::Error) -> Self {
         Self::Format(error)
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Self {
-        Self::Io(error)
-    }
-}
-
-impl From<FromUtf8Error> for Error {
-    fn from(error: FromUtf8Error) -> Self {
-        Self::Utf8(error)
     }
 }

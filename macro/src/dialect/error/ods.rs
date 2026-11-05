@@ -7,6 +7,7 @@ use std::{
 pub enum OdsError {
     ExpectedSuperClass(&'static str),
     InvalidTrait,
+    MissingVariadicSizeTrait,
     UnexpectedSuperClass(&'static str),
     UnnamedDagArg(&'static str),
 }
@@ -18,6 +19,11 @@ impl Display for OdsError {
                 write!(formatter, "record should be a sub-class of {class}",)
             }
             Self::InvalidTrait => write!(formatter, "record is not a supported trait"),
+            Self::MissingVariadicSizeTrait => write!(
+                formatter,
+                "multiple variadic operands/results require SameVariadicOperandSize, \
+                SameVariadicResultSize, or AttrSizedOperandSegments/AttrSizedResultSegments trait"
+            ),
             Self::UnexpectedSuperClass(class) => {
                 write!(formatter, "record should not be a sub-class of {class}",)
             }
