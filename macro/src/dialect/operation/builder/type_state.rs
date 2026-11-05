@@ -148,12 +148,13 @@ impl TypeState {
         fields: &'a [OrderedField],
         prefix: &'a str,
         field: &'a str,
-    ) -> Box<dyn Iterator<Item = GenericArgument> + 'a> {
-        let Some(index) = fields.iter().position(|other| other.name() == field) else {
-            return Box::new(Self::build_parameters(fields.len(), prefix));
-        };
-
-        Box::new(Self::build_optional_parameters(&fields[..index], prefix))
+    ) -> impl Iterator<Item = GenericArgument> + 'a {
+        if let Some(index) = fields.iter().position(|other| other.name() == field) {
+            Box::new(Self::build_optional_parameters(&fields[..index], prefix))
+                as Box<dyn Iterator<Item = _>>
+        } else {
+            Box::new(Self::build_parameters(fields.len(), prefix))
+        }
     }
 
     fn build_unordered_parameters_without<'a>(
@@ -173,19 +174,19 @@ impl TypeState {
         prefix: &'a str,
         field: &'a str,
         set: bool,
-    ) -> Box<dyn Iterator<Item = GenericArgument> + 'a> {
-        let Some(index) = fields.iter().position(|other| other.name() == field) else {
-            return Box::new(Self::build_parameters(fields.len(), prefix));
-        };
-
-        Box::new(
-            Self::build_set_arguments(&fields[..index], prefix)
-                .chain([Self::build_argument(set)])
-                .chain(repeat_n(
-                    Self::build_argument(false),
-                    fields.len() - index - 1,
-                )),
-        )
+    ) -> impl Iterator<Item = GenericArgument> + 'a {
+        if let Some(index) = fields.iter().position(|other| other.name() == field) {
+            Box::new(
+                Self::build_set_arguments(&fields[..index], prefix)
+                    .chain([Self::build_argument(set)])
+                    .chain(repeat_n(
+                        Self::build_argument(false),
+                        fields.len() - index - 1,
+                    )),
+            ) as Box<dyn Iterator<Item = _>>
+        } else {
+            Box::new(Self::build_parameters(fields.len(), prefix))
+        }
     }
 
     fn build_unordered_arguments_with<'a>(
