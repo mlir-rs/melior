@@ -47,7 +47,6 @@ jobs:
       - uses: $/.github/actions/setup
       - run: cargo bench
   dialect_build:
-    # TODO Remove this job when refactoring of dialect macros is done.
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v7.0.1
@@ -59,9 +58,9 @@ jobs:
           ref: main
       - run: cd melior && cargo expand --all-features dialect::ods > ~/main.rs
       - run: diff ~/main.rs ~/current.rs
-      - uses: actions/checkout@v7.0.1
   test:
     needs:
+      - dialect_build
       - build
       - unit_test
       - bench
