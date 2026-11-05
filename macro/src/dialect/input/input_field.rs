@@ -1,5 +1,4 @@
 use proc_macro2::Ident;
-use quote::format_ident;
 use syn::{LitStr, Token, bracketed, parse::Parse, punctuated::Punctuated};
 
 pub enum InputField {
@@ -15,28 +14,22 @@ impl Parse for InputField {
 
         input.parse::<Token![:]>()?;
 
-        if ident == format_ident!("name") {
+        if ident == "name" {
             Ok(Self::Name(input.parse()?))
-        } else if ident == format_ident!("files") {
-            let content;
-            bracketed!(content in input);
-            Ok(Self::Files(
-                Punctuated::<LitStr, Token![,]>::parse_terminated(&content)?,
-            ))
-        } else if ident == format_ident!("include_directories") {
-            let content;
-            bracketed!(content in input);
-            Ok(Self::Directories(
-                Punctuated::<LitStr, Token![,]>::parse_terminated(&content)?,
-            ))
-        } else if ident == format_ident!("include_directory_env_vars") {
-            let content;
-            bracketed!(content in input);
-            Ok(Self::DirectoryEnvVars(
-                Punctuated::<LitStr, Token![,]>::parse_terminated(&content)?,
-            ))
+        } else if ident == "files" {
+            Ok(Self::Files(parse_string_list(input)?))
+        } else if ident == "include_directories" {
+            Ok(Self::Directories(parse_string_list(input)?))
+        } else if ident == "include_directory_env_vars" {
+            Ok(Self::DirectoryEnvVars(parse_string_list(input)?))
         } else {
             Err(input.error(format!("invalid field {ident}")))
         }
     }
+}
+
+fn parse_string_list(input: syn::parse::ParseStream) -> syn::Result<Punctuated<LitStr, Token![,]>> {
+    let content;
+    bracketed!(content in input);
+    Punctuated::parse_terminated(&content)
 }

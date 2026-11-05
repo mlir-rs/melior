@@ -37,8 +37,8 @@ impl OperationField for Successor<'_> {
         &self.singular_identifier
     }
 
-    fn plural_kind_identifier(&self) -> Ident {
-        Ident::new("successors", Span::call_site())
+    fn add_identifier(&self) -> Ident {
+        Ident::new("add_successors", Span::call_site())
     }
 
     fn parameter_type(&self) -> Type {

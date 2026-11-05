@@ -40,8 +40,8 @@ impl OperationField for Operand<'_> {
         &self.singular_identifier
     }
 
-    fn plural_kind_identifier(&self) -> Ident {
-        format_ident!("operands")
+    fn add_identifier(&self) -> Ident {
+        format_ident!("add_operands")
     }
 
     fn parameter_type(&self) -> Type {

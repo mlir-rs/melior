@@ -40,8 +40,8 @@ impl OperationField for OperationResult<'_> {
         &self.singular_identifier
     }
 
-    fn plural_kind_identifier(&self) -> Ident {
-        Ident::new("results", Span::call_site())
+    fn add_identifier(&self) -> Ident {
+        Ident::new("add_results", Span::call_site())
     }
 
     // TODO Share this logic with `Operand`.

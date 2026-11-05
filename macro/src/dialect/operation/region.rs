@@ -37,12 +37,12 @@ impl OperationField for Region<'_> {
         &self.singular_identifier
     }
 
-    fn plural_kind_identifier(&self) -> Ident {
+    fn add_identifier(&self) -> Ident {
         Ident::new(
             if self.variadic {
-                "regions_vec"
+                "add_regions_vec"
             } else {
-                "regions"
+                "add_regions"
             },
             Span::call_site(),
         )

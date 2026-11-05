@@ -259,14 +259,6 @@ impl<'a> Operation<'a> {
         self.operands.iter().filter(|field| !field.is_optional())
     }
 
-    pub fn required_regions(&self) -> impl Iterator<Item = &'_ Region<'_>> {
-        self.regions.iter().filter(|field| !field.is_optional())
-    }
-
-    pub fn required_successors(&self) -> impl Iterator<Item = &'_ Successor<'_>> {
-        self.successors.iter().filter(|field| !field.is_optional())
-    }
-
     pub fn required_attributes(&self) -> impl Iterator<Item = &'_ Attribute<'_>> {
         self.attributes.iter().filter(|field| !field.is_optional())
     }
@@ -279,8 +271,8 @@ impl<'a> Operation<'a> {
         self.required_results()
             .map(convert)
             .chain(self.required_operands().map(convert))
-            .chain(self.required_regions().map(convert))
-            .chain(self.required_successors().map(convert))
+            .chain(self.regions().map(convert))
+            .chain(self.successors().map(convert))
             .chain(self.required_attributes().map(convert))
     }
 

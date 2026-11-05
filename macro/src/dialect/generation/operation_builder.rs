@@ -3,6 +3,7 @@ use crate::dialect::operation::{
 };
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
+use std::iter::repeat_n;
 use syn::Type;
 
 pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
@@ -134,7 +135,7 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
     let identifier = field.singular_identifier();
     let parameter_type = field.parameter_type();
     let argument = quote! { #identifier: #parameter_type };
-    let add_identifier = format_ident!("add_{}", field.plural_kind_identifier());
+    let add_identifier = field.add_identifier();
     let add_arguments = field.add_arguments();
 
     if !builder.type_state().has_parameter(field.name()) {
@@ -180,10 +181,9 @@ fn generate_same_operands_first_fn(
     let identifier = field.singular_identifier();
     let parameter_type = field.parameter_type();
     let argument = quote! { #identifier: #parameter_type };
-    let add_identifier = format_ident!("add_{}", field.plural_kind_identifier());
+    let add_identifier = field.add_identifier();
     let add_arguments = field.add_arguments();
-    let result_count = builder.operation().result_len();
-    let result_type_copies: Vec<_> = (0..result_count).map(|_| quote! { result_type }).collect();
+    let result_type_copies = repeat_n(quote! { result_type }, builder.operation().result_len());
     // For variadic operands the parameter is `&[Value]`; index into it for the
     // type. For singular operands the parameter is `Value`; take a reference
     // directly.
@@ -224,8 +224,7 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
     let parameter_type = field.parameter_type();
     let argument = quote! { #identifier: #parameter_type };
     let add_arguments = field.add_arguments();
-    let result_count = builder.operation().result_len();
-    let result_type_copies: Vec<_> = (0..result_count).map(|_| quote! { result_type }).collect();
+    let result_type_copies = repeat_n(quote! { result_type }, builder.operation().result_len());
     // If the attribute is a TypeAttr, use its wrapped type; otherwise use the
     // attribute's own type.
     let type_access = if field.is_type() {
