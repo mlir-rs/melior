@@ -57,6 +57,7 @@ pub fn generate_element_getter(
         }
         Some(VariadicKind::SameSize) => {
             let unfixed_count = position.unfixed_count();
+            let fixed_count = length - unfixed_count;
             let preceding_unfixed_count = position.preceding_unfixed_count();
             let preceding_fixed_count = index - preceding_unfixed_count;
             let get_elements = if field.is_unfixed() {
@@ -70,7 +71,7 @@ pub fn generate_element_getter(
             };
 
             quote! {
-                let total_var_len = self.operation.#count() - #unfixed_count + 1;
+                let total_var_len = self.operation.#count() - #fixed_count;
                 let group_len = total_var_len / #unfixed_count;
                 let start = #preceding_fixed_count + #preceding_unfixed_count * group_len;
 

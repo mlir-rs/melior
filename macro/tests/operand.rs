@@ -311,3 +311,162 @@ fn attribute_sized_without_optional() {
     assert_eq!(operation.others().unwrap().count(), 2);
     assert_eq!(operation.as_operation().operand_count(), 3);
 }
+
+#[test]
+fn same_size() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let r#type = Type::parse(&context, "i32").unwrap();
+    let block = Block::new(&[
+        (r#type, location),
+        (r#type, location),
+        (r#type, location),
+        (r#type, location),
+    ]);
+    let operation = operand_test::same_size(
+        &context,
+        r#type,
+        &[
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        ],
+        &[
+            block.argument(2).unwrap().into(),
+            block.argument(3).unwrap().into(),
+        ],
+        location,
+    );
+
+    assert_eq!(
+        operation.lhs().collect::<Vec<_>>(),
+        [
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        ]
+    );
+    assert_eq!(
+        operation.rhs().collect::<Vec<_>>(),
+        [
+            block.argument(2).unwrap().into(),
+            block.argument(3).unwrap().into(),
+        ]
+    );
+    assert_eq!(operation.as_operation().operand_count(), 4);
+}
+
+#[test]
+fn empty_same_size() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let operation = operand_test::same_size(
+        &context,
+        Type::parse(&context, "i32").unwrap(),
+        &[],
+        &[],
+        location,
+    );
+
+    assert_eq!(operation.lhs().count(), 0);
+    assert_eq!(operation.rhs().count(), 0);
+    assert_eq!(operation.as_operation().operand_count(), 0);
+}
+
+#[test]
+fn same_size_with_singles() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let r#type = Type::parse(&context, "i32").unwrap();
+    let block = Block::new(&[
+        (r#type, location),
+        (r#type, location),
+        (r#type, location),
+        (r#type, location),
+        (r#type, location),
+        (r#type, location),
+        (r#type, location),
+    ]);
+    let operation = operand_test::same_size_with_singles(
+        &context,
+        r#type,
+        block.argument(0).unwrap().into(),
+        &[
+            block.argument(1).unwrap().into(),
+            block.argument(2).unwrap().into(),
+        ],
+        block.argument(3).unwrap().into(),
+        &[
+            block.argument(4).unwrap().into(),
+            block.argument(5).unwrap().into(),
+        ],
+        block.argument(6).unwrap().into(),
+        location,
+    );
+
+    assert_eq!(
+        operation.first().unwrap(),
+        block.argument(0).unwrap().into()
+    );
+    assert_eq!(
+        operation.lhs().collect::<Vec<_>>(),
+        [
+            block.argument(1).unwrap().into(),
+            block.argument(2).unwrap().into(),
+        ]
+    );
+    assert_eq!(
+        operation.middle().unwrap(),
+        block.argument(3).unwrap().into()
+    );
+    assert_eq!(
+        operation.rhs().collect::<Vec<_>>(),
+        [
+            block.argument(4).unwrap().into(),
+            block.argument(5).unwrap().into(),
+        ]
+    );
+    assert_eq!(operation.last().unwrap(), block.argument(6).unwrap().into());
+    assert_eq!(operation.as_operation().operand_count(), 7);
+}
+
+#[test]
+fn empty_same_size_with_singles() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let r#type = Type::parse(&context, "i32").unwrap();
+    let block = Block::new(&[(r#type, location), (r#type, location), (r#type, location)]);
+    let operation = operand_test::same_size_with_singles(
+        &context,
+        r#type,
+        block.argument(0).unwrap().into(),
+        &[],
+        block.argument(1).unwrap().into(),
+        &[],
+        block.argument(2).unwrap().into(),
+        location,
+    );
+
+    assert_eq!(
+        operation.first().unwrap(),
+        block.argument(0).unwrap().into()
+    );
+    assert_eq!(operation.lhs().count(), 0);
+    assert_eq!(
+        operation.middle().unwrap(),
+        block.argument(1).unwrap().into()
+    );
+    assert_eq!(operation.rhs().count(), 0);
+    assert_eq!(operation.last().unwrap(), block.argument(2).unwrap().into());
+    assert_eq!(operation.as_operation().operand_count(), 3);
+}

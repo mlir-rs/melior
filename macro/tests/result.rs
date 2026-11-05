@@ -66,3 +66,37 @@ fn attribute_sized_without_optional() {
     );
     assert_eq!(operation.as_operation().result_count(), 3);
 }
+
+#[test]
+fn same_size() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let lhs_types = [
+        Type::parse(&context, "i8").unwrap(),
+        Type::parse(&context, "i16").unwrap(),
+    ];
+    let rhs_types = [
+        Type::parse(&context, "i32").unwrap(),
+        Type::parse(&context, "i64").unwrap(),
+    ];
+    let operation = result_test::same_size(&context, &lhs_types, &rhs_types, location);
+
+    assert_eq!(
+        operation
+            .lhs()
+            .map(|result| result.r#type())
+            .collect::<Vec<_>>(),
+        lhs_types
+    );
+    assert_eq!(
+        operation
+            .rhs()
+            .map(|result| result.r#type())
+            .collect::<Vec<_>>(),
+        rhs_types
+    );
+    assert_eq!(operation.as_operation().result_count(), 4);
+}
