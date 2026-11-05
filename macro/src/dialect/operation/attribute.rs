@@ -155,7 +155,8 @@ impl OperationField for Attribute<'_> {
         self.optional || self.default
     }
 
-    fn add_arguments(&self, name: &Ident) -> TokenStream {
+    fn add_arguments(&self) -> TokenStream {
+        let name = &self.singular_identifier;
         let name_string = &self.name;
 
         quote! {

@@ -72,7 +72,9 @@ impl OperationField for OperationResult<'_> {
         self.r#type.is_optional()
     }
 
-    fn add_arguments(&self, name: &Ident) -> TokenStream {
+    fn add_arguments(&self) -> TokenStream {
+        let name = &self.singular_identifier;
+
         if self.r#type.is_unfixed() && !self.r#type.is_optional() {
             quote! { #name }
         } else {
