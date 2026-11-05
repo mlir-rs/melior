@@ -1,4 +1,5 @@
 include "mlir/IR/OpBase.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
 
 def Test_Dialect : Dialect {
     let name = "unnamed_results";
