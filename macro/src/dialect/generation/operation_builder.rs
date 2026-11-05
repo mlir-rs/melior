@@ -331,7 +331,7 @@ fn generate_new_fn(builder: &OperationBuilder) -> TokenStream {
 }
 
 pub fn generate_operation_builder_fn(builder: &OperationBuilder) -> TokenStream {
-    let builder_ident = builder.identifier();
+    let identifier = builder.identifier();
     let arguments = builder.type_state().initial_arguments();
 
     quote! {
@@ -339,8 +339,8 @@ pub fn generate_operation_builder_fn(builder: &OperationBuilder) -> TokenStream 
         pub fn builder(
             context: &'c ::melior::Context,
             location: ::melior::ir::Location<'c>
-        ) -> #builder_ident<'c, #(#arguments),*> {
-            #builder_ident::new(context, location)
+        ) -> #identifier<'c, #(#arguments),*> {
+            #identifier::new(context, location)
         }
     }
 }
