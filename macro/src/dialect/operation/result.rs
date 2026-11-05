@@ -9,21 +9,18 @@ use quote::quote;
 use syn::{Ident, Type, parse_quote};
 
 #[derive(Debug)]
-pub struct OperationResult<'a> {
-    name: &'a str,
+pub struct OperationResult {
+    // Owned, as names for unnamed ODS results are generated.
+    name: String,
     singular_identifier: Ident,
     r#type: ElementType,
     position: ElementPosition,
 }
 
-impl<'a> OperationResult<'a> {
-    pub fn new(
-        name: &'a str,
-        r#type: ElementType,
-        position: ElementPosition,
-    ) -> Result<Self, Error> {
+impl OperationResult {
+    pub fn new(name: &str, r#type: ElementType, position: ElementPosition) -> Result<Self, Error> {
         Ok(Self {
-            name,
+            name: name.into(),
             singular_identifier: sanitize_snake_case_identifier(name)?,
             r#type,
             position,
@@ -31,9 +28,9 @@ impl<'a> OperationResult<'a> {
     }
 }
 
-impl OperationField for OperationResult<'_> {
+impl OperationField for OperationResult {
     fn name(&self) -> &str {
-        self.name
+        &self.name
     }
 
     fn singular_identifier(&self) -> &Ident {
@@ -88,7 +85,7 @@ impl OperationField for OperationResult<'_> {
     }
 }
 
-impl OperationElement for OperationResult<'_> {
+impl OperationElement for OperationResult {
     fn is_variadic(&self) -> bool {
         self.r#type.is_variadic()
     }
