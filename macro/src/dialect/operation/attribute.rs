@@ -130,10 +130,6 @@ impl OperationField for Attribute<'_> {
         &self.singular_identifier
     }
 
-    fn plural_kind_identifier(&self) -> Ident {
-        Ident::new("attributes", Span::call_site())
-    }
-
     fn parameter_type(&self) -> Type {
         if self.is_unit() {
             parse_quote!(bool)
@@ -153,6 +149,10 @@ impl OperationField for Attribute<'_> {
 
     fn is_optional(&self) -> bool {
         self.optional || self.default
+    }
+
+    fn add_identifier(&self) -> Ident {
+        Ident::new("add_attributes", Span::call_site())
     }
 
     fn add_arguments(&self) -> TokenStream {
