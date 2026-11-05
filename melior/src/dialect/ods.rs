@@ -834,4 +834,89 @@ mod tests {
         );
         assert_eq!(operation.symbol_operands().unwrap().count(), 0);
     }
+
+    #[test]
+    fn read_operand_groups_of_same_size_operation() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let element_type = Type::float32(&context);
+        let input_type = MemRefType::new(element_type, &[4, 8], None, None).into();
+        let init_type = MemRefType::new(element_type, &[4], None, None).into();
+
+        let block = Block::new(&[
+            (input_type, location),
+            (input_type, location),
+            (init_type, location),
+            (init_type, location),
+        ]);
+        let region = Region::new();
+        let body = Block::new(&[
+            (element_type, location),
+            (element_type, location),
+            (element_type, location),
+            (element_type, location),
+        ]);
+
+        let first_sum = body.append_operation(
+            arith::addf(
+                &context,
+                body.argument(0).unwrap().into(),
+                body.argument(2).unwrap().into(),
+                location,
+            )
+            .into(),
+        );
+        let second_sum = body.append_operation(
+            arith::addf(
+                &context,
+                body.argument(1).unwrap().into(),
+                body.argument(3).unwrap().into(),
+                location,
+            )
+            .into(),
+        );
+        body.append_operation(
+            linalg::r#yield(
+                &context,
+                &[
+                    first_sum.result(0).unwrap().into(),
+                    second_sum.result(0).unwrap().into(),
+                ],
+                location,
+            )
+            .into(),
+        );
+        region.append_block(body);
+
+        let operation = linalg::reduce(
+            &context,
+            &[
+                block.argument(0).unwrap().into(),
+                block.argument(1).unwrap().into(),
+            ],
+            &[
+                block.argument(2).unwrap().into(),
+                block.argument(3).unwrap().into(),
+            ],
+            region,
+            DenseI64ArrayAttribute::new(&context, &[1]),
+            location,
+        );
+
+        assert!(operation.as_operation().verify());
+        assert_eq!(
+            operation.inputs().collect::<Vec<_>>(),
+            [
+                Value::from(block.argument(0).unwrap()),
+                Value::from(block.argument(1).unwrap()),
+            ]
+        );
+        assert_eq!(
+            operation.inits().collect::<Vec<_>>(),
+            [
+                Value::from(block.argument(2).unwrap()),
+                Value::from(block.argument(3).unwrap()),
+            ]
+        );
+    }
 }
