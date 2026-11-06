@@ -10,6 +10,7 @@
     "bufferization",
     "bufferize",
     "canonicalizer",
+    "clippy",
     "cmpi",
     "codegen",
     "commonmark",
@@ -70,6 +71,7 @@
     "tblgen",
     "tosa",
     "trunci",
+    "uninlined",
     "xindex",
     "xori"
   ]
