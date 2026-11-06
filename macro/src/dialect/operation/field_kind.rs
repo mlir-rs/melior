@@ -31,6 +31,16 @@ impl FieldKind {
         }
     }
 
+    pub const fn type_parameter_prefix(self) -> &'static str {
+        match self {
+            Self::Result => "T",
+            Self::Operand => "O",
+            Self::Region => "R",
+            Self::Successor => "S",
+            Self::Attribute => "A",
+        }
+    }
+
     pub fn add_identifier(self) -> Ident {
         format_ident!("add_{}", self.plural_name())
     }
