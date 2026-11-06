@@ -4,9 +4,7 @@
 [![Crate](https://img.shields.io/crates/v/melior.svg?style=flat-square)](https://crates.io/crates/melior)
 [![License](https://img.shields.io/github/license/mlir-rs/melior.svg?style=flat-square)](https://github.com/mlir-rs/melior/blob/main/LICENSE)
 
-Melior is the MLIR bindings for Rust. It aims to provide a simple,
-safe, and complete API for MLIR with a reasonably sane ownership model
-represented by the type system in Rust.
+Melior is the MLIR bindings for Rust. It aims to provide a simple, safe, and complete API for MLIR.
 
 This crate is a wrapper of [the MLIR C API](https://mlir.llvm.org/docs/CAPI/).
 
@@ -92,12 +90,6 @@ On [GitHub Pages](https://mlir-rs.github.io/melior/melior/).
 
 Contribution is welcome! But, Melior is still in the alpha stage as well as the MLIR C API. Note that the API is unstable and can have breaking changes in the future.
 
-### Technical notes
-
-- We always use `&T` for MLIR objects instead of `&mut T` to mitigate the intricacy of representing a loose ownership model of the MLIR C API in Rust.
-- Only UTF-8 is supported as string encoding.
-  - Most string conversion between Rust and C is cached internally.
-
 ### Naming conventions
 
 - `Mlir<X>` objects are named `<X>` if they have no destructor. Otherwise, they are named `<X>` for owned objects and `<X>Ref` for borrowed references.
@@ -108,8 +100,7 @@ Contribution is welcome! But, Melior is still in the alpha stage as well as the 
 
 ### Safety
 
-Although Melior aims to be completely type safe, some part of the current API is
-not.
+Although Melior aims to be completely type safe, some part of the current API is not.
 
 - Access to operations, types, or attributes that belong to dialects not
   loaded in contexts can lead to runtime errors or segmentation faults in
