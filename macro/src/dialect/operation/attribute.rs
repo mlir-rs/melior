@@ -17,10 +17,11 @@ pub struct Attribute<'a> {
     storage_type: Ident,
     optional: bool,
     default: bool,
+    index: usize,
 }
 
 impl<'a> Attribute<'a> {
-    pub fn new(name: &'a str, record: Record<'a>) -> Result<Self, Error> {
+    pub fn new(name: &'a str, record: Record<'a>, index: usize) -> Result<Self, Error> {
         Ok(Self {
             name,
             singular_identifier: sanitize_snake_case_identifier(name)?,
@@ -48,6 +49,7 @@ impl<'a> Attribute<'a> {
                     false
                 }
             },
+            index,
         })
     }
 
@@ -89,6 +91,10 @@ impl OperationField for Attribute<'_> {
 
     fn kind(&self) -> FieldKind {
         FieldKind::Attribute
+    }
+
+    fn index(&self) -> usize {
+        self.index
     }
 
     fn singular_identifier(&self) -> &Ident {

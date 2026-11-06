@@ -5,6 +5,7 @@ use syn::Type;
 pub trait OperationField {
     fn name(&self) -> &str;
     fn kind(&self) -> FieldKind;
+    fn index(&self) -> usize;
     fn singular_identifier(&self) -> &Ident;
     fn parameter_type(&self) -> Type;
     fn return_type(&self) -> Type;
