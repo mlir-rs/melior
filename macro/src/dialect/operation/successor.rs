@@ -1,9 +1,9 @@
-use super::{OperationField, SegmentKind};
+use super::{FieldKind, OperationField};
 use crate::dialect::{
     error::Error,
     utility::{generate_iterator_type, generate_result_type, sanitize_snake_case_identifier},
 };
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Ident, Type, parse_quote};
 
@@ -31,6 +31,10 @@ impl<'a> Successor<'a> {
 impl OperationField for Successor<'_> {
     fn name(&self) -> &str {
         self.name
+    }
+
+    fn kind(&self) -> FieldKind {
+        FieldKind::Successor
     }
 
     fn singular_identifier(&self) -> &Ident {
@@ -61,10 +65,6 @@ impl OperationField for Successor<'_> {
         false
     }
 
-    fn add_identifier(&self) -> Ident {
-        Ident::new("add_successors", Span::call_site())
-    }
-
     fn add_arguments(&self) -> TokenStream {
         let name = &self.singular_identifier;
 
@@ -76,7 +76,7 @@ impl OperationField for Successor<'_> {
     }
 
     // MLIR has no segment size attribute for successors.
-    fn segment(&self) -> Option<(SegmentKind, usize)> {
+    fn segment(&self) -> Option<usize> {
         None
     }
 }

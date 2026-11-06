@@ -1,19 +1,16 @@
 mod attribute_accessor;
 mod element_accessor;
-mod operand_accessor;
 mod operation_builder;
 mod region_accessor;
-mod result_accessor;
 mod successor_accessor;
 
 use self::{
     attribute_accessor::generate_attribute_accessors,
-    operand_accessor::generate_operand_accessor,
+    element_accessor::generate_element_accessor,
     operation_builder::{
         generate_default_constructor, generate_operation_builder, generate_operation_builder_fn,
     },
     region_accessor::generate_region_accessor,
-    result_accessor::generate_result_accessor,
     successor_accessor::generate_successor_accessor,
 };
 use super::operation::{Operation, OperationBuilder};
@@ -28,11 +25,11 @@ pub fn generate_operation(operation: &Operation) -> TokenStream {
 
     let result_accessors = operation
         .results()
-        .map(|result| generate_result_accessor(result, operation.result_len()))
+        .map(|result| generate_element_accessor(result, operation.result_len()))
         .collect::<Vec<_>>();
     let operand_accessors = operation
         .operands()
-        .map(|operand| generate_operand_accessor(operand, operation.operand_len()))
+        .map(|operand| generate_element_accessor(operand, operation.operand_len()))
         .collect::<Vec<_>>();
     let region_accessors = operation
         .regions()

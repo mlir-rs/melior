@@ -1,10 +1,10 @@
-use super::{OperationField, SegmentKind};
+use super::{FieldKind, OperationField};
 use crate::dialect::{
     error::Error,
     utility::{generate_iterator_type, generate_result_type, sanitize_snake_case_identifier},
 };
-use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
 use syn::{Ident, Type, parse_quote};
 
 #[derive(Debug)]
@@ -31,6 +31,10 @@ impl<'a> Region<'a> {
 impl OperationField for Region<'_> {
     fn name(&self) -> &str {
         self.name
+    }
+
+    fn kind(&self) -> FieldKind {
+        FieldKind::Region
     }
 
     fn singular_identifier(&self) -> &Ident {
@@ -62,14 +66,13 @@ impl OperationField for Region<'_> {
     }
 
     fn add_identifier(&self) -> Ident {
-        Ident::new(
-            if self.variadic {
-                "add_regions_vec"
-            } else {
-                "add_regions"
-            },
-            Span::call_site(),
-        )
+        let identifier = self.kind().add_identifier();
+
+        if self.variadic {
+            format_ident!("{identifier}_vec")
+        } else {
+            identifier
+        }
     }
 
     fn add_arguments(&self) -> TokenStream {
@@ -83,7 +86,7 @@ impl OperationField for Region<'_> {
     }
 
     // MLIR has no segment size attribute for regions.
-    fn segment(&self) -> Option<(SegmentKind, usize)> {
+    fn segment(&self) -> Option<usize> {
         None
     }
 }
