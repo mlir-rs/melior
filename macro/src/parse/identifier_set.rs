@@ -5,14 +5,14 @@ use syn::{
     parse::{Parse, ParseStream},
 };
 
-pub struct DialectOperationSet {
-    dialect: Ident,
+pub struct IdentifierSet<T> {
+    head: T,
     identifiers: IdentifierList,
 }
 
-impl DialectOperationSet {
-    pub const fn dialect(&self) -> &Ident {
-        &self.dialect
+impl<T> IdentifierSet<T> {
+    pub const fn head(&self) -> &T {
+        &self.head
     }
 
     pub fn identifiers(&self) -> &[Ident] {
@@ -20,13 +20,13 @@ impl DialectOperationSet {
     }
 }
 
-impl Parse for DialectOperationSet {
+impl<T: Parse> Parse for IdentifierSet<T> {
     fn parse(input: ParseStream) -> Result<Self> {
-        let dialect = Ident::parse(input)?;
+        let head = input.parse()?;
         <Token![,]>::parse(input)?;
 
         Ok(Self {
-            dialect,
+            head,
             identifiers: {
                 let content;
                 bracketed!(content in input);
