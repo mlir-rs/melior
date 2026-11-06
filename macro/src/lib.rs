@@ -1,15 +1,15 @@
-mod attribute;
+mod check_function;
 mod dialect;
 mod operation;
 mod parse;
 mod pass;
-mod r#type;
 mod utility;
 
 use dialect::DialectInput;
-use parse::{DialectOperationSet, IdentifierList, PassSet};
+use parse::{IdentifierList, IdentifierSet};
 use proc_macro::TokenStream;
-use syn::parse_macro_input;
+use proc_macro2::Ident;
+use syn::{LitStr, parse_macro_input};
 
 /// Generates a dialect module from a TableGen file.
 ///
@@ -31,37 +31,45 @@ pub fn dialect(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn binary_operations(stream: TokenStream) -> TokenStream {
-    let set = parse_macro_input!(stream as DialectOperationSet);
+    let set = parse_macro_input!(stream as IdentifierSet<Ident>);
 
-    operation::generate_binary(set.dialect(), set.identifiers())
+    operation::generate_binary(set.head(), set.identifiers())
 }
 
 #[proc_macro]
 pub fn unary_operations(stream: TokenStream) -> TokenStream {
-    let set = parse_macro_input!(stream as DialectOperationSet);
+    let set = parse_macro_input!(stream as IdentifierSet<Ident>);
 
-    operation::generate_unary(set.dialect(), set.identifiers())
+    operation::generate_unary(set.head(), set.identifiers())
 }
 
 #[proc_macro]
 pub fn typed_unary_operations(stream: TokenStream) -> TokenStream {
-    let set = parse_macro_input!(stream as DialectOperationSet);
+    let set = parse_macro_input!(stream as IdentifierSet<Ident>);
 
-    operation::generate_typed_unary(set.dialect(), set.identifiers())
+    operation::generate_typed_unary(set.head(), set.identifiers())
 }
 
 #[proc_macro]
 pub fn type_check_functions(stream: TokenStream) -> TokenStream {
     let identifiers = parse_macro_input!(stream as IdentifierList);
 
-    convert_result(r#type::generate(identifiers.identifiers()))
+    convert_result(check_function::generate(
+        identifiers.identifiers(),
+        "mlirTypeIsA",
+        "a type",
+    ))
 }
 
 #[proc_macro]
 pub fn attribute_check_functions(stream: TokenStream) -> TokenStream {
     let identifiers = parse_macro_input!(stream as IdentifierList);
 
-    convert_result(attribute::generate(identifiers.identifiers()))
+    convert_result(check_function::generate(
+        identifiers.identifiers(),
+        "mlirAttributeIsA",
+        "an attribute",
+    ))
 }
 
 #[proc_macro]
@@ -81,11 +89,11 @@ pub fn conversion_passes(stream: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn passes(stream: TokenStream) -> TokenStream {
-    let set = parse_macro_input!(stream as PassSet);
+    let set = parse_macro_input!(stream as IdentifierSet<LitStr>);
 
     convert_result(pass::generate(
         set.identifiers(),
-        &set.prefix().value(),
+        &set.head().value(),
         |name| name.into(),
     ))
 }
