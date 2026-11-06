@@ -1,6 +1,6 @@
 //! Internal macros for Melior.
 
-mod check_function;
+mod check;
 mod dialect;
 mod operation;
 mod parse;
@@ -60,7 +60,7 @@ pub fn typed_unary_operations(stream: TokenStream) -> TokenStream {
 pub fn type_check_functions(stream: TokenStream) -> TokenStream {
     let identifiers = parse_macro_input!(stream as IdentifierList);
 
-    convert_result(check_function::generate(
+    convert_result(check::generate(
         identifiers.identifiers(),
         "mlirTypeIsA",
         "a type",
@@ -72,7 +72,7 @@ pub fn type_check_functions(stream: TokenStream) -> TokenStream {
 pub fn attribute_check_functions(stream: TokenStream) -> TokenStream {
     let identifiers = parse_macro_input!(stream as IdentifierList);
 
-    convert_result(check_function::generate(
+    convert_result(check::generate(
         identifiers.identifiers(),
         "mlirAttributeIsA",
         "an attribute",
