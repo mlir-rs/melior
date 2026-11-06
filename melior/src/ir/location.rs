@@ -4,6 +4,11 @@ use crate::{
     string_ref::StringRef,
     utility::print_callback,
 };
+use core::{
+    ffi::c_void,
+    fmt::{self, Display, Formatter},
+    marker::PhantomData,
+};
 use mlir_sys::{
     MlirLocation, mlirLocationCallSiteGet, mlirLocationCallSiteGetCallee,
     mlirLocationCallSiteGetCaller, mlirLocationEqual, mlirLocationFileLineColGet,
@@ -15,11 +20,6 @@ use mlir_sys::{
     mlirLocationGetContext, mlirLocationIsACallSite, mlirLocationIsAFileLineColRange,
     mlirLocationIsAFused, mlirLocationIsAName, mlirLocationNameGet, mlirLocationNameGetChildLoc,
     mlirLocationNameGetName, mlirLocationPrint, mlirLocationUnknownGet,
-};
-use std::{
-    ffi::c_void,
-    fmt::{self, Display, Formatter},
-    marker::PhantomData,
 };
 
 /// A location

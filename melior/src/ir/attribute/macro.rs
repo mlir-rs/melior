@@ -28,15 +28,15 @@ macro_rules! attribute_traits {
             }
         }
 
-        impl<'c> std::fmt::Display for $name<'c> {
-            fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                std::fmt::Display::fmt(&self.attribute, formatter)
+        impl<'c> core::fmt::Display for $name<'c> {
+            fn fmt(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                core::fmt::Display::fmt(&self.attribute, formatter)
             }
         }
 
-        impl<'c> std::fmt::Debug for $name<'c> {
-            fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                std::fmt::Display::fmt(self, formatter)
+        impl<'c> core::fmt::Debug for $name<'c> {
+            fn fmt(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                core::fmt::Display::fmt(self, formatter)
             }
         }
     };
@@ -59,15 +59,15 @@ macro_rules! attribute_traits_no_try_from {
             }
         }
 
-        impl<'c> std::fmt::Display for $name<'c> {
-            fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                std::fmt::Display::fmt(&self.attribute, formatter)
+        impl<'c> core::fmt::Display for $name<'c> {
+            fn fmt(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                core::fmt::Display::fmt(&self.attribute, formatter)
             }
         }
 
-        impl<'c> std::fmt::Debug for $name<'c> {
-            fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                std::fmt::Display::fmt(self, formatter)
+        impl<'c> core::fmt::Debug for $name<'c> {
+            fn fmt(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                core::fmt::Display::fmt(self, formatter)
             }
         }
     };

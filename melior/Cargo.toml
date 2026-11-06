@@ -24,3 +24,6 @@ trybuild = { version = "1.0.108", features = ["diff"] }
 # Enable the BlockExt trait (requires ods feature)
 helpers = ["ods-dialects"]
 ods-dialects = []
+
+[lints]
+workspace = true

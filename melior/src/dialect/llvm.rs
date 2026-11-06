@@ -226,7 +226,7 @@ pub fn func<'c>(
         .expect("valid operation")
 }
 
-// Creates a `llvm.return` operation.
+/// Creates a `llvm.return` operation.
 pub fn r#return<'c>(value: Option<Value<'c, '_>>, location: Location<'c>) -> Operation<'c> {
     let mut builder = OperationBuilder::new("llvm.return", location);
 

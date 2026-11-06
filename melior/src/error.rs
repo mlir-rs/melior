@@ -1,4 +1,4 @@
-use std::{
+use core::{
     convert::Infallible,
     error,
     fmt::{self, Display, Formatter},
@@ -8,38 +8,67 @@ use std::{
 /// A Melior error.
 #[derive(Debug, Eq, PartialEq)]
 pub enum Error {
+    /// A failure of pattern application.
     ApplyPatterns,
+    /// An attribute of a type expected.
     AttributeExpected(&'static str, String),
+    /// An attribute not found.
     AttributeNotFound(String),
+    /// A failure of attribute parsing.
     AttributeParse(String),
+    /// A block argument expected.
     BlockArgumentExpected(String),
+    /// An element of a type expected.
     ElementExpected {
+        /// A type name.
         r#type: &'static str,
+        /// A value.
         value: String,
     },
+    /// A failure of function invocation.
     InvokeFunction,
+    /// A failure of operation build.
     OperationBuild,
+    /// An operand not found.
     OperandNotFound(&'static str),
+    /// An operation of a name expected.
     OperationExpected {
+        /// An expected operation name.
         expected: &'static str,
+        /// An actual operation.
         actual: String,
     },
+    /// An operation result expected.
     OperationResultExpected(String),
+    /// A failure of pass pipeline parsing.
     ParsePassPipeline(String),
+    /// A position out of bounds.
     PositionOutOfBounds {
+        /// A name of positioned elements.
         name: &'static str,
+        /// A value containing the elements.
         value: String,
+        /// An index.
         index: usize,
     },
+    /// A result not found.
     ResultNotFound(&'static str),
+    /// A failure of a pass run.
     RunPass,
+    /// A type expected.
     TypeExpected(&'static str, String),
+    /// An unknown diagnostic severity.
     UnknownDiagnosticSeverity(u32),
+    /// A UTF-8 error.
     Utf8(Utf8Error),
+    /// Mismatched numbers of values.
     ValueCountMismatch {
+        /// A number of values to replace.
         from: usize,
+        /// A number of replacement values.
         to: usize,
     },
+    /// A failure of bytecode writing.
     WriteBytecode,
 }
 

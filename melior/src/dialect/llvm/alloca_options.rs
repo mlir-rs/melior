@@ -25,19 +25,19 @@ impl<'c> AllocaOptions<'c> {
     }
 
     /// Sets the alignment.
-    pub fn align(mut self, align: Option<IntegerAttribute<'c>>) -> Self {
+    pub const fn align(mut self, align: Option<IntegerAttribute<'c>>) -> Self {
         self.align = align;
         self
     }
 
     /// Sets the elem_type, not needed if the returned pointer is not opaque.
-    pub fn elem_type(mut self, elem_type: Option<TypeAttribute<'c>>) -> Self {
+    pub const fn elem_type(mut self, elem_type: Option<TypeAttribute<'c>>) -> Self {
         self.elem_type = elem_type;
         self
     }
 
     /// Sets the inalloca flag.
-    pub fn inalloca(mut self, inalloca: bool) -> Self {
+    pub const fn inalloca(mut self, inalloca: bool) -> Self {
         self.inalloca = inalloca;
         self
     }

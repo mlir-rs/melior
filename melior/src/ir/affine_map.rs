@@ -4,6 +4,11 @@ use crate::{
     ir::AffineExpr,
     utility::print_callback,
 };
+use core::{
+    ffi::c_void,
+    fmt::{self, Debug, Display, Formatter},
+    marker::PhantomData,
+};
 use mlir_sys::{
     MlirAffineMap, mlirAffineMapConstantGet, mlirAffineMapDump, mlirAffineMapEmptyGet,
     mlirAffineMapEqual, mlirAffineMapGet, mlirAffineMapGetContext, mlirAffineMapGetMajorSubMap,
@@ -14,11 +19,6 @@ use mlir_sys::{
     mlirAffineMapIsProjectedPermutation, mlirAffineMapIsSingleConstant,
     mlirAffineMapMinorIdentityGet, mlirAffineMapMultiDimIdentityGet, mlirAffineMapPermutationGet,
     mlirAffineMapPrint, mlirAffineMapReplace, mlirAffineMapZeroResultGet,
-};
-use std::{
-    ffi::c_void,
-    fmt::{self, Debug, Display, Formatter},
-    marker::PhantomData,
 };
 
 /// An affine map.

@@ -15,8 +15,18 @@ pub fn generate_region_accessor(region: &Region, index: usize) -> TokenStream {
             self.operation.region(#index)
         }
     };
+    let doc = format!(
+        "Returns the `{}` {}.",
+        region.name(),
+        if region.is_variadic() {
+            "regions"
+        } else {
+            "region"
+        }
+    );
 
     quote! {
+        #[doc = #doc]
         pub fn #identifier(&self) -> #return_type {
             #body
         }

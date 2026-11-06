@@ -5,16 +5,16 @@ use crate::{
     ir::{Attribute, AttributeLike, Block, Identifier, Location, Region, Type, Value},
     string_ref::StringRef,
 };
+use core::{
+    marker::PhantomData,
+    mem::{ManuallyDrop, forget, transmute},
+};
 use mlir_sys::{
     MlirOperationState, mlirNamedAttributeGet, mlirOperationCreate,
     mlirOperationStateAddAttributes, mlirOperationStateAddOperands,
     mlirOperationStateAddOwnedRegions, mlirOperationStateAddResults,
     mlirOperationStateAddSuccessors, mlirOperationStateEnableResultTypeInference,
     mlirOperationStateGet,
-};
-use std::{
-    marker::PhantomData,
-    mem::{ManuallyDrop, forget, transmute},
 };
 
 /// An operation builder.

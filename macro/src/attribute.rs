@@ -10,7 +10,7 @@ pub fn generate(identifiers: &[Ident]) -> syn::Result<TokenStream> {
     for identifier in identifiers {
         let name = map_name(&strip_prefix(identifier, "mlirAttributeIsA")?.to_case(Case::Snake));
 
-        let function_name = Ident::new(&format!("is_{}", name), identifier.span());
+        let function_name = Ident::new(&format!("is_{name}"), identifier.span());
         let document = format!(
             " Returns `true` if an attribute is {}.",
             name.replace('_', " ")

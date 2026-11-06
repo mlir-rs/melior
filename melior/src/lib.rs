@@ -1,5 +1,8 @@
 #![doc = include_str!("../README.md")]
+// TODO Document safety of unsafe blocks.
+#![expect(clippy::undocumented_unsafe_blocks)]
 
+extern crate alloc;
 extern crate self as melior;
 
 #[macro_use]
