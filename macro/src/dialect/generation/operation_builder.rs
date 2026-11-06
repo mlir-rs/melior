@@ -65,7 +65,7 @@ pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
     );
     let type_parameters = builder.type_state().parameters().collect::<Vec<_>>();
     let segment_fields = builder.operation().segment_arrays().map(|(kind, length)| {
-        let identifier = kind.field_identifier();
+        let identifier = kind.segment_size_field_identifier();
 
         quote! { #identifier: [i32; #length] }
     });
@@ -101,10 +101,10 @@ fn generate_segment_size_fields(
     operation
         .segment_arrays()
         .map(|(kind, _)| {
-            let identifier = kind.field_identifier();
+            let identifier = kind.segment_size_field_identifier();
 
-            if let Some((field_kind, index)) = field.segment()
-                && field_kind == kind
+            if let Some(index) = field.segment()
+                && field.kind() == kind
             {
                 let sizes = Ident::new("sizes", Span::mixed_site());
                 let size = if matches!(field.parameter_type(), Type::Reference(_)) {
@@ -290,8 +290,8 @@ fn generate_build_fn(builder: &OperationBuilder) -> TokenStream {
     )
     .then_some(quote! { .enable_result_type_inference() });
     let add_segment_size_attributes = builder.operation().segment_arrays().map(|(kind, _)| {
-        let field_identifier = kind.field_identifier();
-        let name = kind.attribute_name();
+        let field_identifier = kind.segment_size_field_identifier();
+        let name = kind.segment_size_attribute_name();
 
         quote! {
             .add_attributes(&[(
@@ -320,7 +320,7 @@ fn generate_new_fn(builder: &OperationBuilder) -> TokenStream {
     let name = &builder.operation().full_operation_name();
     let arguments = builder.type_state().initial_arguments();
     let segment_fields = builder.operation().segment_arrays().map(|(kind, length)| {
-        let identifier = kind.field_identifier();
+        let identifier = kind.segment_size_field_identifier();
 
         quote! { #identifier: [0; #length] }
     });

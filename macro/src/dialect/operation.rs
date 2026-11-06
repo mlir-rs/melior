@@ -1,16 +1,16 @@
 mod attribute;
 mod builder;
 mod element_position;
+mod field_kind;
 mod operation_element;
 mod operation_field;
 mod region;
-mod segment_kind;
 mod successor;
 mod variadic_kind;
 
 pub use self::{
     attribute::Attribute, builder::OperationBuilder, element_position::ElementPosition,
-    operation_element::OperationElement, region::Region, segment_kind::SegmentKind,
+    field_kind::FieldKind, operation_element::OperationElement, region::Region,
     successor::Successor, variadic_kind::VariadicKind,
 };
 use super::utility::{sanitize_documentation, sanitize_snake_case_identifier};
@@ -201,15 +201,15 @@ impl<'a> Operation<'a> {
     // The segment size arrays a builder for this operation fills in, with their
     // lengths. Result types are not set by the builder if they are inferred, so
     // their group sizes cannot be computed either.
-    pub fn segment_arrays(&self) -> impl Iterator<Item = (SegmentKind, usize)> {
+    pub fn segment_arrays(&self) -> impl Iterator<Item = (FieldKind, usize)> {
         let operands = self
             .operands
             .iter()
             .any(|operand| operand.segment().is_some())
-            .then_some((SegmentKind::Operand, self.operand_len()));
+            .then_some((FieldKind::Operand, self.operand_len()));
         let results = (self.type_inference.is_none()
             && self.results.iter().any(|result| result.segment().is_some()))
-        .then_some((SegmentKind::Result, self.result_len()));
+        .then_some((FieldKind::Result, self.result_len()));
 
         operands.into_iter().chain(results)
     }
@@ -375,7 +375,7 @@ impl<'a> Operation<'a> {
     ) -> Result<Vec<OperationElement<'a>>, Error> {
         Self::collect_elements(
             definition,
-            SegmentKind::Result,
+            FieldKind::Result,
             &Self::dag_constraints(definition, "results")?
                 .into_iter()
                 .map(|(name, constraint)| (name, Type::new(constraint)))
@@ -393,7 +393,7 @@ impl<'a> Operation<'a> {
     ) -> Result<Vec<OperationElement<'a>>, Error> {
         Self::collect_elements(
             definition,
-            SegmentKind::Operand,
+            FieldKind::Operand,
             &arguments
                 .iter()
                 .filter(|(_, definition)| definition.subclass_of("TypeConstraint"))
@@ -406,7 +406,7 @@ impl<'a> Operation<'a> {
 
     fn collect_elements(
         definition: Record<'a>,
-        kind: SegmentKind,
+        kind: FieldKind,
         elements: &[(&'a str, Type)],
         same_size: bool,
         attribute_sized: bool,

@@ -1,17 +1,17 @@
-use super::{ElementPosition, OperationField, SegmentKind, VariadicKind};
+use super::{ElementPosition, FieldKind, OperationField, VariadicKind};
 use crate::dialect::{
     error::Error,
     r#type::Type as ElementType,
     utility::{generate_iterator_type, generate_result_type, sanitize_snake_case_identifier},
 };
 use proc_macro2::{Ident, TokenStream};
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::{Type, parse_quote};
 
 #[derive(Debug)]
 pub struct OperationElement<'a> {
     name: &'a str,
-    kind: SegmentKind,
+    kind: FieldKind,
     singular_identifier: Ident,
     r#type: ElementType,
     position: ElementPosition,
@@ -20,7 +20,7 @@ pub struct OperationElement<'a> {
 impl<'a> OperationElement<'a> {
     pub fn new(
         name: &'a str,
-        kind: SegmentKind,
+        kind: FieldKind,
         r#type: ElementType,
         position: ElementPosition,
     ) -> Result<Self, Error> {
@@ -51,14 +51,19 @@ impl OperationField for OperationElement<'_> {
         self.name
     }
 
+    fn kind(&self) -> FieldKind {
+        self.kind
+    }
+
     fn singular_identifier(&self) -> &Ident {
         &self.singular_identifier
     }
 
     fn parameter_type(&self) -> Type {
         let r#type: Type = match self.kind {
-            SegmentKind::Operand => parse_quote!(::melior::ir::Value<'c, '_>),
-            SegmentKind::Result => parse_quote!(::melior::ir::Type<'c>),
+            FieldKind::Operand => parse_quote!(::melior::ir::Value<'c, '_>),
+            FieldKind::Result => parse_quote!(::melior::ir::Type<'c>),
+            FieldKind::Region | FieldKind::Successor | FieldKind::Attribute => unreachable!(),
         };
 
         if self.is_variadic() {
@@ -70,10 +75,11 @@ impl OperationField for OperationElement<'_> {
 
     fn return_type(&self) -> Type {
         let r#type: Type = match self.kind {
-            SegmentKind::Operand => parse_quote!(::melior::ir::Value<'c, '_>),
-            SegmentKind::Result => {
+            FieldKind::Operand => parse_quote!(::melior::ir::Value<'c, '_>),
+            FieldKind::Result => {
                 parse_quote!(::melior::ir::operation::OperationResult<'c, '_>)
             }
+            FieldKind::Region | FieldKind::Successor | FieldKind::Attribute => unreachable!(),
         };
 
         if !self.is_variadic() {
@@ -89,13 +95,6 @@ impl OperationField for OperationElement<'_> {
         self.r#type.is_optional()
     }
 
-    fn add_identifier(&self) -> Ident {
-        match self.kind {
-            SegmentKind::Operand => format_ident!("add_operands"),
-            SegmentKind::Result => format_ident!("add_results"),
-        }
-    }
-
     fn add_arguments(&self) -> TokenStream {
         let name = &self.singular_identifier;
 
@@ -106,8 +105,8 @@ impl OperationField for OperationElement<'_> {
         }
     }
 
-    fn segment(&self) -> Option<(SegmentKind, usize)> {
+    fn segment(&self) -> Option<usize> {
         (self.position.variadic_kind() == Some(VariadicKind::AttributeSized))
-            .then_some((self.kind, self.position.index()))
+            .then_some(self.position.index())
     }
 }
