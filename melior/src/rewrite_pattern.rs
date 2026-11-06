@@ -32,8 +32,6 @@ impl<'c> RewritePatternSet<'c> {
 
     /// Freezes the pattern set into a frozen set. Consumes self.
     pub fn freeze(self) -> FrozenRewritePatternSet {
-        // Freezing moves the patterns out of the set but does not destroy the set
-        // itself.
         FrozenRewritePatternSet {
             raw: unsafe { mlirFreezeRewritePattern(self.raw) },
         }
