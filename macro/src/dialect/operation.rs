@@ -74,7 +74,7 @@ impl<'a> Operation<'a> {
 
         let arguments = Self::dag_constraints(definition, "arguments")?;
         let regions = Self::collect_regions(definition)?;
-        let (results, unfixed_result_count) = Self::collect_results(
+        let results = Self::collect_results(
             definition,
             trait_names.contains("::mlir::OpTrait::SameVariadicResultSize"),
             trait_names.contains("::mlir::OpTrait::AttrSizedResultSegments"),
@@ -91,15 +91,16 @@ impl<'a> Operation<'a> {
             summary: definition.str_value("summary")?,
             description: sanitize_documentation(definition.str_value("description")?)?,
             type_inference: {
+                let has_unfixed_results = results.iter().any(OperationElement::is_unfixed);
                 let has_interface = regions.is_empty()
                     && traits.iter().any(|r#trait| {
                         r#trait.name() == Some("::mlir::InferTypeOpInterface::Trait")
                     });
-                let has_same_operands = unfixed_result_count == 0
+                let has_same_operands = !has_unfixed_results
                     && traits.iter().any(|r#trait| {
                         r#trait.name() == Some("::mlir::OpTrait::SameOperandsAndResultType")
                     });
-                let has_first_attr_derived = unfixed_result_count == 0
+                let has_first_attr_derived = !has_unfixed_results
                     && traits.iter().any(|r#trait| {
                         r#trait.name() == Some("::mlir::OpTrait::FirstAttrDerivedResultType")
                     });
@@ -363,7 +364,7 @@ impl<'a> Operation<'a> {
         definition: Record<'a>,
         same_size: bool,
         attribute_sized: bool,
-    ) -> Result<(Vec<OperationResult<'a>>, usize), Error> {
+    ) -> Result<Vec<OperationResult<'a>>, Error> {
         Self::collect_elements(
             definition,
             &Self::dag_constraints(definition, "results")?
@@ -382,7 +383,7 @@ impl<'a> Operation<'a> {
         same_size: bool,
         attribute_sized: bool,
     ) -> Result<Vec<Operand<'a>>, Error> {
-        Ok(Self::collect_elements(
+        Self::collect_elements(
             definition,
             &arguments
                 .iter()
@@ -392,8 +393,7 @@ impl<'a> Operation<'a> {
             Operand::new,
             same_size,
             attribute_sized,
-        )?
-        .0)
+        )
     }
 
     fn collect_elements<T>(
@@ -402,7 +402,7 @@ impl<'a> Operation<'a> {
         create: impl Fn(&'a str, Type, ElementPosition) -> Result<T, Error>,
         same_size: bool,
         attribute_sized: bool,
-    ) -> Result<(Vec<T>, usize), Error> {
+    ) -> Result<Vec<T>, Error> {
         let unfixed_count = Self::count_unfixed_elements(elements);
         let variadic_kind = if unfixed_count <= 1 {
             None
@@ -417,25 +417,22 @@ impl<'a> Operation<'a> {
                 .into());
         };
 
-        Ok((
-            elements
-                .iter()
-                .enumerate()
-                .map(|(index, (name, r#type))| {
-                    create(
-                        name,
-                        *r#type,
-                        ElementPosition::new(
-                            index,
-                            Self::count_unfixed_elements(&elements[..index]),
-                            unfixed_count,
-                            variadic_kind,
-                        ),
-                    )
-                })
-                .collect::<Result<_, _>>()?,
-            unfixed_count,
-        ))
+        elements
+            .iter()
+            .enumerate()
+            .map(|(index, (name, r#type))| {
+                create(
+                    name,
+                    *r#type,
+                    ElementPosition::new(
+                        index,
+                        Self::count_unfixed_elements(&elements[..index]),
+                        unfixed_count,
+                        variadic_kind,
+                    ),
+                )
+            })
+            .collect()
     }
 
     fn count_unfixed_elements(elements: &[(&str, Type)]) -> usize {
