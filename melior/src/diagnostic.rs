@@ -5,16 +5,17 @@ mod severity;
 
 pub use self::{handler_id::DiagnosticHandlerId, severity::DiagnosticSeverity};
 use crate::{Error, ir::Location, utility::print_callback};
-use mlir_sys::{
-    MlirDiagnostic, mlirDiagnosticGetLocation, mlirDiagnosticGetNote, mlirDiagnosticGetNumNotes,
-    mlirDiagnosticGetSeverity, mlirDiagnosticPrint,
-};
-use std::{
+use core::{
     ffi::c_void,
     fmt::{self, Display, Formatter},
     marker::PhantomData,
 };
+use mlir_sys::{
+    MlirDiagnostic, mlirDiagnosticGetLocation, mlirDiagnosticGetNote, mlirDiagnosticGetNumNotes,
+    mlirDiagnosticGetSeverity, mlirDiagnosticPrint,
+};
 
+/// A diagnostic.
 #[derive(Debug)]
 pub struct Diagnostic<'c> {
     raw: MlirDiagnostic,
@@ -22,19 +23,23 @@ pub struct Diagnostic<'c> {
 }
 
 impl<'c> Diagnostic<'c> {
+    /// Returns a location.
     pub fn location(&self) -> Location<'c> {
         unsafe { Location::from_raw(mlirDiagnosticGetLocation(self.raw)) }
     }
 
+    /// Returns a severity.
     pub fn severity(&self) -> DiagnosticSeverity {
         DiagnosticSeverity::try_from(unsafe { mlirDiagnosticGetSeverity(self.raw) })
             .unwrap_or_else(|error| unreachable!("{}", error))
     }
 
+    /// Returns a number of notes.
     pub fn note_count(&self) -> usize {
         (unsafe { mlirDiagnosticGetNumNotes(self.raw) }) as usize
     }
 
+    /// Returns a note at the given index.
     pub fn note(&self, index: usize) -> Result<Self, Error> {
         if index < self.note_count() {
             Ok(unsafe { Self::from_raw(mlirDiagnosticGetNote(self.raw, index as isize)) })

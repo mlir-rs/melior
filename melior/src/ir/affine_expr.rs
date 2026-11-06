@@ -3,6 +3,12 @@ use crate::{
     ir::AffineMap,
     utility::print_callback,
 };
+use core::{
+    ffi::c_void,
+    fmt::{self, Debug, Display, Formatter},
+    marker::PhantomData,
+    ops::{Add, Mul},
+};
 use mlir_sys::{
     MlirAffineExpr, mlirAffineAddExprGet, mlirAffineBinaryOpExprGetLHS,
     mlirAffineBinaryOpExprGetRHS, mlirAffineCeilDivExprGet, mlirAffineConstantExprGet,
@@ -15,12 +21,6 @@ use mlir_sys::{
     mlirAffineExprIsSymbolicOrConstant, mlirAffineExprPrint, mlirAffineExprShiftDims,
     mlirAffineExprShiftSymbols, mlirAffineFloorDivExprGet, mlirAffineModExprGet,
     mlirAffineMulExprGet, mlirAffineSymbolExprGet, mlirAffineSymbolExprGetPosition,
-};
-use std::{
-    ffi::c_void,
-    fmt::{self, Debug, Display, Formatter},
-    marker::PhantomData,
-    ops::{Add, Mul},
 };
 
 /// An affine expression.

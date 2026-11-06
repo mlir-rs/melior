@@ -1,3 +1,5 @@
+//! Internal macros for Melior.
+
 mod check_function;
 mod dialect;
 mod operation;
@@ -29,6 +31,7 @@ pub fn dialect(input: TokenStream) -> TokenStream {
     dialect::generate_dialect(input).unwrap_or_else(|error| error.to_compile_error())
 }
 
+/// Generates functions creating binary operations in a dialect.
 #[proc_macro]
 pub fn binary_operations(stream: TokenStream) -> TokenStream {
     let set = parse_macro_input!(stream as IdentifierSet<Ident>);
@@ -36,6 +39,7 @@ pub fn binary_operations(stream: TokenStream) -> TokenStream {
     operation::generate_binary(set.head(), set.identifiers())
 }
 
+/// Generates functions creating unary operations in a dialect.
 #[proc_macro]
 pub fn unary_operations(stream: TokenStream) -> TokenStream {
     let set = parse_macro_input!(stream as IdentifierSet<Ident>);
@@ -43,6 +47,7 @@ pub fn unary_operations(stream: TokenStream) -> TokenStream {
     operation::generate_unary(set.head(), set.identifiers())
 }
 
+/// Generates functions creating unary operations with result types in a dialect.
 #[proc_macro]
 pub fn typed_unary_operations(stream: TokenStream) -> TokenStream {
     let set = parse_macro_input!(stream as IdentifierSet<Ident>);
@@ -50,6 +55,7 @@ pub fn typed_unary_operations(stream: TokenStream) -> TokenStream {
     operation::generate_typed_unary(set.head(), set.identifiers())
 }
 
+/// Generates functions checking kinds of types.
 #[proc_macro]
 pub fn type_check_functions(stream: TokenStream) -> TokenStream {
     let identifiers = parse_macro_input!(stream as IdentifierList);
@@ -61,6 +67,7 @@ pub fn type_check_functions(stream: TokenStream) -> TokenStream {
     ))
 }
 
+/// Generates functions checking kinds of attributes.
 #[proc_macro]
 pub fn attribute_check_functions(stream: TokenStream) -> TokenStream {
     let identifiers = parse_macro_input!(stream as IdentifierList);
@@ -72,6 +79,7 @@ pub fn attribute_check_functions(stream: TokenStream) -> TokenStream {
     ))
 }
 
+/// Generates functions creating and registering conversion passes.
 #[proc_macro]
 pub fn conversion_passes(stream: TokenStream) -> TokenStream {
     let identifiers = parse_macro_input!(stream as IdentifierList);
@@ -87,6 +95,7 @@ pub fn conversion_passes(stream: TokenStream) -> TokenStream {
     ))
 }
 
+/// Generates functions creating and registering passes in a dialect.
 #[proc_macro]
 pub fn passes(stream: TokenStream) -> TokenStream {
     let set = parse_macro_input!(stream as IdentifierSet<LitStr>);

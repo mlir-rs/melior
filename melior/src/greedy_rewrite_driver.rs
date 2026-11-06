@@ -32,9 +32,12 @@ use mlir_sys::{
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u32)]
 pub enum GreedyRewriteStrictness {
+    /// Processes any operations.
     AnyOp = MlirGreedyRewriteStrictness_MLIR_GREEDY_REWRITE_STRICTNESS_ANY_OP as _,
+    /// Processes only pre-existing and newly created operations.
     ExistingAndNewOps =
         MlirGreedyRewriteStrictness_MLIR_GREEDY_REWRITE_STRICTNESS_EXISTING_AND_NEW_OPS as _,
+    /// Processes only pre-existing operations.
     ExistingOps = MlirGreedyRewriteStrictness_MLIR_GREEDY_REWRITE_STRICTNESS_EXISTING_OPS as _,
 }
 
@@ -61,8 +64,11 @@ impl GreedyRewriteStrictness {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u32)]
 pub enum GreedySimplifyRegionLevel {
+    /// Disables region simplification.
     Disabled = MlirGreedySimplifyRegionLevel_MLIR_GREEDY_SIMPLIFY_REGION_LEVEL_DISABLED as _,
+    /// Runs normal region simplification.
     Normal = MlirGreedySimplifyRegionLevel_MLIR_GREEDY_SIMPLIFY_REGION_LEVEL_NORMAL as _,
+    /// Runs aggressive region simplification, such as block merging.
     Aggressive = MlirGreedySimplifyRegionLevel_MLIR_GREEDY_SIMPLIFY_REGION_LEVEL_AGGRESSIVE as _,
 }
 

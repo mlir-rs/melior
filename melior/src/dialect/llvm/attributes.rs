@@ -1,14 +1,25 @@
+//! LLVM attributes.
+
 use crate::{Context, ir::Attribute};
 
+/// An LLVM linkage.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Linkage {
+    /// Private linkage.
     Private,
+    /// Internal linkage.
     Internal,
+    /// Available externally linkage.
     AvailableExternally,
+    /// Link once linkage.
     LinkOnce,
+    /// Weak linkage.
     Weak,
+    /// Common linkage.
     Common,
+    /// Appending linkage.
     Appending,
+    /// External linkage.
     External,
 }
 

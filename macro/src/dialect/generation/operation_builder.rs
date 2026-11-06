@@ -1,9 +1,9 @@
 use crate::dialect::operation::{
     Attribute, Operation, OperationBuilder, OperationElement, OperationField, TypeInference,
 };
+use core::iter::repeat_n;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
-use std::iter::repeat_n;
 use syn::Type;
 
 pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
@@ -137,19 +137,9 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
     let argument = quote! { #identifier: #parameter_type };
     let add_identifier = field.add_identifier();
     let add_arguments = field.add_arguments();
+    let doc = format!("Sets `{}`.", field.name());
 
-    if !builder.type_state().has_parameter(field.name()) {
-        let parameters = builder.type_state().parameters().collect::<Vec<_>>();
-
-        quote! {
-            impl<'c, #(#parameters),*> #builder_identifier<'c, #(#parameters),*> {
-                pub fn #identifier(mut self, #argument) -> #builder_identifier<'c, #(#parameters),*> {
-                    self.builder = self.builder.#add_identifier(#add_arguments);
-                    self
-                }
-            }
-        }
-    } else {
+    if builder.type_state().has_parameter(field.name()) {
         let parameters = builder.type_state().parameters_without(field.name());
         let arguments_set = builder.type_state().arguments_with(field.name(), true);
         let arguments_unset = builder.type_state().arguments_with(field.name(), false);
@@ -157,6 +147,7 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
 
         quote! {
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
+                #[doc = #doc]
                 pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
                     #builder_identifier {
                         context: self.context,
@@ -164,6 +155,18 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
                         builder: self.builder.#add_identifier(#add_arguments),
                         _state: Default::default(),
                     }
+                }
+            }
+        }
+    } else {
+        let parameters = builder.type_state().parameters().collect::<Vec<_>>();
+
+        quote! {
+            impl<'c, #(#parameters),*> #builder_identifier<'c, #(#parameters),*> {
+                #[doc = #doc]
+                pub fn #identifier(mut self, #argument) -> #builder_identifier<'c, #(#parameters),*> {
+                    self.builder = self.builder.#add_identifier(#add_arguments);
+                    self
                 }
             }
         }
@@ -183,6 +186,7 @@ fn generate_same_operands_first_fn(
     let argument = quote! { #identifier: #parameter_type };
     let add_identifier = field.add_identifier();
     let add_arguments = field.add_arguments();
+    let doc = format!("Sets `{}`.", field.name());
     let result_type_copies = repeat_n(quote! { result_type }, builder.operation().result_len());
     // For variadic operands the parameter is `&[Value]`; index into it for the
     // type. For singular operands the parameter is `Value`; take a reference
@@ -200,6 +204,7 @@ fn generate_same_operands_first_fn(
 
     quote! {
         impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
+            #[doc = #doc]
             pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
                 let result_type = #type_access;
 
@@ -224,6 +229,7 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
     let parameter_type = field.parameter_type();
     let argument = quote! { #identifier: #parameter_type };
     let add_arguments = field.add_arguments();
+    let doc = format!("Sets `{}`.", field.name());
     let result_type_copies = repeat_n(quote! { result_type }, builder.operation().result_len());
     // If the attribute is a TypeAttr, use its wrapped type; otherwise use the
     // attribute's own type.
@@ -237,6 +243,7 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
         let parameters = builder.type_state().parameters().collect::<Vec<_>>();
         quote! {
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#parameters),*> {
+                #[doc = #doc]
                 pub fn #identifier(mut self, #argument) -> #builder_identifier<'c, #(#parameters),*> {
                     let result_type = #type_access;
                     self.builder = self.builder
@@ -254,6 +261,7 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
 
         quote! {
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
+                #[doc = #doc]
                 pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
                     let result_type = #type_access;
                     #builder_identifier {
@@ -298,6 +306,7 @@ fn generate_build_fn(builder: &OperationBuilder) -> TokenStream {
 
     quote! {
         impl<'c, #(#parameters),*> #identifier<'c, #(#arguments),*> {
+            /// Builds an operation.
             pub fn build(self) -> #operation_identifier<'c> {
                 self.builder #(#add_segment_size_attributes)* #maybe_infer
                     .build().expect("valid operation").try_into().expect(#error)
@@ -318,6 +327,7 @@ fn generate_new_fn(builder: &OperationBuilder) -> TokenStream {
 
     quote! {
         impl<'c> #identifier<'c, #(#arguments),*> {
+            /// Creates a builder.
             pub fn new(context: &'c ::melior::Context, location: ::melior::ir::Location<'c>) -> Self {
                 Self {
                     context,

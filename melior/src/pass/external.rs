@@ -6,12 +6,13 @@ use crate::{
     dialect::DialectHandle,
     ir::{OperationRef, r#type::TypeId},
 };
+use core::{ffi::c_void, marker::PhantomData, mem::transmute, ptr::drop_in_place};
 use mlir_sys::{
     MlirContext, MlirExternalPass, MlirExternalPassCallbacks, MlirLogicalResult, MlirOperation,
     mlirCreateExternalPass, mlirExternalPassSignalFailure,
 };
-use std::{ffi::c_void, marker::PhantomData, mem::transmute, ptr::drop_in_place};
 
+/// An external pass.
 #[derive(Clone, Copy, Debug)]
 pub struct ExternalPass<'a> {
     raw: MlirExternalPass,
@@ -120,9 +121,16 @@ unsafe extern "C" fn callback_clone<'a, T: RunExternalPass<'a>>(pass: *mut T) ->
 /// }
 /// ```
 pub trait RunExternalPass<'c>: Sized + Clone {
+    /// Constructs a pass when it is created.
     fn construct(&mut self) {}
+
+    /// Destructs a pass when it is destroyed.
     fn destruct(&mut self) {}
+
+    /// Initializes a pass before it runs.
     fn initialize(&mut self, context: ContextRef<'c>);
+
+    /// Runs a pass on an operation.
     fn run(&mut self, operation: OperationRef<'c, '_>, pass: ExternalPass<'_>);
 }
 

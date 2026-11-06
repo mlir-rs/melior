@@ -1,8 +1,8 @@
 mod ordered_field;
 
 pub use self::ordered_field::OrderedField;
+use core::iter::repeat_n;
 use quote::format_ident;
-use std::iter::repeat_n;
 use syn::{GenericArgument, parse_quote};
 
 const RESULT_PREFIX: &str = "T";

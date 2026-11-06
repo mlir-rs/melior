@@ -31,6 +31,7 @@ use mlir_sys::{
 
 macro_rules! dense_element_accessor {
     ($name:ident, $type:ty, $guard:ident, $type_name:expr, $ffi:ident) => {
+        #[doc = concat!(" Returns an element of `", stringify!($type), "` at the given index.")]
         pub fn $name(&self, index: usize) -> Result<$type, Error> {
             if !self.$guard() {
                 Err(Error::ElementExpected {
@@ -307,7 +308,7 @@ impl<'c> DenseElementsAttribute<'c> {
     }
 
     /// Returns a raw pointer to the packed element data.
-    pub fn raw_data(&self) -> *const std::ffi::c_void {
+    pub fn raw_data(&self) -> *const core::ffi::c_void {
         unsafe { mlirDenseElementsAttrGetRawData(self.attribute.to_raw()) }
     }
 
@@ -784,7 +785,7 @@ mod tests {
         // Build a tensor of 4 x i32 from a raw byte buffer
         let values: [i32; 4] = [1, 2, 3, 4];
         let bytes: &[u8] =
-            unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, values.len() * 4) };
+            unsafe { core::slice::from_raw_parts(values.as_ptr() as *const u8, values.len() * 4) };
         let ty = i32_tensor_type(&context, 4);
         let attr = DenseElementsAttribute::raw_buffer(ty, bytes);
         assert_eq!(attr.len(), 4);

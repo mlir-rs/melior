@@ -10,7 +10,7 @@ pub fn generate(identifiers: &[Ident], prefix: &str, subject: &str) -> syn::Resu
     for identifier in identifiers {
         let name = map_name(&strip_prefix(identifier, prefix)?.to_case(Case::Snake));
 
-        let function_name = Ident::new(&format!("is_{}", name), identifier.span());
+        let function_name = Ident::new(&format!("is_{name}"), identifier.span());
         let document = format!(
             " Returns `true` if {subject} is {}.",
             name.replace('_', " ")

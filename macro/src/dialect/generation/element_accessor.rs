@@ -116,8 +116,17 @@ pub fn generate_element_getter(
 
     let identifier = field.singular_identifier();
     let return_type = field.return_type();
+    let doc = format!(
+        "Returns the `{name}` {}.",
+        if field.is_variadic() {
+            plural_kind
+        } else {
+            singular_kind
+        }
+    );
 
     quote! {
+        #[doc = #doc]
         pub fn #identifier(&self) -> #return_type {
             #body
         }

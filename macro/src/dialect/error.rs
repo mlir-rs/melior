@@ -1,12 +1,12 @@
 mod ods;
 
 pub use self::ods::OdsError;
-use proc_macro::TokenStream;
-use proc_macro2::Span;
-use std::{
+use core::{
     error,
     fmt::{self, Display, Formatter},
 };
+use proc_macro::TokenStream;
+use proc_macro2::Span;
 use tblgen::{
     SourceInfo,
     error::{SourceError, TableGenError},

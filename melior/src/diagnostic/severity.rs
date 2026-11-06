@@ -8,9 +8,13 @@ use mlir_sys::{
 /// Diagnostic severity.
 #[derive(Clone, Copy, Debug)]
 pub enum DiagnosticSeverity {
+    /// An error.
     Error,
+    /// A note.
     Note,
+    /// A remark.
     Remark,
+    /// A warning.
     Warning,
 }
 
