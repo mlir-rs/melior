@@ -32,11 +32,9 @@ impl<'c> RewritePatternSet<'c> {
 
     /// Freezes the pattern set into a frozen set. Consumes self.
     pub fn freeze(self) -> FrozenRewritePatternSet {
-        let raw = unsafe { mlirFreezeRewritePattern(self.raw) };
-
-        forget(self);
-
-        FrozenRewritePatternSet { raw }
+        FrozenRewritePatternSet {
+            raw: unsafe { mlirFreezeRewritePattern(self.raw) },
+        }
     }
 }
 
@@ -52,6 +50,11 @@ pub struct FrozenRewritePatternSet {
 }
 
 impl FrozenRewritePatternSet {
+    /// Converts the frozen pattern set into a raw object.
+    pub const fn to_raw(&self) -> MlirFrozenRewritePatternSet {
+        self.raw
+    }
+
     /// Converts the frozen pattern set into a raw object, transferring
     /// ownership.
     pub const fn into_raw(self) -> MlirFrozenRewritePatternSet {
@@ -213,7 +216,7 @@ mod tests {
         let frozen = patterns.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
     }
 
     #[test]
@@ -257,7 +260,7 @@ mod tests {
         let frozen = set.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
     }
 
     #[test]
@@ -296,7 +299,7 @@ mod tests {
         let frozen = set.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
         insta::assert_snapshot!(module.as_operation());
     }
 
@@ -341,7 +344,7 @@ mod tests {
         let frozen = set.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
         insta::assert_snapshot!(module.as_operation());
     }
 }
