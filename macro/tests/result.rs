@@ -1,3 +1,5 @@
+#![expect(missing_docs)]
+
 mod utility;
 
 use melior::ir::{Location, Type, ValueLike, operation::OperationLike};

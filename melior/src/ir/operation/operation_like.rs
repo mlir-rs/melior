@@ -1,4 +1,4 @@
-use std::{ffi::c_void, fmt::Display};
+use core::{ffi::c_void, fmt::Display};
 
 use mlir_sys::{
     MlirOperation, MlirValue, MlirWalkOrder_MlirWalkPostOrder, MlirWalkOrder_MlirWalkPreOrder,
@@ -60,6 +60,7 @@ pub enum WalkResult {
     Skip = MlirWalkResult_MlirWalkResultSkip as _,
 }
 
+/// A trait for operation-like types.
 pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     /// Converts a value into a raw value.
     fn to_raw(&self) -> MlirOperation;
@@ -242,6 +243,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Returns a reference to the previous operation in the same block.
+    #[expect(clippy::todo)]
     fn previous_in_block(&self) -> Option<OperationRef<'c, 'a>> {
         todo!("mlirOperationGetPrevInBlock is not exposed in the C API")
     }
@@ -459,6 +461,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 }
 
+/// A trait for mutable operation-like types.
 pub trait OperationMutLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Sets the attribute with the given name to the given attribute.
     fn set_attribute(&mut self, name: &str, attribute: Attribute<'c>) {

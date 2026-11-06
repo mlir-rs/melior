@@ -6,16 +6,16 @@ mod block_like;
 pub use self::{argument::BlockArgument, block_like::BlockLike};
 use super::{Location, OperationRef, Type, TypeLike, Value};
 use crate::{context::Context, utility::print_callback};
-use mlir_sys::{
-    MlirBlock, mlirBlockCreate, mlirBlockDestroy, mlirBlockDetach, mlirBlockEqual, mlirBlockPrint,
-    mlirOperationGetNextInBlock,
-};
-use std::{
+use core::{
     ffi::c_void,
     fmt::{self, Debug, Display, Formatter},
     marker::PhantomData,
     mem::{forget, transmute},
     ops::Deref,
+};
+use mlir_sys::{
+    MlirBlock, mlirBlockCreate, mlirBlockDestroy, mlirBlockDetach, mlirBlockEqual, mlirBlockPrint,
+    mlirOperationGetNextInBlock,
 };
 
 /// A block.
@@ -52,7 +52,7 @@ impl<'c> Block<'c> {
     /// This function might invalidate existing references to the block if you
     /// drop it too early.
     // TODO Implement this for BlockRefMut instead and mark it safe.
-    pub unsafe fn detach(&self) -> Option<Block<'c>> {
+    pub unsafe fn detach(&self) -> Option<Self> {
         if self.parent_region().is_some() {
             unsafe { mlirBlockDetach(self.raw) };
 
@@ -191,13 +191,13 @@ impl Eq for BlockRef<'_, '_> {}
 
 impl Display for BlockRef<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        Display::fmt(self.deref(), formatter)
+        Display::fmt(&**self, formatter)
     }
 }
 
 impl Debug for BlockRef<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        Debug::fmt(self.deref(), formatter)
+        Debug::fmt(&**self, formatter)
     }
 }
 

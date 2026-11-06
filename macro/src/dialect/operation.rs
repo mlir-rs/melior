@@ -199,7 +199,7 @@ impl<'a> Operation<'a> {
         self.results.iter()
     }
 
-    pub fn result_len(&self) -> usize {
+    pub const fn result_len(&self) -> usize {
         self.results.len()
     }
 
@@ -207,7 +207,7 @@ impl<'a> Operation<'a> {
         self.operands.iter()
     }
 
-    pub fn operand_len(&self) -> usize {
+    pub const fn operand_len(&self) -> usize {
         self.operands.len()
     }
 

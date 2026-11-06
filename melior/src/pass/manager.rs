@@ -7,12 +7,13 @@ use crate::{
     pass::Pass,
     string_ref::StringRef,
 };
+use core::{marker::PhantomData, mem::forget};
 use mlir_sys::{
     MlirPassManager, mlirPassManagerAddOwnedPass, mlirPassManagerCreate, mlirPassManagerDestroy,
     mlirPassManagerEnableIRPrinting, mlirPassManagerEnableVerifier,
     mlirPassManagerGetAsOpPassManager, mlirPassManagerGetNestedUnder, mlirPassManagerRunOnOp,
 };
-use std::{marker::PhantomData, mem::forget, path::PathBuf};
+use std::path::PathBuf;
 
 /// A pass manager.
 pub struct PassManager<'c> {
@@ -116,14 +117,22 @@ impl Drop for PassManager<'_> {
     }
 }
 
+/// IR printing options for a pass manager.
 #[derive(Debug)]
 pub struct PassIrPrintingOptions {
+    /// Prints IR before every pass.
     pub before_all: bool,
+    /// Prints IR after every pass.
     pub after_all: bool,
+    /// Prints a top-level operation instead of an operation each pass runs on.
     pub module_scope: bool,
+    /// Prints IR after a pass only if it changes IR.
     pub on_change: bool,
+    /// Prints IR after a pass only if it fails.
     pub on_failure: bool,
+    /// Operation printing flags.
     pub flags: OperationPrintingFlags,
+    /// A directory path where IR is printed, or an empty path for the standard error.
     pub tree_printing_path: PathBuf,
 }
 

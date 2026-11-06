@@ -15,8 +15,18 @@ pub fn generate_successor_accessor(successor: &Successor, index: usize) -> Token
             self.operation.successor(#index)
         }
     };
+    let doc = format!(
+        "Returns the `{}` {}.",
+        successor.name(),
+        if successor.is_variadic() {
+            "successors"
+        } else {
+            "successor"
+        }
+    );
 
     quote! {
+        #[doc = #doc]
         pub fn #identifier(&self) -> #return_type {
             #body
         }

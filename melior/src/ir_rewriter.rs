@@ -6,6 +6,7 @@ use crate::{
         TypeLike, Value, ValueLike,
     },
 };
+use core::marker::PhantomData;
 use mlir_sys::{
     MlirRewriterBase, MlirValue, mlirIRRewriterCreate, mlirIRRewriterCreateFromOp,
     mlirIRRewriterDestroy, mlirRewriterBaseCancelOpModification,
@@ -24,7 +25,6 @@ use mlir_sys::{
     mlirRewriterBaseSetInsertionPointBefore, mlirRewriterBaseSetInsertionPointToEnd,
     mlirRewriterBaseSetInsertionPointToStart, mlirRewriterBaseStartOpModification,
 };
-use std::marker::PhantomData;
 
 /// An IR rewriter. Owns the underlying rewriter object.
 pub struct IrRewriter<'c> {
@@ -50,7 +50,7 @@ impl<'c> IrRewriter<'c> {
     }
 
     /// Returns the underlying rewriter base.
-    pub fn as_rewriter_base(&self) -> RewriterBase<'c, '_> {
+    pub const fn as_rewriter_base(&self) -> RewriterBase<'c, '_> {
         unsafe { RewriterBase::from_raw(self.raw) }
     }
 }
@@ -75,7 +75,7 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
     /// # Safety
     ///
     /// A raw object must be valid.
-    pub unsafe fn from_raw(raw: MlirRewriterBase) -> Self {
+    pub const unsafe fn from_raw(raw: MlirRewriterBase) -> Self {
         Self {
             raw,
             _context: PhantomData,

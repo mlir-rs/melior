@@ -20,6 +20,7 @@ explicit_deref_methods = "deny"
 if_not_else = "deny"
 manual_let_else = "deny"
 missing_const_for_fn = "deny"
+multiple_crate_versions = { level = "allow", priority = 1 }
 std_instead_of_alloc = "deny"
 std_instead_of_core = "deny"
 todo = "deny"

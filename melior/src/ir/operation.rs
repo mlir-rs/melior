@@ -17,17 +17,17 @@ use crate::{
     utility::{collect_bytes_callback, print_callback, print_string_callback},
 };
 use core::{
+    ffi::c_void,
+    fmt::{Debug, Display, Formatter},
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+};
+use core::{
     fmt,
     mem::{forget, transmute},
 };
 use mlir_sys::{
     MlirOperation, mlirOperationClone, mlirOperationDestroy, mlirOperationEqual, mlirOperationPrint,
-};
-use std::{
-    ffi::c_void,
-    fmt::{Debug, Display, Formatter},
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
 };
 
 /// An operation.
@@ -207,13 +207,13 @@ impl Eq for OperationRef<'_, '_> {}
 
 impl Display for OperationRef<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        Display::fmt(self.deref(), formatter)
+        Display::fmt(&**self, formatter)
     }
 }
 
 impl Debug for OperationRef<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        Debug::fmt(self.deref(), formatter)
+        Debug::fmt(&**self, formatter)
     }
 }
 
@@ -287,13 +287,13 @@ impl Eq for OperationRefMut<'_, '_> {}
 
 impl Display for OperationRefMut<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        Display::fmt(self.deref(), formatter)
+        Display::fmt(&**self, formatter)
     }
 }
 
 impl Debug for OperationRefMut<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        Debug::fmt(self.deref(), formatter)
+        Debug::fmt(&**self, formatter)
     }
 }
 
@@ -941,7 +941,7 @@ mod tests {
             .first_operation_mut()
             .unwrap();
         let inner_op_parent = inner_op.parent_operation_mut().unwrap();
-        assert_eq!(inner_op_parent.deref(), operation.deref());
+        assert_eq!(&*inner_op_parent, &*operation);
 
         // Try a mutation to verify we have a mutable reference.
         inner_op.remove_from_parent();

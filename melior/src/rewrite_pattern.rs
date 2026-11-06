@@ -2,13 +2,13 @@ use crate::{
     context::Context, ir::OperationRef, ir_rewriter::RewriterBase, logical_result::LogicalResult,
     string_ref::StringRef,
 };
+use core::{ffi::c_void, marker::PhantomData, mem::forget};
 use mlir_sys::{
     MlirFrozenRewritePatternSet, MlirOperation, MlirPatternRewriter, MlirRewritePattern,
     MlirRewritePatternCallbacks, MlirRewritePatternSet, mlirFreezeRewritePattern,
     mlirFrozenRewritePatternSetDestroy, mlirOpRewritePatternCreate, mlirPatternRewriterAsBase,
     mlirRewritePatternSetAdd, mlirRewritePatternSetCreate, mlirRewritePatternSetDestroy,
 };
-use std::{ffi::c_void, marker::PhantomData, mem::forget};
 
 /// A set of rewrite patterns.
 pub struct RewritePatternSet<'c> {
@@ -54,7 +54,7 @@ pub struct FrozenRewritePatternSet {
 impl FrozenRewritePatternSet {
     /// Converts the frozen pattern set into a raw object, transferring
     /// ownership.
-    pub fn into_raw(self) -> MlirFrozenRewritePatternSet {
+    pub const fn into_raw(self) -> MlirFrozenRewritePatternSet {
         let raw = self.raw;
 
         forget(self);
@@ -77,7 +77,7 @@ pub struct RewritePattern {
 
 impl RewritePattern {
     /// Converts the pattern into a raw object, transferring ownership.
-    pub fn into_raw(self) -> MlirRewritePattern {
+    pub const fn into_raw(self) -> MlirRewritePattern {
         self.raw
     }
 }
@@ -97,7 +97,7 @@ impl PatternRewriter<'_> {
     /// # Safety
     ///
     /// A raw object must be valid.
-    pub unsafe fn from_raw(raw: MlirPatternRewriter) -> Self {
+    pub const unsafe fn from_raw(raw: MlirPatternRewriter) -> Self {
         Self {
             raw,
             _reference: PhantomData,

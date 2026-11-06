@@ -1,3 +1,5 @@
+//! Bytecode writer configurations.
+
 use mlir_sys::{
     MlirBytecodeWriterConfig, mlirBytecodeWriterConfigCreate,
     mlirBytecodeWriterConfigDesiredEmitVersion, mlirBytecodeWriterConfigDestroy,

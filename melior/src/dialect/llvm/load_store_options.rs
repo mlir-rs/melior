@@ -29,37 +29,37 @@ impl<'c> LoadStoreOptions<'c> {
     }
 
     /// Sets an alignment.
-    pub fn align(mut self, align: Option<IntegerAttribute<'c>>) -> Self {
+    pub const fn align(mut self, align: Option<IntegerAttribute<'c>>) -> Self {
         self.align = align;
         self
     }
 
     /// Sets a volatile flag.
-    pub fn volatile(mut self, volatile: bool) -> Self {
+    pub const fn volatile(mut self, volatile: bool) -> Self {
         self.volatile = volatile;
         self
     }
 
     /// Sets a nontemporal flag.
-    pub fn nontemporal(mut self, nontemporal: bool) -> Self {
+    pub const fn nontemporal(mut self, nontemporal: bool) -> Self {
         self.nontemporal = nontemporal;
         self
     }
 
     /// Sets access groups.
-    pub fn access_groups(mut self, access_groups: Option<ArrayAttribute<'c>>) -> Self {
+    pub const fn access_groups(mut self, access_groups: Option<ArrayAttribute<'c>>) -> Self {
         self.access_groups = access_groups;
         self
     }
 
     /// Sets alias scopes.
-    pub fn alias_scopes(mut self, alias_scopes: Option<ArrayAttribute<'c>>) -> Self {
+    pub const fn alias_scopes(mut self, alias_scopes: Option<ArrayAttribute<'c>>) -> Self {
         self.alias_scopes = alias_scopes;
         self
     }
 
     /// Sets noalias scopes.
-    pub fn noalias_scopes(mut self, noalias_scopes: Option<ArrayAttribute<'c>>) -> Self {
+    pub const fn noalias_scopes(mut self, noalias_scopes: Option<ArrayAttribute<'c>>) -> Self {
         self.noalias_scopes = noalias_scopes;
         self
     }

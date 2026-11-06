@@ -23,6 +23,11 @@ pub use self::{
 };
 use super::Location;
 use crate::{context::Context, string_ref::StringRef, utility::print_callback};
+use core::{
+    ffi::c_void,
+    fmt::{self, Debug, Display, Formatter},
+    marker::PhantomData,
+};
 use mlir_sys::{
     MlirType, mlirBF16TypeGet, mlirF16TypeGet, mlirF32TypeGet, mlirF64TypeGet,
     mlirFloat4E2M1FNTypeGet, mlirFloat6E2M3FNTypeGet, mlirFloat6E3M2FNTypeGet,
@@ -32,11 +37,6 @@ use mlir_sys::{
     mlirNoneTypeGet, mlirTypeEqual, mlirTypeParseGet, mlirTypePrint, mlirVectorTypeGet,
     mlirVectorTypeGetChecked, mlirVectorTypeGetScalable, mlirVectorTypeGetScalableChecked,
     mlirVectorTypeIsDimScalable, mlirVectorTypeIsScalable,
-};
-use std::{
-    ffi::c_void,
-    fmt::{self, Debug, Display, Formatter},
-    marker::PhantomData,
 };
 
 /// A type.
@@ -279,9 +279,9 @@ impl Debug for Type<'_> {
     }
 }
 
-impl std::hash::Hash for Type<'_> {
+impl core::hash::Hash for Type<'_> {
     // Hashes the type's pointer since they are unique w.r.t. the MLIR context.
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         self.raw.ptr.hash(state);
     }
 }

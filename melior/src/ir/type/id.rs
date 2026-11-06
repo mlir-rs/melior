@@ -3,11 +3,11 @@
 mod allocator;
 
 pub use allocator::Allocator;
-use mlir_sys::{MlirTypeID, mlirTypeIDCreate, mlirTypeIDEqual, mlirTypeIDHashValue};
-use std::{
+use core::{
     hash::{Hash, Hasher},
     marker::PhantomData,
 };
+use mlir_sys::{MlirTypeID, mlirTypeIDCreate, mlirTypeIDEqual, mlirTypeIDHashValue};
 
 /// A type ID.
 #[derive(Clone, Copy, Debug)]
@@ -41,7 +41,7 @@ impl TypeId<'_> {
     /// This function will panic if the given reference is not 8-byte aligned.
     // TODO Return a result instead of using assertion.
     pub fn create<T>(reference: &T) -> Self {
-        let ptr = reference as *const _ as *const std::ffi::c_void;
+        let ptr = reference as *const _ as *const core::ffi::c_void;
 
         assert_eq!(
             ptr.align_offset(8),

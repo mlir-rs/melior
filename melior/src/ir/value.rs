@@ -3,12 +3,12 @@ mod value_like;
 pub use self::value_like::ValueLike;
 use super::{Type, block::BlockArgument, operation::OperationResult};
 use crate::{Context, utility::print_callback};
-use mlir_sys::{MlirValue, mlirValueEqual, mlirValuePrint};
-use std::{
+use core::{
     ffi::c_void,
     fmt::{self, Debug, Display, Formatter},
     marker::PhantomData,
 };
+use mlir_sys::{MlirValue, mlirValueEqual, mlirValuePrint};
 
 /// A value.
 // Values are always non-owning references to their parents, such as operations

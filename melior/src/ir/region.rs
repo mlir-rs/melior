@@ -2,13 +2,13 @@ mod region_like;
 
 pub use self::region_like::RegionLike;
 use super::{Block, BlockRef};
-use mlir_sys::{
-    MlirRegion, mlirBlockGetNextInRegion, mlirRegionCreate, mlirRegionDestroy, mlirRegionEqual,
-};
-use std::{
+use core::{
     marker::PhantomData,
     mem::{forget, transmute},
     ops::Deref,
+};
+use mlir_sys::{
+    MlirRegion, mlirBlockGetNextInRegion, mlirRegionCreate, mlirRegionDestroy, mlirRegionEqual,
 };
 
 /// A region.
