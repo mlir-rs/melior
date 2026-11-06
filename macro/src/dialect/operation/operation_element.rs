@@ -1,4 +1,4 @@
-use super::{ElementPosition, FieldKind, OperationField, VariadicKind};
+use super::{ElementKind, ElementPosition, FieldKind, OperationField, VariadicKind};
 use crate::dialect::{
     error::Error,
     r#type::Type as ElementType,
@@ -11,7 +11,7 @@ use syn::{Type, parse_quote};
 #[derive(Debug)]
 pub struct OperationElement<'a> {
     name: &'a str,
-    kind: FieldKind,
+    kind: ElementKind,
     singular_identifier: Ident,
     r#type: ElementType,
     position: ElementPosition,
@@ -20,7 +20,7 @@ pub struct OperationElement<'a> {
 impl<'a> OperationElement<'a> {
     pub fn new(
         name: &'a str,
-        kind: FieldKind,
+        kind: ElementKind,
         r#type: ElementType,
         position: ElementPosition,
     ) -> Result<Self, Error> {
@@ -52,7 +52,7 @@ impl OperationField for OperationElement<'_> {
     }
 
     fn kind(&self) -> FieldKind {
-        self.kind
+        self.kind.into()
     }
 
     fn singular_identifier(&self) -> &Ident {
@@ -61,9 +61,8 @@ impl OperationField for OperationElement<'_> {
 
     fn parameter_type(&self) -> Type {
         let r#type: Type = match self.kind {
-            FieldKind::Operand => parse_quote!(::melior::ir::Value<'c, '_>),
-            FieldKind::Result => parse_quote!(::melior::ir::Type<'c>),
-            FieldKind::Region | FieldKind::Successor | FieldKind::Attribute => unreachable!(),
+            ElementKind::Operand => parse_quote!(::melior::ir::Value<'c, '_>),
+            ElementKind::Result => parse_quote!(::melior::ir::Type<'c>),
         };
 
         if self.is_variadic() {
@@ -75,11 +74,10 @@ impl OperationField for OperationElement<'_> {
 
     fn return_type(&self) -> Type {
         let r#type: Type = match self.kind {
-            FieldKind::Operand => parse_quote!(::melior::ir::Value<'c, '_>),
-            FieldKind::Result => {
+            ElementKind::Operand => parse_quote!(::melior::ir::Value<'c, '_>),
+            ElementKind::Result => {
                 parse_quote!(::melior::ir::operation::OperationResult<'c, '_>)
             }
-            FieldKind::Region | FieldKind::Successor | FieldKind::Attribute => unreachable!(),
         };
 
         if !self.is_variadic() {

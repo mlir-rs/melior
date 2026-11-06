@@ -1,5 +1,6 @@
 mod attribute;
 mod builder;
+mod element_kind;
 mod element_position;
 mod field_kind;
 mod operation_element;
@@ -9,9 +10,9 @@ mod successor;
 mod variadic_kind;
 
 pub use self::{
-    attribute::Attribute, builder::OperationBuilder, element_position::ElementPosition,
-    field_kind::FieldKind, operation_element::OperationElement, region::Region,
-    successor::Successor, variadic_kind::VariadicKind,
+    attribute::Attribute, builder::OperationBuilder, element_kind::ElementKind,
+    element_position::ElementPosition, field_kind::FieldKind, operation_element::OperationElement,
+    region::Region, successor::Successor, variadic_kind::VariadicKind,
 };
 use super::utility::{sanitize_documentation, sanitize_snake_case_identifier};
 use crate::dialect::{
@@ -375,7 +376,7 @@ impl<'a> Operation<'a> {
     ) -> Result<Vec<OperationElement<'a>>, Error> {
         Self::collect_elements(
             definition,
-            FieldKind::Result,
+            ElementKind::Result,
             &Self::dag_constraints(definition, "results")?
                 .into_iter()
                 .map(|(name, constraint)| (name, Type::new(constraint)))
@@ -393,7 +394,7 @@ impl<'a> Operation<'a> {
     ) -> Result<Vec<OperationElement<'a>>, Error> {
         Self::collect_elements(
             definition,
-            FieldKind::Operand,
+            ElementKind::Operand,
             &arguments
                 .iter()
                 .filter(|(_, definition)| definition.subclass_of("TypeConstraint"))
@@ -406,7 +407,7 @@ impl<'a> Operation<'a> {
 
     fn collect_elements(
         definition: Record<'a>,
-        kind: FieldKind,
+        kind: ElementKind,
         elements: &[(&'a str, Type)],
         same_size: bool,
         attribute_sized: bool,
