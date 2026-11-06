@@ -2,7 +2,6 @@ mod error;
 mod generation;
 mod input;
 mod operation;
-mod r#trait;
 mod r#type;
 mod utility;
 
