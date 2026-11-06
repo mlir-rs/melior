@@ -138,11 +138,13 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
     let add_identifier = field.add_identifier();
     let add_arguments = field.add_arguments();
     let doc = format!("Sets `{}`.", field.name());
+    let kind = field.kind();
+    let index = field.index();
 
-    if builder.type_state().has_parameter(field.name()) {
-        let parameters = builder.type_state().parameters_without(field.name());
-        let arguments_set = builder.type_state().arguments_with(field.name(), true);
-        let arguments_unset = builder.type_state().arguments_with(field.name(), false);
+    if builder.type_state().has_parameter(kind, index) {
+        let parameters = builder.type_state().parameters_without(kind, index);
+        let arguments_set = builder.type_state().arguments_with(kind, index, true);
+        let arguments_unset = builder.type_state().arguments_with(kind, index, false);
         let segment_size_fields = generate_segment_size_fields(builder.operation(), field);
 
         quote! {
@@ -197,9 +199,11 @@ fn generate_same_operands_first_fn(
         quote! { ::melior::ir::ValueLike::r#type(&#identifier) }
     };
 
-    let parameters = builder.type_state().parameters_without(field.name());
-    let arguments_set = builder.type_state().arguments_with(field.name(), true);
-    let arguments_unset = builder.type_state().arguments_with(field.name(), false);
+    let kind = field.kind();
+    let index = field.index();
+    let parameters = builder.type_state().parameters_without(kind, index);
+    let arguments_set = builder.type_state().arguments_with(kind, index, true);
+    let arguments_unset = builder.type_state().arguments_with(kind, index, false);
     let segment_size_fields = generate_segment_size_fields(builder.operation(), field);
 
     quote! {
@@ -254,9 +258,11 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
             }
         }
     } else {
-        let parameters = builder.type_state().parameters_without(field.name());
-        let arguments_set = builder.type_state().arguments_with(field.name(), true);
-        let arguments_unset = builder.type_state().arguments_with(field.name(), false);
+        let kind = field.kind();
+        let index = field.index();
+        let parameters = builder.type_state().parameters_without(kind, index);
+        let arguments_set = builder.type_state().arguments_with(kind, index, true);
+        let arguments_unset = builder.type_state().arguments_with(kind, index, false);
         let segment_size_fields = generate_segment_size_fields(builder.operation(), field);
 
         quote! {

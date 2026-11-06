@@ -270,7 +270,8 @@ impl<'a> Operation<'a> {
         definition
             .dag_value("successors")?
             .args()
-            .map(|(name, value)| {
+            .enumerate()
+            .map(|(index, (name, value))| {
                 let name = name.ok_or_else(|| {
                     OdsError::UnnamedDagArg("successors").with_location(definition)
                 })?;
@@ -279,6 +280,7 @@ impl<'a> Operation<'a> {
                     Record::try_from(value)
                         .map_err(|error| error.set_location(definition))?
                         .subclass_of("VariadicSuccessor"),
+                    index,
                 )
             })
             .collect()
@@ -288,7 +290,8 @@ impl<'a> Operation<'a> {
         definition
             .dag_value("regions")?
             .args()
-            .map(|(name, value)| {
+            .enumerate()
+            .map(|(index, (name, value))| {
                 let name = name
                     .ok_or_else(|| OdsError::UnnamedDagArg("regions").with_location(definition))?;
                 Region::new(
@@ -296,6 +299,7 @@ impl<'a> Operation<'a> {
                     Record::try_from(value)
                         .map_err(|error| error.set_location(definition))?
                         .subclass_of("VariadicRegion"),
+                    index,
                 )
             })
             .collect()
@@ -458,13 +462,14 @@ impl<'a> Operation<'a> {
         arguments
             .iter()
             .filter(|(_, definition)| definition.subclass_of("Attr"))
-            .map(|(name, definition)| {
+            .enumerate()
+            .map(|(index, (name, definition))| {
                 if definition.subclass_of("DerivedAttr") {
                     Err(OdsError::UnexpectedSuperClass("DerivedAttr")
                         .with_location(*definition)
                         .into())
                 } else {
-                    Attribute::new(name, *definition)
+                    Attribute::new(name, *definition, index)
                 }
             })
             .collect()
@@ -478,9 +483,10 @@ impl<'a> Operation<'a> {
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
             .filter(|definition| definition.subclass_of("Attr"))
-            .map(|definition| {
+            .enumerate()
+            .map(|(index, definition)| {
                 if definition.subclass_of("DerivedAttr") {
-                    Attribute::new(definition.name()?, definition)
+                    Attribute::new(definition.name()?, definition, index)
                 } else {
                     Err(OdsError::ExpectedSuperClass("DerivedAttr")
                         .with_location(definition)

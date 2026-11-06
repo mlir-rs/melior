@@ -12,14 +12,16 @@ pub struct Region<'a> {
     name: &'a str,
     singular_identifier: Ident,
     variadic: bool,
+    index: usize,
 }
 
 impl<'a> Region<'a> {
-    pub fn new(name: &'a str, variadic: bool) -> Result<Self, Error> {
+    pub fn new(name: &'a str, variadic: bool, index: usize) -> Result<Self, Error> {
         Ok(Self {
             name,
             singular_identifier: sanitize_snake_case_identifier(name)?,
             variadic,
+            index,
         })
     }
 
@@ -35,6 +37,10 @@ impl OperationField for Region<'_> {
 
     fn kind(&self) -> FieldKind {
         FieldKind::Region
+    }
+
+    fn index(&self) -> usize {
+        self.index
     }
 
     fn singular_identifier(&self) -> &Ident {

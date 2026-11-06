@@ -38,7 +38,10 @@ impl<'a> OperationBuilder<'a> {
             Self::build_ordered_fields(operation.operands()),
             Self::build_ordered_fields(operation.regions()),
             Self::build_ordered_fields(operation.successors()),
-            Self::build_names(operation.required_attributes()),
+            operation
+                .required_attributes()
+                .map(OperationField::index)
+                .collect(),
         )
     }
 
@@ -46,13 +49,7 @@ impl<'a> OperationBuilder<'a> {
         fields: impl Iterator<Item = &'b (impl OperationField + 'b)>,
     ) -> Vec<OrderedField> {
         fields
-            .map(|field| OrderedField::new(field.name().into(), field.is_optional()))
+            .map(|field| OrderedField::new(field.is_optional()))
             .collect()
-    }
-
-    fn build_names<'b>(
-        fields: impl Iterator<Item = &'b (impl OperationField + 'b)>,
-    ) -> Vec<String> {
-        fields.map(|field| field.name().into()).collect()
     }
 }

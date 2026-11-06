@@ -55,6 +55,10 @@ impl OperationField for OperationElement<'_> {
         self.kind.into()
     }
 
+    fn index(&self) -> usize {
+        self.position.index()
+    }
+
     fn singular_identifier(&self) -> &Ident {
         &self.singular_identifier
     }

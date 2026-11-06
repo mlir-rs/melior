@@ -33,13 +33,11 @@ pub fn generate_operation(operation: &Operation) -> TokenStream {
         .collect::<Vec<_>>();
     let region_accessors = operation
         .regions()
-        .enumerate()
-        .map(|(index, region)| generate_region_accessor(region, index))
+        .map(generate_region_accessor)
         .collect::<Vec<_>>();
     let successor_accessors = operation
         .successors()
-        .enumerate()
-        .map(|(index, successor)| generate_successor_accessor(successor, index))
+        .map(generate_successor_accessor)
         .collect::<Vec<_>>();
     let attribute_accessors = operation
         .all_attributes()
