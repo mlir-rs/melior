@@ -18,7 +18,6 @@ pub use self::{
 use super::utility::{sanitize_documentation, sanitize_snake_case_identifier};
 use crate::dialect::{
     error::{Error, OdsError},
-    r#trait::Trait,
     r#type::Type,
     utility::capitalize_string,
 };
@@ -66,11 +65,7 @@ pub struct Operation<'a> {
 impl<'a> Operation<'a> {
     pub fn new(definition: Record<'a>) -> Result<Self, Error> {
         let operation_name = definition.str_value("opName")?;
-        let traits = Self::collect_traits(definition)?;
-        let trait_names = traits
-            .iter()
-            .flat_map(|r#trait| r#trait.name())
-            .collect::<HashSet<_>>();
+        let trait_names = Self::collect_trait_names(definition)?;
 
         let arguments = Self::dag_constraints(definition, "arguments")?;
         let regions = Self::collect_regions(definition)?;
@@ -93,17 +88,11 @@ impl<'a> Operation<'a> {
             type_inference: {
                 let has_unfixed_results = results.iter().any(OperationElement::is_unfixed);
                 let has_interface = regions.is_empty()
-                    && traits.iter().any(|r#trait| {
-                        r#trait.name() == Some("::mlir::InferTypeOpInterface::Trait")
-                    });
+                    && trait_names.contains("::mlir::InferTypeOpInterface::Trait");
                 let has_same_operands = !has_unfixed_results
-                    && traits.iter().any(|r#trait| {
-                        r#trait.name() == Some("::mlir::OpTrait::SameOperandsAndResultType")
-                    });
+                    && trait_names.contains("::mlir::OpTrait::SameOperandsAndResultType");
                 let has_first_attr_derived = !has_unfixed_results
-                    && traits.iter().any(|r#trait| {
-                        r#trait.name() == Some("::mlir::OpTrait::FirstAttrDerivedResultType")
-                    });
+                    && trait_names.contains("::mlir::OpTrait::FirstAttrDerivedResultType");
                 if has_interface {
                     Some(TypeInference::Interface)
                 } else if has_same_operands {
@@ -313,9 +302,9 @@ impl<'a> Operation<'a> {
             .collect()
     }
 
-    fn collect_traits(definition: Record<'a>) -> Result<Vec<Trait>, Error> {
+    fn collect_trait_names(definition: Record<'a>) -> Result<HashSet<String>, Error> {
         let mut trait_lists = vec![definition.list_of_defs_value("traits")?];
-        let mut traits = vec![];
+        let mut names = HashSet::new();
 
         while let Some(trait_list) = trait_lists.pop() {
             for definition in trait_list {
@@ -325,12 +314,33 @@ impl<'a> Operation<'a> {
                     if definition.subclass_of("Interface") {
                         trait_lists.push(definition.list_of_defs_value("baseInterfaces")?);
                     }
-                    traits.push(Trait::new(definition)?)
+                    names.extend(Self::build_trait_name(definition)?);
                 }
             }
         }
 
-        Ok(traits)
+        Ok(names)
+    }
+
+    // Predicate traits have no names.
+    fn build_trait_name(definition: Record) -> Result<Option<String>, Error> {
+        Ok(if definition.subclass_of("PredTrait") {
+            None
+        } else if definition.subclass_of("InterfaceTrait") || definition.subclass_of("NativeTrait")
+        {
+            let name = definition.string_value("trait")?;
+            let namespace = definition.string_value("cppNamespace")?;
+
+            Some(if namespace.is_empty() {
+                name
+            } else {
+                format!("{namespace}::{name}")
+            })
+        } else if definition.subclass_of("GenInternalTrait") {
+            Some(definition.string_value("trait")?)
+        } else {
+            return Err(OdsError::InvalidTrait.with_location(definition).into());
+        })
     }
 
     fn dag_constraints(
