@@ -43,7 +43,7 @@ pub fn generate_dialect(input: DialectInput) -> Result<TokenStream, Error> {
 
     if input.files().count() > 0 {
         parser = parser.add_source(&input.files().fold(String::new(), |source, path| {
-            source + "include \"" + path + "\""
+            source + "include \"" + path + "\"\n"
         }))?;
     }
 
