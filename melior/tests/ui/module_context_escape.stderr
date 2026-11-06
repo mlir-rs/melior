@@ -1,0 +1,13 @@
+error[E0597]: `context` does not live long enough
+  --> tests/ui/module_context_escape.rs:11:71
+   |
+ 7 |     let _module = {
+   |         ------- borrow later stored here
+ 8 |         let context = Context::new();
+   |             ------- binding `context` declared here
+...
+11 |             OperationBuilder::new("builtin.module", Location::unknown(&context))
+   |                                                                       ^^^^^^^^ borrowed value does not live long enough
+...
+16 |     };
+   |     - `context` dropped here while still borrowed

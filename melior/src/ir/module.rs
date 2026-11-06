@@ -1,10 +1,13 @@
-use super::{BlockRef, Location, Operation, OperationRef, operation::OperationRefMut};
+use super::{
+    BlockRef, Location, Operation, OperationRef,
+    operation::{OperationLike, OperationRefMut},
+};
 use crate::{
     context::{Context, ContextRef},
     string_ref::StringRef,
 };
 use alloc::ffi::CString;
-use core::marker::PhantomData;
+use core::{marker::PhantomData, mem::forget};
 use mlir_sys::{
     MlirModule, mlirModuleCreateEmpty, mlirModuleCreateParse, mlirModuleDestroy,
     mlirModuleFromOperation, mlirModuleGetBody, mlirModuleGetContext, mlirModuleGetOperation,
@@ -53,9 +56,18 @@ impl<'c> Module<'c> {
         unsafe { BlockRef::from_raw(mlirModuleGetBody(self.raw)) }
     }
 
-    /// Converts an operation into a module.
-    pub fn from_operation(operation: Operation) -> Option<Self> {
-        unsafe { Self::from_option_raw(mlirModuleFromOperation(operation.into_raw())) }
+    /// Converts an operation into a module, or returns the operation if it is
+    /// not a module.
+    pub fn from_operation(operation: Operation<'c>) -> Result<Self, Operation<'c>> {
+        if let Some(module) =
+            unsafe { Self::from_option_raw(mlirModuleFromOperation(operation.to_raw())) }
+        {
+            forget(operation);
+
+            Ok(module)
+        } else {
+            Err(operation)
+        }
     }
 
     /// Creates a module from a raw object.
@@ -100,7 +112,7 @@ mod tests {
     use super::*;
     use crate::{
         ir::{
-            Block, Region, RegionLike,
+            Block, Identifier, Region, RegionLike,
             attribute::StringAttribute,
             operation::{OperationBuilder, OperationLike, OperationMutLike},
         },
@@ -150,13 +162,15 @@ mod tests {
     fn from_operation_fail() {
         let context = create_test_context();
 
-        assert!(
+        assert_eq!(
             Module::from_operation(
-                OperationBuilder::new("func.func", Location::unknown(&context),)
+                OperationBuilder::new("func.func", Location::unknown(&context))
                     .build()
                     .unwrap()
             )
-            .is_none()
+            .unwrap_err()
+            .name(),
+            Identifier::new(&context, "func.func")
         );
     }
 

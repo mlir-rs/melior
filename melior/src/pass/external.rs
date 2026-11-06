@@ -6,7 +6,7 @@ use crate::{
     dialect::DialectHandle,
     ir::{OperationRef, r#type::TypeId},
 };
-use core::{ffi::c_void, marker::PhantomData, mem::transmute, ptr::drop_in_place};
+use core::{ffi::c_void, marker::PhantomData, mem::transmute};
 use mlir_sys::{
     MlirContext, MlirExternalPass, MlirExternalPassCallbacks, MlirLogicalResult, MlirOperation,
     mlirCreateExternalPass, mlirExternalPassSignalFailure,
@@ -53,7 +53,7 @@ unsafe extern "C" fn callback_destruct<'a, T: RunExternalPass<'a>>(pass: *mut T)
     unsafe { pass.as_mut() }
         .expect("pass should be valid when called")
         .destruct();
-    unsafe { drop_in_place(pass) };
+    drop(unsafe { Box::from_raw(pass) });
 }
 
 unsafe extern "C" fn callback_initialize<'a, T: RunExternalPass<'a>>(
@@ -150,7 +150,7 @@ impl<'c, F: FnMut(OperationRef<'c, '_>, ExternalPass<'_>) + Clone> RunExternalPa
 /// use melior::{
 ///     Context,
 ///     ir::{OperationRef, operation::OperationLike, r#type::TypeId},
-///     pass::{ExternalPass, create_external},
+///     pass::{ExternalPass, PassManager, create_external},
 /// };
 ///
 /// #[repr(align(8))]
@@ -159,8 +159,9 @@ impl<'c, F: FnMut(OperationRef<'c, '_>, ExternalPass<'_>) + Clone> RunExternalPa
 /// static EXAMPLE_PASS: PassId = PassId;
 ///
 /// let context = Context::new();
+/// let pass_manager = PassManager::new(&context);
 ///
-/// create_external(
+/// pass_manager.add_pass(create_external(
 ///     |operation: OperationRef, _pass: ExternalPass| {
 ///         operation.dump();
 ///     },
@@ -170,7 +171,7 @@ impl<'c, F: FnMut(OperationRef<'c, '_>, ExternalPass<'_>) + Clone> RunExternalPa
 ///     "description",
 ///     "",
 ///     &[],
-/// );
+/// ));
 /// ```
 #[allow(clippy::too_many_arguments)]
 pub fn create_external<'c, T: RunExternalPass<'c>>(
