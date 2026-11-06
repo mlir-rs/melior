@@ -150,7 +150,7 @@ impl<'c, F: FnMut(OperationRef<'c, '_>, ExternalPass<'_>) + Clone> RunExternalPa
 /// use melior::{
 ///     Context,
 ///     ir::{OperationRef, operation::OperationLike, r#type::TypeId},
-///     pass::{ExternalPass, create_external},
+///     pass::{ExternalPass, PassManager, create_external},
 /// };
 ///
 /// #[repr(align(8))]
@@ -159,8 +159,9 @@ impl<'c, F: FnMut(OperationRef<'c, '_>, ExternalPass<'_>) + Clone> RunExternalPa
 /// static EXAMPLE_PASS: PassId = PassId;
 ///
 /// let context = Context::new();
+/// let pass_manager = PassManager::new(&context);
 ///
-/// create_external(
+/// pass_manager.add_pass(create_external(
 ///     |operation: OperationRef, _pass: ExternalPass| {
 ///         operation.dump();
 ///     },
@@ -170,7 +171,7 @@ impl<'c, F: FnMut(OperationRef<'c, '_>, ExternalPass<'_>) + Clone> RunExternalPa
 ///     "description",
 ///     "",
 ///     &[],
-/// );
+/// ));
 /// ```
 #[allow(clippy::too_many_arguments)]
 pub fn create_external<'c, T: RunExternalPass<'c>>(
