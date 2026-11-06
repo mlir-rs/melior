@@ -34,8 +34,8 @@ use crate::{
 };
 
 use super::{
-    OperationPrintingFlags, OperationRef, OperationRefMut, OperationResult, collect_bytes_callback,
-    print_string_callback,
+    Operation, OperationPrintingFlags, OperationRef, OperationRefMut, OperationResult,
+    collect_bytes_callback, print_string_callback,
 };
 
 /// Order in which to traverse an operation tree.
@@ -481,9 +481,20 @@ pub trait OperationMutLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             .ok_or_else(|| Error::AttributeNotFound(name.into()))
     }
 
-    /// Removes itself from a parent block.
-    fn remove_from_parent(&mut self) {
-        unsafe { mlirOperationRemoveFromParent(self.to_raw()) }
+    /// Removes itself from a parent block and assumes its ownership.
+    ///
+    /// # Safety
+    ///
+    /// This function might invalidate existing references to the operation if
+    /// you drop it too early.
+    unsafe fn remove_from_parent(&mut self) -> Option<Operation<'c>> {
+        if self.block().is_some() {
+            unsafe { mlirOperationRemoveFromParent(self.to_raw()) };
+
+            Some(unsafe { Operation::from_raw(self.to_raw()) })
+        } else {
+            None
+        }
     }
 
     /// Moves this operation immediately after `other` in its parent block.

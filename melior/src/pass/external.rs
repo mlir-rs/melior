@@ -6,7 +6,7 @@ use crate::{
     dialect::DialectHandle,
     ir::{OperationRef, r#type::TypeId},
 };
-use core::{ffi::c_void, marker::PhantomData, mem::transmute, ptr::drop_in_place};
+use core::{ffi::c_void, marker::PhantomData, mem::transmute};
 use mlir_sys::{
     MlirContext, MlirExternalPass, MlirExternalPassCallbacks, MlirLogicalResult, MlirOperation,
     mlirCreateExternalPass, mlirExternalPassSignalFailure,
@@ -53,7 +53,7 @@ unsafe extern "C" fn callback_destruct<'a, T: RunExternalPass<'a>>(pass: *mut T)
     unsafe { pass.as_mut() }
         .expect("pass should be valid when called")
         .destruct();
-    unsafe { drop_in_place(pass) };
+    drop(unsafe { Box::from_raw(pass) });
 }
 
 unsafe extern "C" fn callback_initialize<'a, T: RunExternalPass<'a>>(

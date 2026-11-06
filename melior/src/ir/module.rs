@@ -1,10 +1,13 @@
-use super::{BlockRef, Location, Operation, OperationRef, operation::OperationRefMut};
+use super::{
+    BlockRef, Location, Operation, OperationRef,
+    operation::{OperationLike, OperationRefMut},
+};
 use crate::{
     context::{Context, ContextRef},
     string_ref::StringRef,
 };
 use alloc::ffi::CString;
-use core::marker::PhantomData;
+use core::{marker::PhantomData, mem::forget};
 use mlir_sys::{
     MlirModule, mlirModuleCreateEmpty, mlirModuleCreateParse, mlirModuleDestroy,
     mlirModuleFromOperation, mlirModuleGetBody, mlirModuleGetContext, mlirModuleGetOperation,
@@ -53,9 +56,11 @@ impl<'c> Module<'c> {
         unsafe { BlockRef::from_raw(mlirModuleGetBody(self.raw)) }
     }
 
-    /// Converts an operation into a module.
+    /// Converts an operation into a module. It drops the operation if it is not
+    /// a module.
     pub fn from_operation(operation: Operation) -> Option<Self> {
-        unsafe { Self::from_option_raw(mlirModuleFromOperation(operation.into_raw())) }
+        unsafe { Self::from_option_raw(mlirModuleFromOperation(operation.to_raw())) }
+            .inspect(|_| forget(operation))
     }
 
     /// Creates a module from a raw object.

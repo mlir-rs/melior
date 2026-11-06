@@ -850,24 +850,34 @@ mod tests {
         let location = Location::unknown(&context);
         let block = Block::new(&[]);
 
-        let first_operation = block.append_operation(
-            OperationBuilder::new("foo", location)
-                .add_results(&[Type::index(&context)])
-                .build()
-                .unwrap(),
-        );
-        block.append_operation(
-            OperationBuilder::new("bar", location)
-                .add_operands(&[first_operation.result(0).unwrap().into()])
-                .build()
-                .unwrap(),
-        );
-        block.first_operation_mut().unwrap().remove_from_parent();
+        block.append_operation(OperationBuilder::new("foo", location).build().unwrap());
+        block.append_operation(OperationBuilder::new("bar", location).build().unwrap());
 
+        let operation =
+            unsafe { block.first_operation_mut().unwrap().remove_from_parent() }.unwrap();
+
+        assert_eq!(operation.block(), None);
+        assert_eq!(operation.to_string(), "\"foo\"() : () -> ()\n");
         assert_eq!(block.first_operation().unwrap().next_in_block(), None);
         assert_eq!(
             block.first_operation().unwrap().to_string(),
-            "\"bar\"(<<UNKNOWN SSA VALUE>>) : (index) -> ()"
+            "\"bar\"() : () -> ()"
+        );
+    }
+
+    #[test]
+    fn remove_from_parent_detached() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+
+        assert!(
+            unsafe {
+                OperationBuilder::new("foo", Location::unknown(&context))
+                    .build()
+                    .unwrap()
+                    .remove_from_parent()
+            }
+            .is_none()
         );
     }
 
@@ -944,7 +954,7 @@ mod tests {
         assert_eq!(&*inner_op_parent, &*operation);
 
         // Try a mutation to verify we have a mutable reference.
-        inner_op.remove_from_parent();
+        let mut inner_op = unsafe { inner_op.remove_from_parent() }.unwrap();
         assert_eq!(inner_op.parent_operation_mut(), None);
     }
 
