@@ -1,5 +1,5 @@
 use crate::dialect::{
-    operation::{OperationElement, VariadicKind},
+    operation::{OperationElement, OperationField, VariadicKind},
     utility::segment_size_attribute_name,
 };
 use proc_macro2::{Span, TokenStream};
@@ -7,7 +7,7 @@ use quote::quote;
 use syn::Ident;
 
 pub fn generate_element_getter(
-    field: &impl OperationElement,
+    field: &OperationElement,
     singular_kind: &str,
     plural_kind: &str,
     error_variant: &Ident,

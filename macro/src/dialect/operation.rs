@@ -1,19 +1,17 @@
 mod attribute;
 mod builder;
 mod element_position;
-mod operand;
 mod operation_element;
 mod operation_field;
 mod region;
-mod result;
 mod segment_kind;
 mod successor;
 mod variadic_kind;
 
 pub use self::{
     attribute::Attribute, builder::OperationBuilder, element_position::ElementPosition,
-    operand::Operand, operation_element::OperationElement, region::Region, result::OperationResult,
-    segment_kind::SegmentKind, successor::Successor, variadic_kind::VariadicKind,
+    operation_element::OperationElement, region::Region, segment_kind::SegmentKind,
+    successor::Successor, variadic_kind::VariadicKind,
 };
 use super::utility::{sanitize_documentation, sanitize_snake_case_identifier};
 use crate::dialect::{
@@ -54,8 +52,8 @@ pub struct Operation<'a> {
     summary: &'a str,
     description: String,
     type_inference: Option<TypeInference>,
-    results: Vec<OperationResult<'a>>,
-    operands: Vec<Operand<'a>>,
+    results: Vec<OperationElement<'a>>,
+    operands: Vec<OperationElement<'a>>,
     regions: Vec<Region<'a>>,
     successors: Vec<Successor<'a>>,
     attributes: Vec<Attribute<'a>>,
@@ -184,7 +182,7 @@ impl<'a> Operation<'a> {
         &self.constructor_identifier
     }
 
-    pub fn results(&self) -> impl Iterator<Item = &OperationResult<'a>> + Clone {
+    pub fn results(&self) -> impl Iterator<Item = &OperationElement<'a>> + Clone {
         self.results.iter()
     }
 
@@ -192,7 +190,7 @@ impl<'a> Operation<'a> {
         self.results.len()
     }
 
-    pub fn operands(&self) -> impl Iterator<Item = &Operand<'a>> + Clone {
+    pub fn operands(&self) -> impl Iterator<Item = &OperationElement<'a>> + Clone {
         self.operands.iter()
     }
 
@@ -233,7 +231,7 @@ impl<'a> Operation<'a> {
     }
 
     // Results whose types are given to builders rather than inferred.
-    pub fn non_inferred_results(&self) -> impl Iterator<Item = &OperationResult<'a>> {
+    pub fn non_inferred_results(&self) -> impl Iterator<Item = &OperationElement<'a>> {
         if self.type_inference.is_some() {
             Default::default()
         } else {
@@ -241,12 +239,12 @@ impl<'a> Operation<'a> {
         }
     }
 
-    pub fn required_results(&self) -> impl Iterator<Item = &OperationResult<'a>> {
+    pub fn required_results(&self) -> impl Iterator<Item = &OperationElement<'a>> {
         self.non_inferred_results()
             .filter(|field| !field.is_optional())
     }
 
-    pub fn required_operands(&self) -> impl Iterator<Item = &'_ Operand<'_>> {
+    pub fn required_operands(&self) -> impl Iterator<Item = &'_ OperationElement<'_>> {
         self.operands.iter().filter(|field| !field.is_optional())
     }
 
@@ -374,14 +372,14 @@ impl<'a> Operation<'a> {
         definition: Record<'a>,
         same_size: bool,
         attribute_sized: bool,
-    ) -> Result<Vec<OperationResult<'a>>, Error> {
+    ) -> Result<Vec<OperationElement<'a>>, Error> {
         Self::collect_elements(
             definition,
+            SegmentKind::Result,
             &Self::dag_constraints(definition, "results")?
                 .into_iter()
                 .map(|(name, constraint)| (name, Type::new(constraint)))
                 .collect::<Vec<_>>(),
-            OperationResult::new,
             same_size,
             attribute_sized,
         )
@@ -392,27 +390,27 @@ impl<'a> Operation<'a> {
         arguments: &[(&'a str, Record<'a>)],
         same_size: bool,
         attribute_sized: bool,
-    ) -> Result<Vec<Operand<'a>>, Error> {
+    ) -> Result<Vec<OperationElement<'a>>, Error> {
         Self::collect_elements(
             definition,
+            SegmentKind::Operand,
             &arguments
                 .iter()
                 .filter(|(_, definition)| definition.subclass_of("TypeConstraint"))
                 .map(|(name, definition)| (*name, Type::new(*definition)))
                 .collect::<Vec<_>>(),
-            Operand::new,
             same_size,
             attribute_sized,
         )
     }
 
-    fn collect_elements<T>(
+    fn collect_elements(
         definition: Record<'a>,
+        kind: SegmentKind,
         elements: &[(&'a str, Type)],
-        create: impl Fn(&'a str, Type, ElementPosition) -> Result<T, Error>,
         same_size: bool,
         attribute_sized: bool,
-    ) -> Result<Vec<T>, Error> {
+    ) -> Result<Vec<OperationElement<'a>>, Error> {
         let unfixed_count = Self::count_unfixed_elements(elements);
         let variadic_kind = if unfixed_count <= 1 {
             None
@@ -431,8 +429,9 @@ impl<'a> Operation<'a> {
             .iter()
             .enumerate()
             .map(|(index, (name, r#type))| {
-                create(
+                OperationElement::new(
                     name,
+                    kind,
                     *r#type,
                     ElementPosition::new(
                         index,
