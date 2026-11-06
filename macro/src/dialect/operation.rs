@@ -153,11 +153,13 @@ impl<'a> Operation<'a> {
     }
 
     pub fn documentation_name(&self) -> String {
-        let article = VOWELS.contains(&self.operation_name()[..1]);
-
         format!(
             "{} [`{}`]({}) operation",
-            if article { "an" } else { "a" },
+            if VOWELS.contains(&self.operation_name()[..1]) {
+                "an"
+            } else {
+                "a"
+            },
             self.operation_name,
             self.name
         )
@@ -272,11 +274,10 @@ impl<'a> Operation<'a> {
             .args()
             .enumerate()
             .map(|(index, (name, value))| {
-                let name = name.ok_or_else(|| {
-                    OdsError::UnnamedDagArg("successors").with_location(definition)
-                })?;
                 Successor::new(
-                    name,
+                    name.ok_or_else(|| {
+                        OdsError::UnnamedDagArg("successors").with_location(definition)
+                    })?,
                     Record::try_from(value)
                         .map_err(|error| error.set_location(definition))?
                         .subclass_of("VariadicSuccessor"),
@@ -292,10 +293,10 @@ impl<'a> Operation<'a> {
             .args()
             .enumerate()
             .map(|(index, (name, value))| {
-                let name = name
-                    .ok_or_else(|| OdsError::UnnamedDagArg("regions").with_location(definition))?;
                 Region::new(
-                    name,
+                    name.ok_or_else(|| {
+                        OdsError::UnnamedDagArg("regions").with_location(definition)
+                    })?,
                     Record::try_from(value)
                         .map_err(|error| error.set_location(definition))?
                         .subclass_of("VariadicRegion"),
