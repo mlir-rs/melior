@@ -1,22 +1,38 @@
 mod ordered_field;
+mod type_argument;
 
-pub use self::ordered_field::OrderedField;
+pub use self::{ordered_field::OrderedField, type_argument::TypeArgument};
 use crate::dialect::operation::FieldKind;
-use core::iter::repeat_n;
 use quote::format_ident;
-use syn::{GenericArgument, parse_quote};
+use syn::Ident;
+
+#[derive(Debug)]
+struct Slot {
+    kind: FieldKind,
+    index: usize,
+    parameter: Ident,
+    ordered: bool,
+    optional: bool,
+}
+
+impl Slot {
+    // Builders build operations once all required fields are set.
+    fn final_argument(&self) -> TypeArgument {
+        if self.optional {
+            TypeArgument::Parameter(self.parameter.clone())
+        } else {
+            TypeArgument::Set
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct TypeState {
-    results: Vec<OrderedField>,
-    operands: Vec<OrderedField>,
-    regions: Vec<OrderedField>,
-    successors: Vec<OrderedField>,
-    attributes: Vec<usize>,
+    slots: Vec<Slot>,
 }
 
 impl TypeState {
-    pub const fn new(
+    pub fn new(
         results: Vec<OrderedField>,
         operands: Vec<OrderedField>,
         regions: Vec<OrderedField>,
@@ -24,66 +40,56 @@ impl TypeState {
         attributes: Vec<usize>,
     ) -> Self {
         Self {
-            results,
-            operands,
-            regions,
-            successors,
-            attributes,
+            slots: [
+                (FieldKind::Result, results),
+                (FieldKind::Operand, operands),
+                (FieldKind::Region, regions),
+                (FieldKind::Successor, successors),
+            ]
+            .into_iter()
+            .flat_map(|(kind, fields)| {
+                fields
+                    .into_iter()
+                    .enumerate()
+                    .map(move |(index, field)| Slot {
+                        kind,
+                        index,
+                        parameter: format_ident!("{}{index}", kind.type_parameter_prefix()),
+                        ordered: true,
+                        optional: field.is_optional(),
+                    })
+            })
+            .chain(
+                attributes
+                    .into_iter()
+                    .enumerate()
+                    .map(|(position, index)| Slot {
+                        kind: FieldKind::Attribute,
+                        index,
+                        parameter: format_ident!(
+                            "{}{position}",
+                            FieldKind::Attribute.type_parameter_prefix()
+                        ),
+                        ordered: false,
+                        optional: false,
+                    }),
+            )
+            .collect(),
         }
     }
 
-    fn ordered_fields(&self) -> impl Iterator<Item = (FieldKind, &[OrderedField])> {
-        [
-            (FieldKind::Result, self.results.as_slice()),
-            (FieldKind::Operand, &self.operands),
-            (FieldKind::Region, &self.regions),
-            (FieldKind::Successor, &self.successors),
-        ]
-        .into_iter()
-    }
-
-    fn unordered_fields(&self) -> impl Iterator<Item = (FieldKind, &[usize])> {
-        [(FieldKind::Attribute, self.attributes.as_slice())].into_iter()
-    }
-
     pub fn has_parameter(&self, kind: FieldKind, index: usize) -> bool {
-        self.ordered_fields()
-            .any(|(other, fields)| other == kind && index < fields.len())
-            || self
-                .unordered_fields()
-                .any(|(other, fields)| other == kind && fields.contains(&index))
+        self.slots
+            .iter()
+            .any(|slot| slot.kind == kind && slot.index == index)
     }
 
-    pub fn parameters(&self) -> impl Iterator<Item = GenericArgument> + '_ {
-        self.ordered_fields()
-            .map(|(kind, fields)| (fields.len(), kind))
-            .chain(
-                self.unordered_fields()
-                    .map(|(kind, fields)| (fields.len(), kind)),
-            )
-            .flat_map(|(count, kind)| Self::build_parameters(count, kind))
+    pub fn parameters(&self) -> impl Iterator<Item = &Ident> {
+        self.slots.iter().map(|slot| &slot.parameter)
     }
 
-    pub fn parameters_without(
-        &self,
-        kind: FieldKind,
-        index: usize,
-    ) -> impl Iterator<Item = GenericArgument> + '_ {
-        self.ordered_fields()
-            .flat_map(move |(other, fields)| {
-                Self::build_ordered_parameters_without(
-                    fields,
-                    other,
-                    (other == kind).then_some(index),
-                )
-            })
-            .chain(self.unordered_fields().flat_map(move |(other, fields)| {
-                Self::build_unordered_parameters_without(
-                    fields,
-                    other,
-                    (other == kind).then_some(index),
-                )
-            }))
+    pub fn initial_arguments(&self) -> impl Iterator<Item = TypeArgument> + '_ {
+        self.slots.iter().map(|_| TypeArgument::Unset)
     }
 
     pub fn arguments_with(
@@ -91,144 +97,28 @@ impl TypeState {
         kind: FieldKind,
         index: usize,
         set: bool,
-    ) -> impl Iterator<Item = GenericArgument> + '_ {
-        self.ordered_fields()
-            .flat_map(move |(other, fields)| {
-                Self::build_ordered_arguments_with(
-                    fields,
-                    other,
-                    (other == kind).then_some(index),
-                    set,
-                )
-            })
-            .chain(self.unordered_fields().flat_map(move |(other, fields)| {
-                Self::build_unordered_arguments_with(
-                    fields,
-                    other,
-                    (other == kind).then_some(index),
-                    set,
-                )
-            }))
-    }
+    ) -> impl Iterator<Item = TypeArgument> + '_ {
+        debug_assert!(self.has_parameter(kind, index));
 
-    pub fn initial_arguments(&self) -> impl Iterator<Item = GenericArgument> + '_ {
-        self.parameters().map(|_| Self::build_argument(false))
-    }
-
-    pub fn final_parameters(&self) -> impl Iterator<Item = GenericArgument> + '_ {
-        self.ordered_fields()
-            .flat_map(|(kind, fields)| Self::build_optional_parameters(fields, kind))
-    }
-
-    pub fn final_arguments(&self) -> impl Iterator<Item = GenericArgument> + '_ {
-        self.ordered_fields()
-            .flat_map(|(kind, fields)| Self::build_set_arguments(fields, kind))
-            .chain(
-                self.unordered_fields()
-                    .flat_map(|(_, fields)| repeat_n(Self::build_argument(true), fields.len())),
-            )
-    }
-
-    fn build_parameters(count: usize, kind: FieldKind) -> impl Iterator<Item = GenericArgument> {
-        (0..count).map(move |index| Self::build_generic_argument(kind, index))
-    }
-
-    fn build_optional_parameters(
-        fields: &[OrderedField],
-        kind: FieldKind,
-    ) -> impl Iterator<Item = GenericArgument> + '_ {
-        fields
-            .iter()
-            .enumerate()
-            .filter(|(_, field)| field.is_optional())
-            .map(move |(index, _)| Self::build_generic_argument(kind, index))
-    }
-
-    fn build_set_arguments(
-        fields: &[OrderedField],
-        kind: FieldKind,
-    ) -> impl Iterator<Item = GenericArgument> + '_ {
-        fields.iter().enumerate().map(move |(index, field)| {
-            if field.is_optional() {
-                Self::build_generic_argument(kind, index)
+        self.slots.iter().map(move |slot| {
+            if slot.kind != kind || (!slot.ordered && slot.index != index) {
+                TypeArgument::Parameter(slot.parameter.clone())
+            } else if slot.index == index {
+                if set {
+                    TypeArgument::Set
+                } else {
+                    TypeArgument::Unset
+                }
+            } else if slot.index < index {
+                slot.final_argument()
             } else {
-                Self::build_argument(true)
+                TypeArgument::Unset
             }
         })
     }
 
-    fn build_ordered_parameters_without(
-        fields: &[OrderedField],
-        kind: FieldKind,
-        field: Option<usize>,
-    ) -> impl Iterator<Item = GenericArgument> + '_ {
-        if let Some(index) = field {
-            Box::new(Self::build_optional_parameters(&fields[..index], kind))
-                as Box<dyn Iterator<Item = _>>
-        } else {
-            Box::new(Self::build_parameters(fields.len(), kind))
-        }
-    }
-
-    fn build_unordered_parameters_without(
-        fields: &[usize],
-        kind: FieldKind,
-        field: Option<usize>,
-    ) -> impl Iterator<Item = GenericArgument> + '_ {
-        fields
-            .iter()
-            .enumerate()
-            .filter(move |(_, other)| Some(**other) != field)
-            .map(move |(index, _)| Self::build_generic_argument(kind, index))
-    }
-
-    fn build_ordered_arguments_with(
-        fields: &[OrderedField],
-        kind: FieldKind,
-        field: Option<usize>,
-        set: bool,
-    ) -> impl Iterator<Item = GenericArgument> + '_ {
-        if let Some(index) = field {
-            Box::new(
-                Self::build_set_arguments(&fields[..index], kind)
-                    .chain([Self::build_argument(set)])
-                    .chain(repeat_n(
-                        Self::build_argument(false),
-                        fields.len() - index - 1,
-                    )),
-            ) as Box<dyn Iterator<Item = _>>
-        } else {
-            Box::new(Self::build_parameters(fields.len(), kind))
-        }
-    }
-
-    fn build_unordered_arguments_with(
-        fields: &[usize],
-        kind: FieldKind,
-        field: Option<usize>,
-        set: bool,
-    ) -> impl Iterator<Item = GenericArgument> + '_ {
-        fields.iter().enumerate().map(move |(index, other)| {
-            if Some(*other) == field {
-                Self::build_argument(set)
-            } else {
-                Self::build_generic_argument(kind, index)
-            }
-        })
-    }
-
-    fn build_generic_argument(kind: FieldKind, index: usize) -> GenericArgument {
-        let identifier = format_ident!("{}{index}", kind.type_parameter_prefix());
-
-        parse_quote!(#identifier)
-    }
-
-    fn build_argument(set: bool) -> GenericArgument {
-        if set {
-            parse_quote!(::melior::dialect::ods::__private::Set)
-        } else {
-            parse_quote!(::melior::dialect::ods::__private::Unset)
-        }
+    pub fn final_arguments(&self) -> impl Iterator<Item = TypeArgument> + '_ {
+        self.slots.iter().map(Slot::final_argument)
     }
 }
 
@@ -247,18 +137,14 @@ mod tests {
         )
     }
 
-    fn parameter(name: &str) -> GenericArgument {
-        let identifier = format_ident!("{name}");
-
-        parse_quote!(#identifier)
+    fn parameter(name: &str) -> TypeArgument {
+        TypeArgument::Parameter(format_ident!("{name}"))
     }
 
-    fn set() -> GenericArgument {
-        parse_quote!(::melior::dialect::ods::__private::Set)
-    }
-
-    fn unset() -> GenericArgument {
-        parse_quote!(::melior::dialect::ods::__private::Unset)
+    fn parameters(arguments: impl Iterator<Item = TypeArgument>) -> Vec<String> {
+        arguments
+            .filter_map(|argument| argument.parameter().map(ToString::to_string))
+            .collect()
     }
 
     #[test]
@@ -274,22 +160,27 @@ mod tests {
     }
 
     #[test]
-    fn build_parameters_without_ordered_field() {
+    fn build_parameters() {
         assert_eq!(
             create_type_state()
-                .parameters_without(FieldKind::Result, 1)
+                .parameters()
+                .map(ToString::to_string)
                 .collect::<Vec<_>>(),
-            ["T0", "O0", "A0", "A1"].map(parameter)
+            ["T0", "T1", "O0", "A0", "A1"]
         );
     }
 
     #[test]
-    fn build_parameters_without_attribute() {
+    fn build_initial_arguments() {
         assert_eq!(
-            create_type_state()
-                .parameters_without(FieldKind::Attribute, 2)
-                .collect::<Vec<_>>(),
-            ["T0", "T1", "O0", "A0"].map(parameter)
+            create_type_state().initial_arguments().collect::<Vec<_>>(),
+            [
+                TypeArgument::Unset,
+                TypeArgument::Unset,
+                TypeArgument::Unset,
+                TypeArgument::Unset,
+                TypeArgument::Unset
+            ]
         );
     }
 
@@ -301,7 +192,7 @@ mod tests {
                 .collect::<Vec<_>>(),
             [
                 parameter("T0"),
-                set(),
+                TypeArgument::Set,
                 parameter("O0"),
                 parameter("A0"),
                 parameter("A1")
@@ -312,8 +203,8 @@ mod tests {
                 .arguments_with(FieldKind::Result, 0, false)
                 .collect::<Vec<_>>(),
             [
-                unset(),
-                unset(),
+                TypeArgument::Unset,
+                TypeArgument::Unset,
                 parameter("O0"),
                 parameter("A0"),
                 parameter("A1")
@@ -332,9 +223,39 @@ mod tests {
                 parameter("T1"),
                 parameter("O0"),
                 parameter("A0"),
-                set()
+                TypeArgument::Set
             ]
         );
+    }
+
+    #[test]
+    fn build_final_arguments() {
+        assert_eq!(
+            create_type_state().final_arguments().collect::<Vec<_>>(),
+            [
+                parameter("T0"),
+                TypeArgument::Set,
+                TypeArgument::Set,
+                TypeArgument::Set,
+                TypeArgument::Set
+            ]
+        );
+    }
+
+    #[test]
+    fn derive_parameters_from_arguments() {
+        let state = create_type_state();
+
+        assert_eq!(
+            parameters(state.arguments_with(FieldKind::Result, 1, false)),
+            ["T0", "O0", "A0", "A1"]
+        );
+        assert_eq!(
+            parameters(state.arguments_with(FieldKind::Attribute, 2, false)),
+            ["T0", "T1", "O0", "A0"]
+        );
+        assert_eq!(parameters(state.final_arguments()), ["T0"]);
+        assert_eq!(parameters(state.initial_arguments()), [] as [&str; 0]);
     }
 
     #[test]
@@ -346,10 +267,22 @@ mod tests {
             [
                 parameter("T0"),
                 parameter("T1"),
-                set(),
+                TypeArgument::Set,
                 parameter("A0"),
                 parameter("A1")
             ]
         );
+    }
+
+    #[test]
+    #[should_panic(expected = "has_parameter")]
+    fn fail_to_build_arguments_with_field_past_end() {
+        let _ = create_type_state().arguments_with(FieldKind::Result, 2, true);
+    }
+
+    #[test]
+    #[should_panic(expected = "has_parameter")]
+    fn fail_to_build_arguments_with_attribute_without_parameter() {
+        let _ = create_type_state().arguments_with(FieldKind::Attribute, 1, true);
     }
 }
