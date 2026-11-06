@@ -106,9 +106,7 @@ pub fn generate_element_getter(
                     )?;
                 let start = (0..#index)
                     .map(|index| attribute.element(index))
-                    .collect::<Result<Vec<_>, _>>()?
-                    .into_iter()
-                    .sum::<i32>() as usize;
+                    .sum::<Result<i32, _>>()? as usize;
                 let group_len = attribute.element(#index)? as usize;
 
                 #get_elements
