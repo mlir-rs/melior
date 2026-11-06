@@ -178,7 +178,7 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
 // structure where these are also separate functions.
 fn generate_same_operands_first_fn(
     builder: &OperationBuilder,
-    field: &impl OperationElement,
+    field: &OperationElement,
 ) -> TokenStream {
     let builder_identifier = builder.identifier();
     let identifier = field.singular_identifier();
