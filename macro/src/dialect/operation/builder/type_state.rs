@@ -16,7 +16,6 @@ struct Slot {
 }
 
 impl Slot {
-    // Builders build operations once all required fields are set.
     fn final_argument(&self) -> TypeArgument {
         if self.optional {
             TypeArgument::Parameter(self.parameter.clone())
