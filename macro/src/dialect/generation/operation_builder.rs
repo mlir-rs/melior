@@ -129,7 +129,7 @@ fn generate_segment_size_fields(
         .collect()
 }
 
-fn generate_setter_impl(
+fn generate_setter(
     builder: &OperationBuilder,
     field: &impl OperationField,
     statements: TokenStream,
@@ -189,7 +189,7 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
     let add_identifier = field.add_identifier();
     let add_arguments = field.add_arguments();
 
-    generate_setter_impl(
+    generate_setter(
         builder,
         field,
         quote! {},
@@ -217,7 +217,7 @@ fn generate_same_operands_first_fn(
         quote! { ::melior::ir::ValueLike::r#type(&#identifier) }
     };
 
-    generate_setter_impl(
+    generate_setter(
         builder,
         field,
         quote! { let result_type = #type_access; },
@@ -242,7 +242,7 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
         quote! { ::melior::ir::attribute::AttributeLike::r#type(&#identifier) }
     };
 
-    generate_setter_impl(
+    generate_setter(
         builder,
         field,
         quote! { let result_type = #type_access; },
