@@ -255,6 +255,8 @@ pub trait OperationLike<'c: 'a, 'a>: Copy + Display + 'a {
     }
 
     /// Returns a mutable reference to a parent operation.
+    // TODO Move this method to the mutable operation trait, and make mutable
+    // operation references non-copyable.
     fn parent_operation_mut(self) -> Option<OperationRefMut<'c, 'a>> {
         unsafe { OperationRefMut::from_option_raw(mlirOperationGetParentOperation(self.to_raw())) }
     }
