@@ -61,34 +61,34 @@ pub enum WalkResult {
 }
 
 /// A trait for operation-like types.
-pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
+pub trait OperationLike<'c: 'a, 'a>: Copy + Display + 'a {
     /// Converts a value into a raw value.
-    fn to_raw(&self) -> MlirOperation;
+    fn to_raw(self) -> MlirOperation;
 
     /// Returns a context.
-    fn context(&self) -> ContextRef<'c> {
+    fn context(self) -> ContextRef<'c> {
         unsafe { ContextRef::from_raw(mlirOperationGetContext(self.to_raw())) }
     }
 
     /// Returns a name.
-    fn name(&self) -> Identifier<'c> {
+    fn name(self) -> Identifier<'c> {
         unsafe { Identifier::from_raw(mlirOperationGetName(self.to_raw())) }
     }
 
     /// Returns a block.
     // TODO Store lifetime of block in operations, or create another type like
     // `AppendedOperationRef`?
-    fn block(&self) -> Option<BlockRef<'c, 'a>> {
+    fn block(self) -> Option<BlockRef<'c, 'a>> {
         unsafe { BlockRef::from_option_raw(mlirOperationGetBlock(self.to_raw())) }
     }
 
     /// Returns the number of operands.
-    fn operand_count(&self) -> usize {
+    fn operand_count(self) -> usize {
         unsafe { mlirOperationGetNumOperands(self.to_raw()) as usize }
     }
 
     /// Returns the operand at a position.
-    fn operand(&self, index: usize) -> Result<Value<'c, 'a>, Error> {
+    fn operand(self, index: usize) -> Result<Value<'c, 'a>, Error> {
         if index < self.operand_count() {
             Ok(unsafe { Value::from_raw(mlirOperationGetOperand(self.to_raw(), index as isize)) })
         } else {
@@ -101,17 +101,18 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Returns all operands.
-    fn operands(&self) -> impl Iterator<Item = Value<'c, 'a>> {
-        (0..self.operand_count()).map(|index| self.operand(index).expect("valid operand index"))
+    fn operands(self) -> impl Iterator<Item = Value<'c, 'a>> {
+        (0..self.operand_count())
+            .map(move |index| self.operand(index).expect("valid operand index"))
     }
 
     /// Returns the number of results.
-    fn result_count(&self) -> usize {
+    fn result_count(self) -> usize {
         unsafe { mlirOperationGetNumResults(self.to_raw()) as usize }
     }
 
     /// Returns a result at a position.
-    fn result(&self, index: usize) -> Result<OperationResult<'c, 'a>, Error> {
+    fn result(self, index: usize) -> Result<OperationResult<'c, 'a>, Error> {
         if index < self.result_count() {
             Ok(unsafe {
                 OperationResult::from_raw(mlirOperationGetResult(self.to_raw(), index as isize))
@@ -126,17 +127,17 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Returns all results.
-    fn results(&self) -> impl Iterator<Item = OperationResult<'c, 'a>> {
-        (0..self.result_count()).map(|index| self.result(index).expect("valid result index"))
+    fn results(self) -> impl Iterator<Item = OperationResult<'c, 'a>> {
+        (0..self.result_count()).map(move |index| self.result(index).expect("valid result index"))
     }
 
     /// Returns the number of regions.
-    fn region_count(&self) -> usize {
+    fn region_count(self) -> usize {
         unsafe { mlirOperationGetNumRegions(self.to_raw()) as usize }
     }
 
     /// Returns a region at a position.
-    fn region(&self, index: usize) -> Result<RegionRef<'c, 'a>, Error> {
+    fn region(self, index: usize) -> Result<RegionRef<'c, 'a>, Error> {
         if index < self.region_count() {
             Ok(unsafe {
                 RegionRef::from_raw(mlirOperationGetRegion(self.to_raw(), index as isize))
@@ -151,22 +152,22 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Returns all regions.
-    fn regions(&self) -> impl Iterator<Item = RegionRef<'c, 'a>> {
+    fn regions(self) -> impl Iterator<Item = RegionRef<'c, 'a>> {
         (0..self.region_count()).map(move |index| self.region(index).expect("valid result index"))
     }
 
     /// Gets the location of the operation.
-    fn location(&self) -> Location<'c> {
+    fn location(self) -> Location<'c> {
         unsafe { Location::from_raw(mlirOperationGetLocation(self.to_raw())) }
     }
 
     /// Returns the number of successors.
-    fn successor_count(&self) -> usize {
+    fn successor_count(self) -> usize {
         unsafe { mlirOperationGetNumSuccessors(self.to_raw()) as usize }
     }
 
     /// Returns a successor at a position.
-    fn successor(&self, index: usize) -> Result<BlockRef<'c, 'a>, Error> {
+    fn successor(self, index: usize) -> Result<BlockRef<'c, 'a>, Error> {
         if index < self.successor_count() {
             Ok(unsafe {
                 BlockRef::from_raw(mlirOperationGetSuccessor(self.to_raw(), index as isize))
@@ -181,18 +182,18 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Returns all successors.
-    fn successors(&self) -> impl Iterator<Item = BlockRef<'c, 'a>> {
+    fn successors(self) -> impl Iterator<Item = BlockRef<'c, 'a>> {
         (0..self.successor_count())
-            .map(|index| self.successor(index).expect("valid successor index"))
+            .map(move |index| self.successor(index).expect("valid successor index"))
     }
 
     /// Returns the number of attributes.
-    fn attribute_count(&self) -> usize {
+    fn attribute_count(self) -> usize {
         unsafe { mlirOperationGetNumAttributes(self.to_raw()) as usize }
     }
 
     /// Returns a attribute at a position.
-    fn attribute_at(&self, index: usize) -> Result<(Identifier<'c>, Attribute<'c>), Error> {
+    fn attribute_at(self, index: usize) -> Result<(Identifier<'c>, Attribute<'c>), Error> {
         if index < self.attribute_count() {
             let named_attribute =
                 unsafe { mlirOperationGetAttribute(self.to_raw(), index as isize) };
@@ -211,13 +212,13 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Returns all attributes.
-    fn attributes(&self) -> impl Iterator<Item = (Identifier<'c>, Attribute<'c>)> + '_ {
+    fn attributes(self) -> impl Iterator<Item = (Identifier<'c>, Attribute<'c>)> {
         (0..self.attribute_count())
-            .map(|index| self.attribute_at(index).expect("valid attribute index"))
+            .map(move |index| self.attribute_at(index).expect("valid attribute index"))
     }
 
     /// Returns a attribute with the given name.
-    fn attribute(&self, name: &str) -> Result<Attribute<'c>, Error> {
+    fn attribute(self, name: &str) -> Result<Attribute<'c>, Error> {
         unsafe {
             Attribute::from_option_raw(mlirOperationGetAttributeByName(
                 self.to_raw(),
@@ -228,48 +229,48 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Checks if the operation has a attribute with the given name.
-    fn has_attribute(&self, name: &str) -> bool {
+    fn has_attribute(self, name: &str) -> bool {
         self.attribute(name).is_ok()
     }
 
     /// Returns a reference to the next operation in the same block.
-    fn next_in_block(&self) -> Option<OperationRef<'c, 'a>> {
+    fn next_in_block(self) -> Option<OperationRef<'c, 'a>> {
         unsafe { OperationRef::from_option_raw(mlirOperationGetNextInBlock(self.to_raw())) }
     }
 
     /// Returns a mutable reference to the next operation in the same block.
-    fn next_in_block_mut(&self) -> Option<OperationRefMut<'c, 'a>> {
+    fn next_in_block_mut(self) -> Option<OperationRefMut<'c, 'a>> {
         unsafe { OperationRefMut::from_option_raw(mlirOperationGetNextInBlock(self.to_raw())) }
     }
 
     /// Returns a reference to the previous operation in the same block.
     #[expect(clippy::todo)]
-    fn previous_in_block(&self) -> Option<OperationRef<'c, 'a>> {
+    fn previous_in_block(self) -> Option<OperationRef<'c, 'a>> {
         todo!("mlirOperationGetPrevInBlock is not exposed in the C API")
     }
 
     /// Returns a reference to a parent operation.
-    fn parent_operation(&self) -> Option<OperationRef<'c, 'a>> {
+    fn parent_operation(self) -> Option<OperationRef<'c, 'a>> {
         unsafe { OperationRef::from_option_raw(mlirOperationGetParentOperation(self.to_raw())) }
     }
 
     /// Returns a mutable reference to a parent operation.
-    fn parent_operation_mut(&mut self) -> Option<OperationRefMut<'c, 'a>> {
+    fn parent_operation_mut(self) -> Option<OperationRefMut<'c, 'a>> {
         unsafe { OperationRefMut::from_option_raw(mlirOperationGetParentOperation(self.to_raw())) }
     }
 
     /// Verifies an operation.
-    fn verify(&self) -> bool {
+    fn verify(self) -> bool {
         unsafe { mlirOperationVerify(self.to_raw()) }
     }
 
     /// Dumps an operation.
-    fn dump(&self) {
+    fn dump(self) {
         unsafe { mlirOperationDump(self.to_raw()) }
     }
 
     /// Prints an operation with flags.
-    fn to_string_with_flags(&self, flags: OperationPrintingFlags) -> Result<String, Error> {
+    fn to_string_with_flags(self, flags: OperationPrintingFlags) -> Result<String, Error> {
         let mut data = (String::new(), Ok::<_, Error>(()));
 
         unsafe {
@@ -287,7 +288,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Serializes an operation to bytecode.
-    fn write_bytecode(&self) -> Vec<u8> {
+    fn write_bytecode(self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
         unsafe {
@@ -302,7 +303,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Serializes an operation to bytecode with a writer configuration.
-    fn write_bytecode_with_config(&self, config: &BytecodeWriterConfig) -> Result<Vec<u8>, Error> {
+    fn write_bytecode_with_config(self, config: &BytecodeWriterConfig) -> Result<Vec<u8>, Error> {
         let mut bytes = Vec::new();
 
         let result = LogicalResult::from_raw(unsafe {
@@ -326,7 +327,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     ///
     /// The closure is called once per operation; by returning
     /// `WalkResult::Advance`/`Skip`/`Interrupt` you control the traversal.
-    fn walk<F>(&self, order: WalkOrder, mut callback: F)
+    fn walk<F>(self, order: WalkOrder, mut callback: F)
     where
         F: for<'x, 'y> FnMut(OperationRef<'x, 'y>) -> WalkResult,
     {
@@ -353,7 +354,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
 
     /// Returns the type ID of the operation, or `None` if the operation does
     /// not have a registered description.
-    fn type_id(&self) -> Option<TypeId<'c>> {
+    fn type_id(self) -> Option<TypeId<'c>> {
         let raw = unsafe { mlirOperationGetTypeID(self.to_raw()) };
         if raw.ptr.is_null() {
             None
@@ -363,19 +364,19 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Returns the first region attached to the operation, if any.
-    fn first_region(&self) -> Option<RegionRef<'c, 'a>> {
+    fn first_region(self) -> Option<RegionRef<'c, 'a>> {
         unsafe { RegionRef::from_option_raw(mlirOperationGetFirstRegion(self.to_raw())) }
     }
 
     /// Returns the number of discardable attributes attached to the operation.
-    fn discardable_attribute_count(&self) -> usize {
+    fn discardable_attribute_count(self) -> usize {
         unsafe { mlirOperationGetNumDiscardableAttributes(self.to_raw()) as usize }
     }
 
     /// Returns the discardable attribute at the given index as a
     /// `(name, attribute)` pair.
     fn discardable_attribute_at(
-        &self,
+        self,
         index: usize,
     ) -> Result<(Identifier<'c>, Attribute<'c>), Error> {
         if index < self.discardable_attribute_count() {
@@ -394,7 +395,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     }
 
     /// Returns a discardable attribute by name.
-    fn discardable_attribute(&self, name: &str) -> Result<Attribute<'c>, Error> {
+    fn discardable_attribute(self, name: &str) -> Result<Attribute<'c>, Error> {
         unsafe {
             Attribute::from_option_raw(mlirOperationGetDiscardableAttributeByName(
                 self.to_raw(),
@@ -408,7 +409,7 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
     ///
     /// Note: even when `has_inherent_attribute` returns `true`, the attribute
     /// value may be absent (optional attribute), causing this to return `Err`.
-    fn inherent_attribute(&self, name: &str) -> Result<Attribute<'c>, Error> {
+    fn inherent_attribute(self, name: &str) -> Result<Attribute<'c>, Error> {
         unsafe {
             Attribute::from_option_raw(mlirOperationGetInherentAttributeByName(
                 self.to_raw(),
@@ -420,26 +421,26 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
 
     /// Returns `true` if the operation defines an inherent attribute with the
     /// given name (the value may still be absent/optional).
-    fn has_inherent_attribute(&self, name: &str) -> bool {
+    fn has_inherent_attribute(self, name: &str) -> bool {
         unsafe {
             mlirOperationHasInherentAttributeByName(self.to_raw(), StringRef::new(name).to_raw())
         }
     }
 
     /// Returns a hash value for the operation.
-    fn hash_value(&self) -> usize {
+    fn hash_value(self) -> usize {
         unsafe { mlirOperationHashValue(self.to_raw()) }
     }
 
     /// Returns `true` if this operation appears before `other` in the same
     /// block.
-    fn is_before_in_block(&self, other: OperationRef<'c, 'a>) -> bool {
+    fn is_before_in_block(self, other: OperationRef<'c, 'a>) -> bool {
         unsafe { mlirOperationIsBeforeInBlock(self.to_raw(), other.to_raw()) }
     }
 
     /// Returns `true` if the operation implements the interface identified by
     /// the given type ID.
-    fn implements_interface(&self, interface_type_id: TypeId<'c>) -> bool {
+    fn implements_interface(self, interface_type_id: TypeId<'c>) -> bool {
         unsafe { mlirOperationImplementsInterface(self.to_raw(), interface_type_id.to_raw()) }
     }
 
@@ -462,7 +463,10 @@ pub trait OperationLike<'c: 'a, 'a>: Display + 'a {
 }
 
 /// A trait for mutable operation-like types.
-pub trait OperationMutLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
+pub trait OperationMutLike<'c: 'a, 'a> {
+    /// Converts an operation into a raw object.
+    fn to_raw(&self) -> MlirOperation;
+
     /// Sets the attribute with the given name to the given attribute.
     fn set_attribute(&mut self, name: &str, attribute: Attribute<'c>) {
         unsafe {
@@ -488,12 +492,12 @@ pub trait OperationMutLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// This function might invalidate existing references to the operation if
     /// you drop it too early.
     unsafe fn remove_from_parent(&mut self) -> Option<Operation<'c>> {
-        if self.block().is_some() {
+        if unsafe { mlirOperationGetBlock(self.to_raw()).ptr.is_null() } {
+            None
+        } else {
             unsafe { mlirOperationRemoveFromParent(self.to_raw()) };
 
             Some(unsafe { Operation::from_raw(self.to_raw()) })
-        } else {
-            None
         }
     }
 
