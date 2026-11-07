@@ -42,6 +42,7 @@ use mlir_sys::{
 /// A type.
 // Types are always values but their internal storage is owned by contexts.
 #[derive(Clone, Copy)]
+#[repr(transparent)]
 pub struct Type<'c> {
     raw: MlirType,
     _context: PhantomData<&'c Context>,
