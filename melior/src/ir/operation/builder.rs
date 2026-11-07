@@ -3,16 +3,15 @@ use crate::{
     Error,
     context::Context,
     ir::{Attribute, AttributeLike, Block, Identifier, Location, Region, Type, Value},
-    string_ref::StringRef,
 };
 use core::{
     marker::PhantomData,
     mem::{ManuallyDrop, forget, transmute},
 };
 use mlir_sys::{
-    MlirOperationState, mlirIdentifierGet, mlirIdentifierStr, mlirLocationGetContext,
-    mlirNamedAttributeGet, mlirOperationCreate, mlirOperationStateAddAttributes,
-    mlirOperationStateAddOperands, mlirOperationStateAddOwnedRegions, mlirOperationStateAddResults,
+    MlirOperationState, mlirNamedAttributeGet, mlirOperationCreate,
+    mlirOperationStateAddAttributes, mlirOperationStateAddOperands,
+    mlirOperationStateAddOwnedRegions, mlirOperationStateAddResults,
     mlirOperationStateAddSuccessors, mlirOperationStateEnableResultTypeInference,
     mlirOperationStateGet,
 };
@@ -29,10 +28,9 @@ impl<'c> OperationBuilder<'c> {
         Self {
             raw: unsafe {
                 mlirOperationStateGet(
-                    mlirIdentifierStr(mlirIdentifierGet(
-                        mlirLocationGetContext(location.to_raw()),
-                        StringRef::new(name).to_raw(),
-                    )),
+                    Identifier::new(location.context().to_ref(), name)
+                        .as_string_ref()
+                        .to_raw(),
                     location.to_raw(),
                 )
             },
