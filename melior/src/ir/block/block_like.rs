@@ -176,17 +176,17 @@ pub trait BlockLike<'c, 'a>: Copy + Display + 'a {
     /// obtained for the erased argument. Using such handles after this call
     /// is undefined behavior.
     unsafe fn erase_argument(self, index: usize) -> Result<(), Error> {
-        if index < self.argument_count() {
-            unsafe { mlirBlockEraseArgument(self.to_raw(), index as u32) };
-
-            Ok(())
-        } else {
-            Err(Error::PositionOutOfBounds {
+        if index >= self.argument_count() {
+            return Err(Error::PositionOutOfBounds {
                 name: "block argument",
                 value: self.to_string(),
                 index,
-            })
+            });
         }
+
+        unsafe { mlirBlockEraseArgument(self.to_raw(), index as u32) };
+
+        Ok(())
     }
 
     /// Returns the number of successors.
