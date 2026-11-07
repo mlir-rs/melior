@@ -1,6 +1,4 @@
-mod type_state;
-
-use self::type_state::{OrderedField, TypeState};
+use super::{OrderedField, TypeState};
 use crate::dialect::operation::{Operation, OperationField};
 use quote::format_ident;
 use syn::Ident;

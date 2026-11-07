@@ -4,7 +4,7 @@ mod operation_builder;
 mod operation_enum;
 mod region_accessor;
 mod successor_accessor;
-mod type_state_builder;
+mod type_state;
 
 pub use self::operation_enum::generate_operation_enum;
 use self::{
@@ -15,7 +15,7 @@ use self::{
     },
     region_accessor::generate_region_accessor,
     successor_accessor::generate_successor_accessor,
-    type_state_builder::TypeStateBuilder,
+    type_state::TypeStateBuilder,
 };
 use super::operation::Operation;
 use proc_macro2::TokenStream;

@@ -1,4 +1,4 @@
-use super::type_state_builder::TypeStateBuilder;
+use super::type_state::TypeStateBuilder;
 use crate::dialect::operation::{
     Attribute, Operation, OperationElement, OperationField, TypeInference,
 };
