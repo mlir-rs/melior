@@ -56,20 +56,6 @@ impl<'c> Module<'c> {
         unsafe { BlockRef::from_raw(mlirModuleGetBody(self.raw)) }
     }
 
-    /// Converts an operation into a module, or returns the operation if it is
-    /// not a module.
-    pub fn from_operation(operation: Operation<'c>) -> Result<Self, Operation<'c>> {
-        if let Some(module) =
-            unsafe { Self::from_option_raw(mlirModuleFromOperation(operation.to_raw())) }
-        {
-            forget(operation);
-
-            Ok(module)
-        } else {
-            Err(operation)
-        }
-    }
-
     /// Creates a module from a raw object.
     ///
     /// # Safety
@@ -98,6 +84,22 @@ impl<'c> Module<'c> {
     /// Converts a module into a raw object.
     pub const fn to_raw(&self) -> MlirModule {
         self.raw
+    }
+}
+
+impl<'c> TryFrom<Operation<'c>> for Module<'c> {
+    type Error = Operation<'c>;
+
+    fn try_from(operation: Operation<'c>) -> Result<Self, Self::Error> {
+        if let Some(module) =
+            unsafe { Self::from_option_raw(mlirModuleFromOperation(operation.to_raw())) }
+        {
+            forget(operation);
+
+            Ok(module)
+        } else {
+            Err(operation)
+        }
     }
 }
 
@@ -140,13 +142,13 @@ mod tests {
     }
 
     #[test]
-    fn from_operation() {
+    fn try_from_operation() {
         let context = create_test_context();
 
         let region = Region::new();
         region.append_block(Block::new(&[]));
 
-        let module = Module::from_operation(
+        let module = Module::try_from(
             OperationBuilder::new("builtin.module", Location::unknown(&context))
                 .add_regions([region])
                 .build()
@@ -159,11 +161,11 @@ mod tests {
     }
 
     #[test]
-    fn from_operation_fail() {
+    fn try_from_operation_fail() {
         let context = create_test_context();
 
         assert_eq!(
-            Module::from_operation(
+            Module::try_from(
                 OperationBuilder::new("func.func", Location::unknown(&context))
                     .build()
                     .unwrap()
