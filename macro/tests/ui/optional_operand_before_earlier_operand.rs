@@ -8,7 +8,7 @@ fn main() {
     let context = Context::new();
     let location = Location::unknown(&context);
     let r#type = Type::index(&context);
-    let block = Block::new(&[(r#type, location)]);
+    let block = Block::new(&[r#type], &[location]).unwrap();
 
     amdgpu::RawBufferLoadOperation::builder(&context, location)
         .value(r#type)

@@ -2,14 +2,14 @@ use crate::{
     Error,
     context::{Context, ContextRef},
     ir::{
-        BlockLike, BlockRef, Location, Operation, OperationRef, RegionLike, RegionRef, Type,
-        TypeLike, Value, ValueLike,
+        BlockLike, BlockRef, Location, Operation, OperationRef, RegionLike, RegionRef, Type, Value,
+        ValueLike,
     },
 };
 use core::{cell::Cell, marker::PhantomData};
 use mlir_sys::{
-    MlirRewriterBase, MlirValue, mlirIRRewriterCreate, mlirIRRewriterCreateFromOp,
-    mlirIRRewriterDestroy, mlirRewriterBaseCancelOpModification,
+    MlirLocation, MlirRewriterBase, MlirType, MlirValue, mlirIRRewriterCreate,
+    mlirIRRewriterCreateFromOp, mlirIRRewriterDestroy, mlirRewriterBaseCancelOpModification,
     mlirRewriterBaseClearInsertionPoint, mlirRewriterBaseClone, mlirRewriterBaseCloneRegionBefore,
     mlirRewriterBaseCloneWithoutRegions, mlirRewriterBaseCreateBlockBefore,
     mlirRewriterBaseEraseBlock, mlirRewriterBaseEraseOp, mlirRewriterBaseFinalizeOpModification,
@@ -236,26 +236,25 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
     pub fn create_block_before(
         &self,
         before: BlockRef<'c, '_>,
-        arguments: &[(Type<'c>, Location<'c>)],
-    ) -> BlockRef<'c, '_> {
-        let types = arguments
-            .iter()
-            .map(|(r#type, _)| r#type.to_raw())
-            .collect::<Vec<_>>();
-        let locations = arguments
-            .iter()
-            .map(|(_, location)| location.to_raw())
-            .collect::<Vec<_>>();
+        types: &[Type<'c>],
+        locations: &[Location<'c>],
+    ) -> Result<BlockRef<'c, '_>, Error> {
+        if types.len() != locations.len() {
+            return Err(Error::LocationCountMismatch {
+                types: types.len(),
+                locations: locations.len(),
+            });
+        }
 
-        unsafe {
+        Ok(unsafe {
             BlockRef::from_raw(mlirRewriterBaseCreateBlockBefore(
                 self.raw,
                 before.to_raw(),
                 types.len() as isize,
-                types.as_ptr(),
-                locations.as_ptr(),
+                types.as_ptr() as *const MlirType,
+                locations.as_ptr() as *const MlirLocation,
             ))
-        }
+        })
     }
 
     /// Inlines the source block before the given operation and erases it,
@@ -573,6 +572,40 @@ mod tests {
     }
 
     #[test]
+    fn create_block_before() {
+        let context = Context::new();
+        let module = Module::new(Location::unknown(&context));
+        let rewriter = IrRewriter::new(&context);
+        let base = rewriter.as_rewriter_base();
+        let r#type = Type::index(&context);
+
+        let block = base
+            .create_block_before(module.body(), &[r#type], &[Location::unknown(&context)])
+            .unwrap();
+
+        assert_eq!(block.argument_count(), 1);
+        assert_eq!(block.argument(0).unwrap().r#type(), r#type);
+    }
+
+    #[test]
+    fn create_block_before_with_mismatched_locations() {
+        let context = Context::new();
+        let module = Module::new(Location::unknown(&context));
+        let rewriter = IrRewriter::new(&context);
+
+        assert_eq!(
+            rewriter
+                .as_rewriter_base()
+                .create_block_before(module.body(), &[Type::index(&context)], &[])
+                .unwrap_err(),
+            Error::LocationCountMismatch {
+                types: 1,
+                locations: 0
+            }
+        );
+    }
+
+    #[test]
     fn block_surgery() {
         let context = Context::new();
         load_all_dialects(&context);
@@ -582,7 +615,7 @@ mod tests {
         let base = rewriter.as_rewriter_base();
         let body = module.body();
 
-        let block = base.create_block_before(body, &[]);
+        let block = base.create_block_before(body, &[], &[]).unwrap();
 
         base.set_insertion_point_to_end(block);
 

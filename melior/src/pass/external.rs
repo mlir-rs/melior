@@ -246,7 +246,7 @@ mod tests {
             StringAttribute::new(context, "foo"),
             TypeAttribute::new(FunctionType::new(context, &[], &[]).into()),
             {
-                let block = Block::new(&[]);
+                let block = Block::new(&[], &[]).unwrap();
                 block.append_operation(func::r#return(&[], location));
 
                 let region = Region::new();

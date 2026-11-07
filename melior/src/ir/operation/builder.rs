@@ -179,7 +179,7 @@ mod tests {
 
         let location = Location::unknown(&context);
         let r#type = Type::index(&context);
-        let block = Block::new(&[(r#type, location)]);
+        let block = Block::new(&[r#type], &[location]).unwrap();
         let argument = block.argument(0).unwrap().into();
 
         OperationBuilder::new("foo", Location::unknown(&context))
@@ -216,7 +216,7 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         OperationBuilder::new("foo", Location::unknown(&context))
-            .add_successors(&[&Block::new(&[])])
+            .add_successors(&[&Block::new(&[], &[]).unwrap()])
             .build()
             .unwrap();
     }
@@ -242,7 +242,7 @@ mod tests {
 
         let location = Location::unknown(&context);
         let r#type = Type::index(&context);
-        let block = Block::new(&[(r#type, location)]);
+        let block = Block::new(&[r#type], &[location]).unwrap();
         let argument = block.argument(0).unwrap().into();
 
         assert_eq!(

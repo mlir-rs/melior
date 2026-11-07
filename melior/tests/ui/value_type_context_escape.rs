@@ -5,7 +5,7 @@ use melior::{
 
 fn main() {
     let context = Context::new();
-    let block = Block::new(&[(Type::index(&context), Location::unknown(&context))]);
+    let block = Block::new(&[Type::index(&context)], &[Location::unknown(&context)]).unwrap();
 
     {
         let other_context = Context::new();

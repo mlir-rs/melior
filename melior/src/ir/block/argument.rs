@@ -78,7 +78,7 @@ mod tests {
     fn argument_number() {
         let context = Context::new();
         let r#type = Type::parse(&context, "index").unwrap();
-        let block = Block::new(&[(r#type, Location::unknown(&context))]);
+        let block = Block::new(&[r#type], &[Location::unknown(&context)]).unwrap();
 
         assert_eq!(block.argument(0).unwrap().argument_number(), 0);
     }
@@ -87,7 +87,7 @@ mod tests {
     fn owner() {
         let context = Context::new();
         let r#type = Type::parse(&context, "index").unwrap();
-        let block = Block::new(&[(r#type, Location::unknown(&context))]);
+        let block = Block::new(&[r#type], &[Location::unknown(&context)]).unwrap();
 
         assert_eq!(&*block.argument(0).unwrap().owner(), &block);
     }
@@ -97,7 +97,7 @@ mod tests {
         let context = Context::new();
         let r#type = Type::parse(&context, "index").unwrap();
         let other_type = Type::parse(&context, "f64").unwrap();
-        let block = Block::new(&[(r#type, Location::unknown(&context))]);
+        let block = Block::new(&[r#type], &[Location::unknown(&context)]).unwrap();
         let argument = block.argument(0).unwrap();
 
         argument.set_type(other_type);

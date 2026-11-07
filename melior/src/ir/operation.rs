@@ -496,7 +496,7 @@ mod tests {
         let location = Location::unknown(&context);
         let index_type = Type::index(&context);
 
-        let block = Block::new(&[(index_type, location), (index_type, location)]);
+        let block = Block::new(&[index_type, index_type], &[location, location]).unwrap();
         let arg0: Value = block.argument(0).unwrap().into();
         let arg1: Value = block.argument(1).unwrap().into();
 
@@ -520,7 +520,7 @@ mod tests {
         let location = Location::unknown(&context);
         let index_type = Type::index(&context);
 
-        let block = Block::new(&[(index_type, location), (index_type, location)]);
+        let block = Block::new(&[index_type, index_type], &[location, location]).unwrap();
         let arg0: Value = block.argument(0).unwrap().into();
         let arg1: Value = block.argument(1).unwrap().into();
 
@@ -567,7 +567,7 @@ mod tests {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         block.append_operation(OperationBuilder::new("first", location).build().unwrap());
         let second =
@@ -593,7 +593,7 @@ mod tests {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let first =
             block.append_operation(OperationBuilder::new("first", location).build().unwrap());
@@ -641,7 +641,7 @@ mod tests {
     fn block() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
         let operation = block.append_operation(
             OperationBuilder::new("foo", Location::unknown(&context))
                 .build()
@@ -706,7 +706,7 @@ mod tests {
 
         let location = Location::unknown(&context);
         let r#type = Type::index(&context);
-        let block = Block::new(&[(r#type, location)]);
+        let block = Block::new(&[r#type], &[location]).unwrap();
         let argument: Value = block.argument(0).unwrap().into();
 
         let operands = vec![argument, argument, argument];
@@ -851,7 +851,7 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         block.append_operation(OperationBuilder::new("foo", location).build().unwrap());
         block.append_operation(OperationBuilder::new("bar", location).build().unwrap());
@@ -890,7 +890,7 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("foo", location)
@@ -898,7 +898,7 @@ mod tests {
                 .add_regions([{
                     let region = Region::new();
 
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
                     block.append_operation(OperationBuilder::new("bar", location).build().unwrap());
 
                     region.append_block(block);
@@ -929,14 +929,14 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("foo", location)
                 .add_results(&[Type::index(&context)])
                 .add_regions([{
                     let region = Region::new();
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
                     block.append_operation(OperationBuilder::new("bar", location).build().unwrap());
                     region.append_block(block);
                     region
@@ -970,7 +970,7 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         // Keep the reference to an operation result even after drop of `OperationRef`.
         fn append<'c, 'a>(
@@ -999,7 +999,7 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("parent", location)
@@ -1007,7 +1007,7 @@ mod tests {
                 .add_regions([{
                     let region = Region::new();
 
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
                     block.append_operation(
                         OperationBuilder::new("child1", location).build().unwrap(),
                     );
@@ -1075,18 +1075,18 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("grandparent", location)
                 .add_regions([{
                     let region = Region::new();
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
                     block.append_operation(
                         OperationBuilder::new("parent", location)
                             .add_regions([{
                                 let region = Region::new();
-                                let block = Block::new(&[]);
+                                let block = Block::new(&[], &[]).unwrap();
                                 block.append_operation(
                                     OperationBuilder::new("child", location).build().unwrap(),
                                 );
@@ -1158,7 +1158,7 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("parent", location)
@@ -1166,7 +1166,7 @@ mod tests {
                 .add_regions([{
                     let region = Region::new();
 
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
                     block.append_operation(
                         OperationBuilder::new("child1", location).build().unwrap(),
                     );
@@ -1235,18 +1235,18 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("grandparent", location)
                 .add_regions([{
                     let region = Region::new();
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
                     block.append_operation(
                         OperationBuilder::new("parent", location)
                             .add_regions([{
                                 let region = Region::new();
-                                let block = Block::new(&[]);
+                                let block = Block::new(&[], &[]).unwrap();
                                 block.append_operation(
                                     OperationBuilder::new("child", location).build().unwrap(),
                                 );

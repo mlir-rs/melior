@@ -137,12 +137,12 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
             {
-                let block = Block::new(&[]);
+                let block = Block::new(&[], &[]).unwrap();
 
                 block.append_operation(execute_region(
                     &[index_type],
                     {
-                        let block = Block::new(&[]);
+                        let block = Block::new(&[], &[]).unwrap();
 
                         let value = block.append_operation(arith::constant(
                             &context,
@@ -189,7 +189,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
             {
-                let block = Block::new(&[]);
+                let block = Block::new(&[], &[]).unwrap();
 
                 let start = block.append_operation(arith::constant(
                     &context,
@@ -214,7 +214,7 @@ mod tests {
                     end.result(0).unwrap().into(),
                     step.result(0).unwrap().into(),
                     {
-                        let block = Block::new(&[(Type::index(&context), location)]);
+                        let block = Block::new(&[Type::index(&context)], &[location]).unwrap();
                         block.append_operation(r#yield(&[], location));
 
                         let region = Region::new();
@@ -255,7 +255,7 @@ mod tests {
                 StringAttribute::new(&context, "foo"),
                 TypeAttribute::new(FunctionType::new(&context, &[], &[index_type]).into()),
                 {
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
 
                     let condition = block.append_operation(arith::constant(
                         &context,
@@ -267,7 +267,7 @@ mod tests {
                         condition.result(0).unwrap().into(),
                         &[index_type],
                         {
-                            let block = Block::new(&[]);
+                            let block = Block::new(&[], &[]).unwrap();
 
                             let result = block.append_operation(arith::constant(
                                 &context,
@@ -285,7 +285,7 @@ mod tests {
                             region
                         },
                         {
-                            let block = Block::new(&[]);
+                            let block = Block::new(&[], &[]).unwrap();
 
                             let result = block.append_operation(arith::constant(
                                 &context,
@@ -335,7 +335,7 @@ mod tests {
                 StringAttribute::new(&context, "foo"),
                 TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
                 {
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
 
                     let condition = block.append_operation(arith::constant(
                         &context,
@@ -347,7 +347,7 @@ mod tests {
                         condition.result(0).unwrap().into(),
                         &[],
                         {
-                            let block = Block::new(&[]);
+                            let block = Block::new(&[], &[]).unwrap();
 
                             block.append_operation(r#yield(&[], location));
 
@@ -387,7 +387,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
             {
-                let block = Block::new(&[]);
+                let block = Block::new(&[], &[]).unwrap();
 
                 let condition = block.append_operation(arith::constant(
                     &context,
@@ -402,7 +402,7 @@ mod tests {
                     DenseI64ArrayAttribute::new(&context, &[0, 1]),
                     vec![
                         {
-                            let block = Block::new(&[]);
+                            let block = Block::new(&[], &[]).unwrap();
 
                             block.append_operation(r#yield(&[], location));
 
@@ -411,7 +411,7 @@ mod tests {
                             region
                         },
                         {
-                            let block = Block::new(&[]);
+                            let block = Block::new(&[], &[]).unwrap();
 
                             block.append_operation(r#yield(&[], location));
 
@@ -420,7 +420,7 @@ mod tests {
                             region
                         },
                         {
-                            let block = Block::new(&[]);
+                            let block = Block::new(&[], &[]).unwrap();
 
                             block.append_operation(r#yield(&[], location));
 
@@ -463,7 +463,7 @@ mod tests {
                 StringAttribute::new(&context, "foo"),
                 TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
                 {
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
 
                     let initial = block.append_operation(arith::constant(
                         &context,
@@ -475,7 +475,7 @@ mod tests {
                         &[initial.result(0).unwrap().into()],
                         &[index_type],
                         {
-                            let block = Block::new(&[(index_type, location)]);
+                            let block = Block::new(&[index_type], &[location]).unwrap();
 
                             let condition = block.append_operation(arith::constant(
                                 &context,
@@ -501,7 +501,7 @@ mod tests {
                             region
                         },
                         {
-                            let block = Block::new(&[(index_type, location)]);
+                            let block = Block::new(&[index_type], &[location]).unwrap();
 
                             let result = block.append_operation(arith::constant(
                                 &context,
@@ -550,7 +550,7 @@ mod tests {
                 StringAttribute::new(&context, "foo"),
                 TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
                 {
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
 
                     let initial = block.append_operation(arith::constant(
                         &context,
@@ -562,7 +562,7 @@ mod tests {
                         &[initial.result(0).unwrap().into()],
                         &[float_type],
                         {
-                            let block = Block::new(&[(index_type, location)]);
+                            let block = Block::new(&[index_type], &[location]).unwrap();
 
                             let condition = block.append_operation(arith::constant(
                                 &context,
@@ -588,7 +588,7 @@ mod tests {
                             region
                         },
                         {
-                            let block = Block::new(&[(float_type, location)]);
+                            let block = Block::new(&[float_type], &[location]).unwrap();
 
                             let result = block.append_operation(arith::constant(
                                 &context,
@@ -636,7 +636,7 @@ mod tests {
                 StringAttribute::new(&context, "foo"),
                 TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
                 {
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
 
                     let initial = block.append_operation(arith::constant(
                         &context,
@@ -652,7 +652,8 @@ mod tests {
                         &[index_type, index_type],
                         {
                             let block =
-                                Block::new(&[(index_type, location), (index_type, location)]);
+                                Block::new(&[index_type, index_type], &[location, location])
+                                    .unwrap();
 
                             let condition = block.append_operation(arith::constant(
                                 &context,
@@ -682,7 +683,8 @@ mod tests {
                         },
                         {
                             let block =
-                                Block::new(&[(index_type, location), (index_type, location)]);
+                                Block::new(&[index_type, index_type], &[location, location])
+                                    .unwrap();
 
                             let result = block.append_operation(arith::constant(
                                 &context,

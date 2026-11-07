@@ -100,9 +100,11 @@ mod tests {
 
         let block = Block::new(
             &(0..function_type.input_count())
-                .map(|index| (function_type.input(index).unwrap(), location))
+                .map(|index| function_type.input(index).unwrap())
                 .collect::<Vec<_>>(),
-        );
+            &vec![location; function_type.input_count()],
+        )
+        .unwrap();
 
         let operation = operation(&block);
         let name = operation.name();
@@ -230,7 +232,7 @@ mod tests {
         let integer_type = Type::index(&context);
 
         let function = {
-            let block = Block::new(&[(integer_type, location), (integer_type, location)]);
+            let block = Block::new(&[integer_type, integer_type], &[location, location]).unwrap();
 
             let sum = block.append_operation(add(
                 block.argument(0).unwrap().into(),
