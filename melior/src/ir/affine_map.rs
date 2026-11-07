@@ -99,19 +99,15 @@ impl<'c> AffineMap<'c> {
 
     /// Creates an affine map representing a permutation.
     pub fn permutation(context: &'c Context, permutation: &[u32]) -> Result<Self, Error> {
-        let mut perm: Vec<_> = permutation
-            .iter()
-            .map(|&x| x as std::os::raw::c_uint)
-            .collect();
-        let mut sorted = perm.clone();
+        let mut sorted = permutation.to_vec();
         sorted.sort_unstable();
 
-        if !perm.is_empty() && sorted.into_iter().eq(0..perm.len() as _) {
+        if !permutation.is_empty() && sorted.into_iter().eq(0..permutation.len() as u32) {
             Ok(unsafe {
                 Self::from_raw(mlirAffineMapPermutationGet(
                     context.to_raw(),
-                    perm.len() as isize,
-                    perm.as_mut_ptr(),
+                    permutation.len() as isize,
+                    permutation.as_ptr().cast_mut(),
                 ))
             })
         } else {
