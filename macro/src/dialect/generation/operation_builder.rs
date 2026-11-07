@@ -185,7 +185,6 @@ fn generate_setter_impl(
     }
 }
 
-// TODO Split this function for different kinds of fields.
 fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) -> TokenStream {
     let add_identifier = field.add_identifier();
     let add_arguments = field.add_arguments();
