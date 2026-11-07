@@ -64,6 +64,11 @@ impl Operation<'_> {
     }
 
     /// Converts an operation into a raw object.
+    pub const fn to_raw(&self) -> MlirOperation {
+        self.raw
+    }
+
+    /// Converts an operation into a raw object.
     pub const fn into_raw(self) -> MlirOperation {
         let operation = self.raw;
 
@@ -73,12 +78,17 @@ impl Operation<'_> {
     }
 }
 
-impl<'c: 'a, 'a> OperationLike<'c, 'a> for Operation<'c> {
+impl<'c: 'a, 'a> OperationLike<'c, 'a> for &'a Operation<'c> {
+    fn to_raw(self) -> MlirOperation {
+        self.raw
+    }
+}
+
+impl<'c: 'a, 'a> OperationMutLike<'c, 'a> for Operation<'c> {
     fn to_raw(&self) -> MlirOperation {
         self.raw
     }
 }
-impl<'c: 'a, 'a> OperationMutLike<'c, 'a> for Operation<'c> {}
 
 impl Clone for Operation<'_> {
     fn clone(&self) -> Self {
@@ -185,7 +195,7 @@ impl<'c, 'a> OperationRef<'c, 'a> {
 }
 
 impl<'c, 'a> OperationLike<'c, 'a> for OperationRef<'c, 'a> {
-    fn to_raw(&self) -> MlirOperation {
+    fn to_raw(self) -> MlirOperation {
         self.raw
     }
 }
@@ -258,11 +268,16 @@ impl OperationRefMut<'_, '_> {
 }
 
 impl<'c, 'a> OperationLike<'c, 'a> for OperationRefMut<'c, 'a> {
+    fn to_raw(self) -> MlirOperation {
+        self.raw
+    }
+}
+
+impl<'c, 'a> OperationMutLike<'c, 'a> for OperationRefMut<'c, 'a> {
     fn to_raw(&self) -> MlirOperation {
         self.raw
     }
 }
-impl<'c, 'a> OperationMutLike<'c, 'a> for OperationRefMut<'c, 'a> {}
 
 impl<'c> Deref for OperationRefMut<'c, '_> {
     type Target = Operation<'c>;
@@ -929,7 +944,7 @@ mod tests {
         let location = Location::unknown(&context);
         let block = Block::new(&[]);
 
-        let mut operation = block.append_operation(
+        let operation = block.append_operation(
             OperationBuilder::new("foo", location)
                 .add_results(&[Type::index(&context)])
                 .add_regions([{
@@ -955,7 +970,7 @@ mod tests {
         assert_eq!(&*inner_op_parent, &*operation);
 
         // Try a mutation to verify we have a mutable reference.
-        let mut inner_op = unsafe { inner_op.remove_from_parent() }.unwrap();
+        let inner_op = unsafe { inner_op.remove_from_parent() }.unwrap();
         assert_eq!(inner_op.parent_operation_mut(), None);
     }
 

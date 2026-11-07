@@ -1,7 +1,4 @@
-use super::{
-    BlockRef, Location, Operation, OperationRef,
-    operation::{OperationLike, OperationRefMut},
-};
+use super::{BlockRef, Location, Operation, OperationRef, operation::OperationRefMut};
 use crate::{
     context::{Context, ContextRef},
     string_ref::StringRef,
