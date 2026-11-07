@@ -201,12 +201,13 @@ mod tests {
     use crate::{
         Context, dialect,
         ir::{
-            Block, BlockLike, Location, Module, Region, RegionLike, Type, Value, ValueLike,
+            Block, BlockLike, Identifier, Location, Module, Region, RegionLike, Type, Value,
+            ValueLike,
             attribute::{
                 ArrayAttribute, Attribute, DenseI64ArrayAttribute, IntegerAttribute,
                 StringAttribute, TypeAttribute,
             },
-            operation::OperationLike,
+            operation::{OperationBuilder, OperationLike},
             r#type::{FunctionType, IntegerType, MemRefType, RankedTensorType},
         },
         pass::{self, PassManager},
@@ -917,6 +918,36 @@ mod tests {
                 Value::from(block.argument(2).unwrap()),
                 Value::from(block.argument(3).unwrap()),
             ]
+        );
+    }
+
+    #[test]
+    fn convert_operation() {
+        let context = create_test_context();
+
+        assert!(
+            arith::AddFOperation::try_from(
+                OperationBuilder::new("arith.addf", Location::unknown(&context))
+                    .build()
+                    .unwrap()
+            )
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn fail_to_convert_operation() {
+        let context = create_test_context();
+
+        assert_eq!(
+            arith::AddFOperation::try_from(
+                OperationBuilder::new("arith.addi", Location::unknown(&context))
+                    .build()
+                    .unwrap()
+            )
+            .unwrap_err()
+            .name(),
+            Identifier::new(&context, "arith.addi")
         );
     }
 }
