@@ -534,7 +534,11 @@ pub trait OperationMutLike<'c: 'a, 'a> {
     }
 
     /// Sets the successor at `index` to `block`.
-    fn set_successor(&mut self, index: usize, block: &Block<'c>) {
+    ///
+    /// # Safety
+    ///
+    /// The block must not be destroyed while the operation refers to it.
+    unsafe fn set_successor(&mut self, index: usize, block: &Block<'c>) {
         unsafe { mlirOperationSetSuccessor(self.to_raw(), index as isize, block.to_raw()) }
     }
 
