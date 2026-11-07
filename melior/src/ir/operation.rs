@@ -306,8 +306,8 @@ mod tests {
     use crate::{
         context::Context,
         ir::{
-            Block, BlockLike, Identifier, Location, Region, RegionLike, Type, Value,
-            attribute::StringAttribute,
+            Attribute, Block, BlockLike, Identifier, Location, Module, Region, RegionLike, Type,
+            Value, attribute::StringAttribute,
         },
         test::create_test_context,
     };
@@ -1349,5 +1349,32 @@ mod tests {
             operation_like::WalkResult::Skip
         });
         assert_eq!(vec!["child", "parent", "grandparent"], result);
+    }
+
+    #[test]
+    fn walk_mut_with_context_attribute() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let location = Location::unknown(&context);
+        let mut module = Module::new(location);
+
+        module
+            .body()
+            .append_operation(OperationBuilder::new("foo", location).build().unwrap());
+
+        module
+            .as_operation_mut()
+            .walk_mut(operation_like::WalkOrder::PreOrder, |mut operation| {
+                operation.set_attribute("bar", Attribute::unit(&context));
+                operation_like::WalkResult::Advance
+            });
+
+        assert!(
+            module
+                .body()
+                .first_operation()
+                .unwrap()
+                .has_attribute("bar")
+        );
     }
 }
