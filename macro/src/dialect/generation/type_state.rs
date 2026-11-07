@@ -2,9 +2,8 @@ mod builder;
 mod ordered_field;
 mod type_argument;
 
-pub use self::{
-    builder::TypeStateBuilder, ordered_field::OrderedField, type_argument::TypeArgument,
-};
+pub use self::builder::TypeStateBuilder;
+use self::{ordered_field::OrderedField, type_argument::TypeArgument};
 use crate::dialect::operation::FieldKind;
 use quote::format_ident;
 use syn::Ident;
