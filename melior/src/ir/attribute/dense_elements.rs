@@ -444,12 +444,12 @@ impl<'c> DenseElementsAttribute<'c> {
         unsafe { Type::from_raw(mlirShapedTypeGetElementType(r#type.to_raw())) }
     }
 
-    const fn check_count(count: usize, len: usize) -> Result<(), Error> {
-        if len != 1 && len != count {
+    const fn check_count(expected: usize, actual: usize) -> Result<(), Error> {
+        if actual != 1 && actual != expected {
             return Err(Error::CountMismatch {
                 name: "dense element",
-                expected: count,
-                actual: len,
+                expected,
+                actual,
             });
         }
 
