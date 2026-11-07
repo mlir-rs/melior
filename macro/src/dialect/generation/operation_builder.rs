@@ -129,9 +129,6 @@ fn generate_segment_size_fields(
         .collect()
 }
 
-// Generates a setter of a field that runs statements and then calls methods on
-// an operation builder. It updates the type state of a builder only if the
-// field has its type parameter.
 fn generate_setter_impl(
     builder: &OperationBuilder,
     field: &impl OperationField,
