@@ -181,15 +181,23 @@ impl<'c> Type<'c> {
         dimensions: &[u64],
         scalable: &[bool],
         element_type: Self,
-    ) -> Option<Self> {
-        (dimensions.len() == scalable.len()).then(|| unsafe {
-            Self::from_raw(mlirVectorTypeGetScalable(
-                dimensions.len() as isize,
-                dimensions.as_ptr() as *const i64,
-                scalable.as_ptr(),
-                element_type.raw,
-            ))
-        })
+    ) -> Result<Self, Error> {
+        if dimensions.len() == scalable.len() {
+            Ok(unsafe {
+                Self::from_raw(mlirVectorTypeGetScalable(
+                    dimensions.len() as isize,
+                    dimensions.as_ptr() as *const i64,
+                    scalable.as_ptr(),
+                    element_type.raw,
+                ))
+            })
+        } else {
+            Err(Error::CountMismatch {
+                name: "scalable flag",
+                expected: dimensions.len(),
+                actual: scalable.len(),
+            })
+        }
     }
 
     /// Creates a scalable vector type with diagnostics.
@@ -544,7 +552,7 @@ mod tests {
 
         assert_eq!(
             Type::vector_scalable(&[4], &[true], Type::float32(&context)),
-            Type::parse(&context, "vector<[4]xf32>")
+            Ok(Type::parse(&context, "vector<[4]xf32>").unwrap())
         );
     }
 
@@ -554,7 +562,11 @@ mod tests {
 
         assert_eq!(
             Type::vector_scalable(&[4, 8], &[true], Type::float32(&context)),
-            None
+            Err(Error::CountMismatch {
+                name: "scalable flag",
+                expected: 2,
+                actual: 1,
+            })
         );
     }
 

@@ -98,7 +98,7 @@ impl<'c> AffineMap<'c> {
     }
 
     /// Creates an affine map representing a permutation.
-    pub fn permutation(context: &'c Context, permutation: &[u32]) -> Option<Self> {
+    pub fn permutation(context: &'c Context, permutation: &[u32]) -> Result<Self, Error> {
         let mut perm: Vec<_> = permutation
             .iter()
             .map(|&x| x as std::os::raw::c_uint)
@@ -106,13 +106,17 @@ impl<'c> AffineMap<'c> {
         let mut sorted = perm.clone();
         sorted.sort_unstable();
 
-        (!perm.is_empty() && sorted.into_iter().eq(0..perm.len() as _)).then(|| unsafe {
-            Self::from_raw(mlirAffineMapPermutationGet(
-                context.to_raw(),
-                perm.len() as isize,
-                perm.as_mut_ptr(),
-            ))
-        })
+        if !perm.is_empty() && sorted.into_iter().eq(0..perm.len() as _) {
+            Ok(unsafe {
+                Self::from_raw(mlirAffineMapPermutationGet(
+                    context.to_raw(),
+                    perm.len() as isize,
+                    perm.as_mut_ptr(),
+                ))
+            })
+        } else {
+            Err(Error::PermutationExpected(format!("{permutation:?}")))
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -398,14 +402,23 @@ mod tests {
     #[test]
     fn fail_to_create_empty_permutation() {
         let context = Context::new();
-        assert_eq!(AffineMap::permutation(&context, &[]), None);
+        assert_eq!(
+            AffineMap::permutation(&context, &[]),
+            Err(Error::PermutationExpected("[]".into()))
+        );
     }
 
     #[test]
     fn fail_to_create_invalid_permutation() {
         let context = Context::new();
-        assert_eq!(AffineMap::permutation(&context, &[0, 0]), None);
-        assert_eq!(AffineMap::permutation(&context, &[0, 2]), None);
+        assert_eq!(
+            AffineMap::permutation(&context, &[0, 0]),
+            Err(Error::PermutationExpected("[0, 0]".into()))
+        );
+        assert_eq!(
+            AffineMap::permutation(&context, &[0, 2]),
+            Err(Error::PermutationExpected("[0, 2]".into()))
+        );
     }
 
     #[test]
