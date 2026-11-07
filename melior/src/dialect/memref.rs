@@ -337,7 +337,7 @@ mod tests {
         let module = Module::new(location);
 
         let function = {
-            let block = Block::new(&[]);
+            let block = Block::new(&[], &[]).unwrap();
 
             build_block(&block);
             block.append_operation(func::r#return(&[], location));
@@ -498,7 +498,7 @@ mod tests {
             StringAttribute::new(&context, "bar"),
             TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
             {
-                let block = Block::new(&[]);
+                let block = Block::new(&[], &[]).unwrap();
 
                 block.append_operation(get_global(&context, "foo", mem_ref_type, location));
                 block.append_operation(func::r#return(&[], location));

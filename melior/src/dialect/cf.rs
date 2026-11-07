@@ -79,21 +79,26 @@ pub fn cond_br<'c>(
 }
 
 /// Creates a `cf.switch` operation.
+#[expect(clippy::too_many_arguments)]
 pub fn switch<'c>(
     context: &'c Context,
     case_values: &[i64],
     flag: Value<'c, '_>,
     flag_type: Type<'c>,
-    default_destination: (&Block<'c>, &[Value<'c, '_>]),
-    case_destinations: &[(&Block<'c>, &[Value<'c, '_>])],
+    default_destination: &Block<'c>,
+    default_operands: &[Value<'c, '_>],
+    case_destinations: &[&Block<'c>],
+    case_operands: &[&[Value<'c, '_>]],
     location: Location<'c>,
 ) -> Result<Operation<'c>, Error> {
-    let (destinations, operands): (Vec<_>, Vec<_>) = [default_destination]
-        .into_iter()
-        .chain(case_destinations.iter().copied())
-        .unzip();
-
-    Ok(OperationBuilder::new("cf.switch", location)
+    Ok(case_operands
+        .iter()
+        .fold(
+            OperationBuilder::new("cf.switch", location)
+                .add_operands(&[flag])
+                .add_operands(default_operands),
+            |builder, operands| builder.add_operands(operands),
+        )
         .add_attributes(&[
             (
                 Identifier::new(context, "case_values"),
@@ -110,9 +115,9 @@ pub fn switch<'c>(
                 Identifier::new(context, "case_operand_segments"),
                 DenseI32ArrayAttribute::new(
                     context,
-                    &case_destinations
+                    &case_operands
                         .iter()
-                        .map(|(_, operands)| operands.len() as i32)
+                        .map(|operands| operands.len() as i32)
                         .collect::<Vec<_>>(),
                 )
                 .into(),
@@ -123,23 +128,18 @@ pub fn switch<'c>(
                     context,
                     &[
                         1,
-                        default_destination.1.len() as i32,
-                        case_destinations
+                        default_operands.len() as i32,
+                        case_operands
                             .iter()
-                            .map(|(_, operands)| operands.len() as i32)
+                            .map(|operands| operands.len() as i32)
                             .sum(),
                     ],
                 )
                 .into(),
             ),
         ])
-        .add_operands(
-            &[flag]
-                .into_iter()
-                .chain(operands.into_iter().flatten().copied())
-                .collect::<Vec<_>>(),
-        )
-        .add_successors(&destinations)
+        .add_successors(&[default_destination])
+        .add_successors(case_destinations)
         .build()
         .expect("valid operation"))
 }
@@ -176,7 +176,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
             {
-                let block = Block::new(&[]);
+                let block = Block::new(&[], &[]).unwrap();
                 let operand = block
                     .append_operation(arith::constant(
                         &context,
@@ -217,8 +217,8 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
             {
-                let block = Block::new(&[]);
-                let dest_block = Block::new(&[(index_type, location)]);
+                let block = Block::new(&[], &[]).unwrap();
+                let dest_block = Block::new(&[index_type], &[location]).unwrap();
                 let operand = block
                     .append_operation(index::constant(
                         &context,
@@ -259,9 +259,9 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
             {
-                let block = Block::new(&[]);
-                let true_block = Block::new(&[(index_type, location)]);
-                let false_block = Block::new(&[(index_type, location)]);
+                let block = Block::new(&[], &[]).unwrap();
+                let true_block = Block::new(&[index_type], &[location]).unwrap();
+                let false_block = Block::new(&[index_type], &[location]).unwrap();
 
                 let operand = block
                     .append_operation(index::constant(
@@ -326,10 +326,10 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
             {
-                let block = Block::new(&[]);
-                let default_block = Block::new(&[(i32_type, location)]);
-                let first_block = Block::new(&[(i32_type, location)]);
-                let second_block = Block::new(&[(i32_type, location)]);
+                let block = Block::new(&[], &[]).unwrap();
+                let default_block = Block::new(&[i32_type], &[location]).unwrap();
+                let first_block = Block::new(&[i32_type], &[location]).unwrap();
+                let second_block = Block::new(&[i32_type], &[location]).unwrap();
 
                 let operand = block
                     .append_operation(arith::constant(
@@ -347,8 +347,10 @@ mod tests {
                         &[0, 1],
                         operand,
                         i32_type,
-                        (&default_block, &[operand]),
-                        &[(&first_block, &[operand]), (&second_block, &[operand])],
+                        &default_block,
+                        &[operand],
+                        &[&first_block, &second_block],
+                        &[&[operand], &[operand]],
                         location,
                     )
                     .unwrap(),

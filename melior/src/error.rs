@@ -27,6 +27,13 @@ pub enum Error {
     },
     /// A failure of function invocation.
     InvokeFunction,
+    /// Mismatched numbers of types and locations.
+    LocationCountMismatch {
+        /// A number of types.
+        types: usize,
+        /// A number of locations.
+        locations: usize,
+    },
     /// A failure of operation build.
     OperationBuild,
     /// An operand not found.
@@ -85,6 +92,12 @@ impl Display for Error {
                 write!(formatter, "element of {type} type expected: {value}")
             }
             Self::InvokeFunction => write!(formatter, "failed to invoke JIT-compiled function"),
+            Self::LocationCountMismatch { types, locations } => {
+                write!(
+                    formatter,
+                    "location count mismatch: {types} types, {locations} locations"
+                )
+            }
             Self::OperationBuild => {
                 write!(formatter, "operation build failed")
             }

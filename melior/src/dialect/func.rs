@@ -105,7 +105,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(function_type.into()),
             {
-                let block = Block::new(&[(index_type, location)]);
+                let block = Block::new(&[index_type], &[location]).unwrap();
 
                 let value = block
                     .append_operation(call(
@@ -148,7 +148,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(function_type.into()),
             {
-                let block = Block::new(&[(index_type, location)]);
+                let block = Block::new(&[index_type], &[location]).unwrap();
 
                 let function = block.append_operation(constant(
                     &context,
@@ -192,7 +192,7 @@ mod tests {
         let integer_type = Type::index(&context);
 
         let function = {
-            let block = Block::new(&[(integer_type, location)]);
+            let block = Block::new(&[integer_type], &[location]).unwrap();
 
             block.append_operation(r#return(&[block.argument(0).unwrap().into()], location));
 

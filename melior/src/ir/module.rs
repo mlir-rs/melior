@@ -143,7 +143,7 @@ mod tests {
         let context = create_test_context();
 
         let region = Region::new();
-        region.append_block(Block::new(&[]));
+        region.append_block(Block::new(&[], &[]).unwrap());
 
         let module = Module::try_from(
             OperationBuilder::new("builtin.module", Location::unknown(&context))

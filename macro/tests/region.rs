@@ -18,7 +18,7 @@ fn single() {
     let location = Location::unknown(&context);
 
     let region = Region::new();
-    region.append_block(Block::new(&[]));
+    region.append_block(Block::new(&[], &[]).unwrap());
     let operation = region_test::single(&context, region, location);
 
     assert!(operation.default_region().unwrap().first_block().is_some());
@@ -32,14 +32,14 @@ fn variadic_after_single() {
     let location = Location::unknown(&context);
 
     let one_operation = {
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
         let regions = (Region::new(), Region::new(), Region::new());
         regions.1.append_block(block);
         region_test::variadic(&context, regions.0, vec![regions.1, regions.2], location)
     };
 
     let other_operation = {
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
         let (r1, r2, r3) = (Region::new(), Region::new(), Region::new());
         r2.append_block(block);
         region_test::VariadicOperation::builder(&context, location)

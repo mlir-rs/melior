@@ -4,7 +4,7 @@ use melior::{
 };
 
 fn main() {
-    let block = Block::new(&[]);
+    let block = Block::new(&[], &[]).unwrap();
 
     {
         let context = Context::new();
