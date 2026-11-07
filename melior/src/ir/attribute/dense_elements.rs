@@ -29,6 +29,21 @@ use mlir_sys::{
     mlirDenseElementsAttrUInt64SplatGet, mlirElementsAttrGetNumElements,
 };
 
+macro_rules! dense_elements_constructor {
+    ($name:ident, $type:ty, $function:ident) => {
+        #[doc = concat!(" Creates a dense elements attribute from ", stringify!($type), " values.")]
+        pub fn $name(r#type: Type<'c>, values: &[$type]) -> Self {
+            unsafe {
+                Self::from_raw($function(
+                    r#type.to_raw(),
+                    values.len() as isize,
+                    values.as_ptr(),
+                ))
+            }
+        }
+    };
+}
+
 macro_rules! dense_element_accessor {
     ($name:ident, $type:ty, $guard:ident, $type_name:expr, $ffi:ident) => {
         #[doc = concat!(" Returns an element of `", stringify!($type), "` at the given index.")]
@@ -87,115 +102,16 @@ impl<'c> DenseElementsAttribute<'c> {
         }
     }
 
-    /// Creates a dense elements attribute from i8 values.
-    pub fn i8_values(r#type: Type<'c>, values: &[i8]) -> Self {
-        unsafe {
-            Self::from_raw(mlirDenseElementsAttrInt8Get(
-                r#type.to_raw(),
-                values.len() as isize,
-                values.as_ptr(),
-            ))
-        }
-    }
-
-    /// Creates a dense elements attribute from i16 values.
-    pub fn i16_values(r#type: Type<'c>, values: &[i16]) -> Self {
-        unsafe {
-            Self::from_raw(mlirDenseElementsAttrInt16Get(
-                r#type.to_raw(),
-                values.len() as isize,
-                values.as_ptr(),
-            ))
-        }
-    }
-
-    /// Creates a dense elements attribute from i32 values.
-    pub fn i32_values(r#type: Type<'c>, values: &[i32]) -> Self {
-        unsafe {
-            Self::from_raw(mlirDenseElementsAttrInt32Get(
-                r#type.to_raw(),
-                values.len() as isize,
-                values.as_ptr(),
-            ))
-        }
-    }
-
-    /// Creates a dense elements attribute from i64 values.
-    pub fn i64_values(r#type: Type<'c>, values: &[i64]) -> Self {
-        unsafe {
-            Self::from_raw(mlirDenseElementsAttrInt64Get(
-                r#type.to_raw(),
-                values.len() as isize,
-                values.as_ptr(),
-            ))
-        }
-    }
-
-    /// Creates a dense elements attribute from u8 values.
-    pub fn u8_values(r#type: Type<'c>, values: &[u8]) -> Self {
-        unsafe {
-            Self::from_raw(mlirDenseElementsAttrUInt8Get(
-                r#type.to_raw(),
-                values.len() as isize,
-                values.as_ptr(),
-            ))
-        }
-    }
-
-    /// Creates a dense elements attribute from u16 values.
-    pub fn u16_values(r#type: Type<'c>, values: &[u16]) -> Self {
-        unsafe {
-            Self::from_raw(mlirDenseElementsAttrUInt16Get(
-                r#type.to_raw(),
-                values.len() as isize,
-                values.as_ptr(),
-            ))
-        }
-    }
-
-    /// Creates a dense elements attribute from u32 values.
-    pub fn u32_values(r#type: Type<'c>, values: &[u32]) -> Self {
-        unsafe {
-            Self::from_raw(mlirDenseElementsAttrUInt32Get(
-                r#type.to_raw(),
-                values.len() as isize,
-                values.as_ptr(),
-            ))
-        }
-    }
-
-    /// Creates a dense elements attribute from u64 values.
-    pub fn u64_values(r#type: Type<'c>, values: &[u64]) -> Self {
-        unsafe {
-            Self::from_raw(mlirDenseElementsAttrUInt64Get(
-                r#type.to_raw(),
-                values.len() as isize,
-                values.as_ptr(),
-            ))
-        }
-    }
-
-    /// Creates a dense elements attribute from f32 values.
-    pub fn f32_values(r#type: Type<'c>, values: &[f32]) -> Self {
-        unsafe {
-            Self::from_raw(mlirDenseElementsAttrFloatGet(
-                r#type.to_raw(),
-                values.len() as isize,
-                values.as_ptr(),
-            ))
-        }
-    }
-
-    /// Creates a dense elements attribute from f64 values.
-    pub fn f64_values(r#type: Type<'c>, values: &[f64]) -> Self {
-        unsafe {
-            Self::from_raw(mlirDenseElementsAttrDoubleGet(
-                r#type.to_raw(),
-                values.len() as isize,
-                values.as_ptr(),
-            ))
-        }
-    }
+    dense_elements_constructor!(i8_values, i8, mlirDenseElementsAttrInt8Get);
+    dense_elements_constructor!(i16_values, i16, mlirDenseElementsAttrInt16Get);
+    dense_elements_constructor!(i32_values, i32, mlirDenseElementsAttrInt32Get);
+    dense_elements_constructor!(i64_values, i64, mlirDenseElementsAttrInt64Get);
+    dense_elements_constructor!(u8_values, u8, mlirDenseElementsAttrUInt8Get);
+    dense_elements_constructor!(u16_values, u16, mlirDenseElementsAttrUInt16Get);
+    dense_elements_constructor!(u32_values, u32, mlirDenseElementsAttrUInt32Get);
+    dense_elements_constructor!(u64_values, u64, mlirDenseElementsAttrUInt64Get);
+    dense_elements_constructor!(f32_values, f32, mlirDenseElementsAttrFloatGet);
+    dense_elements_constructor!(f64_values, f64, mlirDenseElementsAttrDoubleGet);
 
     /// Creates a dense elements attribute from string values.
     pub fn string_values(r#type: Type<'c>, values: &[StringRef]) -> Self {
