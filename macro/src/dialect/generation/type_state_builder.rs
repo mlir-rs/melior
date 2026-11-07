@@ -1,17 +1,17 @@
 mod type_state;
 
 use self::type_state::{OrderedField, TypeState};
-use super::{Operation, OperationField};
+use crate::dialect::operation::{Operation, OperationField};
 use quote::format_ident;
 use syn::Ident;
 
-pub struct OperationBuilder<'a> {
+pub struct TypeStateBuilder<'a> {
     operation: &'a Operation<'a>,
     identifier: Ident,
     type_state: TypeState,
 }
 
-impl<'a> OperationBuilder<'a> {
+impl<'a> TypeStateBuilder<'a> {
     pub fn new(operation: &'a Operation<'a>) -> Self {
         Self {
             operation,

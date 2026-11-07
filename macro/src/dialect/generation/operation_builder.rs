@@ -1,12 +1,13 @@
+use super::type_state_builder::TypeStateBuilder;
 use crate::dialect::operation::{
-    Attribute, Operation, OperationBuilder, OperationElement, OperationField, TypeInference,
+    Attribute, Operation, OperationElement, OperationField, TypeInference,
 };
 use core::iter::repeat_n;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
 use syn::Type;
 
-pub fn generate_operation_builder(builder: &OperationBuilder) -> TokenStream {
+pub fn generate_operation_builder(builder: &TypeStateBuilder) -> TokenStream {
     let result_fns = builder
         .operation()
         .non_inferred_results()
@@ -130,7 +131,7 @@ fn generate_segment_size_fields(
 }
 
 fn generate_setter(
-    builder: &OperationBuilder,
+    builder: &TypeStateBuilder,
     field: &impl OperationField,
     statements: TokenStream,
     calls: TokenStream,
@@ -185,7 +186,7 @@ fn generate_setter(
     }
 }
 
-fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) -> TokenStream {
+fn generate_field_fn(builder: &TypeStateBuilder, field: &impl OperationField) -> TokenStream {
     let add_identifier = field.add_identifier();
     let add_arguments = field.add_arguments();
 
@@ -201,7 +202,7 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
 // sibling of generate_field_fn rather than merged into it, matching the C++
 // structure where these are also separate functions.
 fn generate_same_operands_first_fn(
-    builder: &OperationBuilder,
+    builder: &TypeStateBuilder,
     field: &OperationElement,
 ) -> TokenStream {
     let identifier = field.singular_identifier();
@@ -230,7 +231,7 @@ fn generate_same_operands_first_fn(
 
 // Mirrors C++'s genUseAttrAsResultTypeBuilder. Intentionally a sibling of
 // generate_field_fn for the same reason as generate_same_operands_first_fn.
-fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute) -> TokenStream {
+fn generate_first_attr_derived_fn(builder: &TypeStateBuilder, field: &Attribute) -> TokenStream {
     let identifier = field.singular_identifier();
     let add_arguments = field.add_arguments();
     let result_type_copies = repeat_n(quote! { result_type }, builder.operation().result_len());
@@ -253,7 +254,7 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
     )
 }
 
-fn generate_build_fn(builder: &OperationBuilder) -> TokenStream {
+fn generate_build_fn(builder: &TypeStateBuilder) -> TokenStream {
     let identifier = builder.identifier();
     let arguments = builder.type_state().final_arguments().collect::<Vec<_>>();
     let parameters = arguments.iter().filter_map(|argument| argument.parameter());
@@ -290,7 +291,7 @@ fn generate_build_fn(builder: &OperationBuilder) -> TokenStream {
     }
 }
 
-fn generate_new_fn(builder: &OperationBuilder) -> TokenStream {
+fn generate_new_fn(builder: &TypeStateBuilder) -> TokenStream {
     let identifier = builder.identifier();
     let name = &builder.operation().full_operation_name();
     let arguments = builder.type_state().initial_arguments();
@@ -315,7 +316,7 @@ fn generate_new_fn(builder: &OperationBuilder) -> TokenStream {
     }
 }
 
-pub fn generate_operation_builder_fn(builder: &OperationBuilder) -> TokenStream {
+pub fn generate_operation_builder_fn(builder: &TypeStateBuilder) -> TokenStream {
     let identifier = builder.identifier();
     let arguments = builder.type_state().initial_arguments();
 
@@ -330,7 +331,7 @@ pub fn generate_operation_builder_fn(builder: &OperationBuilder) -> TokenStream 
     }
 }
 
-pub fn generate_default_constructor(builder: &OperationBuilder) -> TokenStream {
+pub fn generate_default_constructor(builder: &TypeStateBuilder) -> TokenStream {
     let operation_identifier = format_ident!("{}", &builder.operation().name());
     let constructor_identifier = builder.operation().constructor_identifier();
     let arguments = builder
