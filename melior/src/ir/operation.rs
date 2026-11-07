@@ -21,7 +21,7 @@ use core::{
     ffi::c_void,
     fmt::{Debug, Display, Formatter},
     marker::PhantomData,
-    ops::{Deref, DerefMut},
+    ops::Deref,
 };
 use core::{
     fmt,
@@ -229,7 +229,6 @@ impl Debug for OperationRef<'_, '_> {
 }
 
 /// A mutable reference to an operation.
-#[derive(Clone, Copy)]
 pub struct OperationRefMut<'c, 'a> {
     raw: MlirOperation,
     _reference: PhantomData<&'a Operation<'c>>,
@@ -237,7 +236,7 @@ pub struct OperationRefMut<'c, 'a> {
 
 impl OperationRefMut<'_, '_> {
     /// Converts an operation reference into a raw object.
-    pub const fn to_raw(self) -> MlirOperation {
+    pub const fn to_raw(&self) -> MlirOperation {
         self.raw
     }
 
@@ -267,12 +266,6 @@ impl OperationRefMut<'_, '_> {
     }
 }
 
-impl<'c, 'a> OperationLike<'c, 'a> for OperationRefMut<'c, 'a> {
-    fn to_raw(self) -> MlirOperation {
-        self.raw
-    }
-}
-
 impl<'c, 'a> OperationMutLike<'c, 'a> for OperationRefMut<'c, 'a> {
     fn to_raw(&self) -> MlirOperation {
         self.raw
@@ -283,12 +276,6 @@ impl<'c> Deref for OperationRefMut<'c, '_> {
     type Target = Operation<'c>;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { transmute(self) }
-    }
-}
-
-impl DerefMut for OperationRefMut<'_, '_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { transmute(self) }
     }
 }
@@ -958,7 +945,10 @@ mod tests {
                 .unwrap(),
         );
 
-        assert_eq!(operation.parent_operation_mut(), None);
+        assert_eq!(
+            block.first_operation_mut().unwrap().parent_operation_mut(),
+            None
+        );
         let mut inner_op = operation
             .region(0)
             .unwrap()
@@ -970,7 +960,7 @@ mod tests {
         assert_eq!(&*inner_op_parent, &*operation);
 
         // Try a mutation to verify we have a mutable reference.
-        let inner_op = unsafe { inner_op.remove_from_parent() }.unwrap();
+        let mut inner_op = unsafe { inner_op.remove_from_parent() }.unwrap();
         assert_eq!(inner_op.parent_operation_mut(), None);
     }
 

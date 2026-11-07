@@ -1,0 +1,7 @@
+error[E0596]: cannot borrow data in dereference of `OperationRefMut<'_, '_>` as mutable
+  --> tests/ui/operation_ref_mut_replace.rs:14:9
+   |
+14 |         &mut *module.as_operation_mut(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ cannot borrow as mutable
+   |
+   = help: trait `DerefMut` is required to modify through a dereference, but it is not implemented for `OperationRefMut<'_, '_>`

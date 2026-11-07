@@ -12,6 +12,7 @@ use mlir_sys::{
 
 /// A dialect handle.
 #[derive(Clone, Copy, Debug)]
+#[repr(transparent)]
 pub struct DialectHandle {
     raw: MlirDialectHandle,
 }

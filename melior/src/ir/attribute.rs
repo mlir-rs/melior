@@ -39,6 +39,7 @@ use mlir_sys::{
 /// An attribute.
 // Attributes are always values but their internal storage is owned by contexts.
 #[derive(Clone, Copy)]
+#[repr(transparent)]
 pub struct Attribute<'c> {
     raw: MlirAttribute,
     _context: PhantomData<&'c Context>,

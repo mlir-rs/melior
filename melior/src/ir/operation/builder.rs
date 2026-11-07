@@ -3,7 +3,6 @@ use crate::{
     Error,
     context::Context,
     ir::{Attribute, AttributeLike, Block, Identifier, Location, Region, Type, Value},
-    string_ref::StringRef,
 };
 use core::{
     marker::PhantomData,
@@ -27,7 +26,14 @@ impl<'c> OperationBuilder<'c> {
     /// Creates an operation builder.
     pub fn new(name: &str, location: Location<'c>) -> Self {
         Self {
-            raw: unsafe { mlirOperationStateGet(StringRef::new(name).to_raw(), location.to_raw()) },
+            raw: unsafe {
+                mlirOperationStateGet(
+                    Identifier::new(location.context().to_ref(), name)
+                        .as_string_ref()
+                        .to_raw(),
+                    location.to_raw(),
+                )
+            },
             _context: Default::default(),
         }
     }
@@ -150,6 +156,20 @@ mod tests {
         OperationBuilder::new("foo", Location::unknown(&context))
             .build()
             .unwrap();
+    }
+
+    #[test]
+    fn new_with_dropped_name() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+
+        let builder = OperationBuilder::new(&String::from("foo.bar"), Location::unknown(&context));
+        let _name = String::from("baz.qux");
+
+        assert_eq!(
+            builder.build().unwrap().name(),
+            Identifier::new(&context, "foo.bar")
+        );
     }
 
     #[test]

@@ -13,6 +13,7 @@ use mlir_sys::{
 
 /// A region.
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct Region<'c> {
     raw: MlirRegion,
     _block: PhantomData<Block<'c>>,

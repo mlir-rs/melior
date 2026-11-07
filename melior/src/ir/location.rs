@@ -24,6 +24,7 @@ use mlir_sys::{
 
 /// A location
 #[derive(Clone, Copy, Debug)]
+#[repr(transparent)]
 pub struct Location<'c> {
     raw: MlirLocation,
     _context: PhantomData<&'c Context>,
