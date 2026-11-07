@@ -149,14 +149,22 @@ pub trait BlockLike<'c, 'a>: Copy + Display + 'a {
         index: usize,
         r#type: Type<'c>,
         location: Location<'c>,
-    ) -> Value<'c, 'a> {
-        unsafe {
-            Value::from_raw(mlirBlockInsertArgument(
-                self.to_raw(),
-                index as isize,
-                r#type.to_raw(),
-                location.to_raw(),
-            ))
+    ) -> Result<Value<'c, 'a>, Error> {
+        if index <= self.argument_count() {
+            Ok(unsafe {
+                Value::from_raw(mlirBlockInsertArgument(
+                    self.to_raw(),
+                    index as isize,
+                    r#type.to_raw(),
+                    location.to_raw(),
+                ))
+            })
+        } else {
+            Err(Error::PositionOutOfBounds {
+                name: "block argument",
+                value: self.to_string(),
+                index,
+            })
         }
     }
 
@@ -167,8 +175,18 @@ pub trait BlockLike<'c, 'a>: Copy + Display + 'a {
     /// This invalidates any `BlockArgument` or `Value` handles that were
     /// obtained for the erased argument. Using such handles after this call
     /// is undefined behavior.
-    unsafe fn erase_argument(self, index: usize) {
-        unsafe { mlirBlockEraseArgument(self.to_raw(), index as u32) }
+    unsafe fn erase_argument(self, index: usize) -> Result<(), Error> {
+        if index >= self.argument_count() {
+            return Err(Error::PositionOutOfBounds {
+                name: "block argument",
+                value: self.to_string(),
+                index,
+            });
+        }
+
+        unsafe { mlirBlockEraseArgument(self.to_raw(), index as u32) };
+
+        Ok(())
     }
 
     /// Returns the number of successors.

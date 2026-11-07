@@ -18,6 +18,15 @@ pub enum Error {
     AttributeParse(String),
     /// A block argument expected.
     BlockArgumentExpected(String),
+    /// Mismatched numbers of items.
+    CountMismatch {
+        /// A name of items.
+        name: &'static str,
+        /// An expected number of items.
+        expected: usize,
+        /// An actual number of items.
+        actual: usize,
+    },
     /// An element of a type expected.
     ElementExpected {
         /// A type name.
@@ -42,6 +51,8 @@ pub enum Error {
     OperationResultExpected(String),
     /// A failure of pass pipeline parsing.
     ParsePassPipeline(String),
+    /// A permutation expected.
+    PermutationExpected(String),
     /// A position out of bounds.
     PositionOutOfBounds {
         /// A name of positioned elements.
@@ -88,6 +99,16 @@ impl Display for Error {
             Self::BlockArgumentExpected(value) => {
                 write!(formatter, "block argument expected: {value}")
             }
+            Self::CountMismatch {
+                name,
+                expected,
+                actual,
+            } => {
+                write!(
+                    formatter,
+                    "{name} count mismatch: {expected} expected, {actual} given"
+                )
+            }
             Self::ElementExpected { r#type, value } => {
                 write!(formatter, "element of {type} type expected: {value}")
             }
@@ -109,6 +130,9 @@ impl Display for Error {
             }
             Self::ParsePassPipeline(message) => {
                 write!(formatter, "failed to parse pass pipeline:\n{message}")
+            }
+            Self::PermutationExpected(value) => {
+                write!(formatter, "permutation expected: {value}")
             }
             Self::PositionOutOfBounds { name, value, index } => {
                 write!(formatter, "{name} position {index} out of bounds: {value}")

@@ -98,17 +98,20 @@ impl<'c> AffineMap<'c> {
     }
 
     /// Creates an affine map representing a permutation.
-    pub fn permutation(context: &'c Context, permutation: &[u32]) -> Self {
-        let mut perm: Vec<_> = permutation
-            .iter()
-            .map(|&x| x as std::os::raw::c_uint)
-            .collect();
-        unsafe {
-            Self::from_raw(mlirAffineMapPermutationGet(
-                context.to_raw(),
-                perm.len() as isize,
-                perm.as_mut_ptr(),
-            ))
+    pub fn permutation(context: &'c Context, permutation: &[u32]) -> Result<Self, Error> {
+        let mut sorted = permutation.to_vec();
+        sorted.sort_unstable();
+
+        if !permutation.is_empty() && sorted.into_iter().eq(0..permutation.len() as u32) {
+            Ok(unsafe {
+                Self::from_raw(mlirAffineMapPermutationGet(
+                    context.to_raw(),
+                    permutation.len() as isize,
+                    permutation.as_ptr().cast_mut(),
+                ))
+            })
+        } else {
+            Err(Error::PermutationExpected(format!("{permutation:?}")))
         }
     }
 
@@ -175,15 +178,26 @@ impl<'c> AffineMap<'c> {
     }
 
     /// Returns the sub-map at the given result positions.
-    pub fn sub_map(&self, positions: &[usize]) -> Self {
+    pub fn sub_map(&self, positions: &[usize]) -> Result<Self, Error> {
+        if let Some(&index) = positions
+            .iter()
+            .find(|&&position| position >= self.result_count())
+        {
+            return Err(Error::PositionOutOfBounds {
+                name: "affine map result",
+                value: self.to_string(),
+                index,
+            });
+        }
+
         let mut pos: Vec<isize> = positions.iter().map(|&p| p as isize).collect();
-        unsafe {
+        Ok(unsafe {
             Self::from_raw(mlirAffineMapGetSubMap(
                 self.raw,
                 pos.len() as isize,
                 pos.as_mut_ptr(),
             ))
-        }
+        })
     }
 
     // -----------------------------------------------------------------------
@@ -376,9 +390,31 @@ mod tests {
     #[test]
     fn permutation() {
         let context = Context::new();
-        let map = AffineMap::permutation(&context, &[1, 2, 0]);
+        let map = AffineMap::permutation(&context, &[1, 2, 0]).unwrap();
         assert!(map.is_permutation());
         assert_eq!(map.result_count(), 3);
+    }
+
+    #[test]
+    fn fail_to_create_empty_permutation() {
+        let context = Context::new();
+        assert_eq!(
+            AffineMap::permutation(&context, &[]),
+            Err(Error::PermutationExpected("[]".into()))
+        );
+    }
+
+    #[test]
+    fn fail_to_create_invalid_permutation() {
+        let context = Context::new();
+        assert_eq!(
+            AffineMap::permutation(&context, &[0, 0]),
+            Err(Error::PermutationExpected("[0, 0]".into()))
+        );
+        assert_eq!(
+            AffineMap::permutation(&context, &[0, 2]),
+            Err(Error::PermutationExpected("[0, 2]".into()))
+        );
     }
 
     #[test]
@@ -470,10 +506,24 @@ mod tests {
         let d1 = AffineExpr::dim(&context, 1);
         let d2 = AffineExpr::dim(&context, 2);
         let map = AffineMap::new(&context, 3, 0, &[d0, d1, d2]);
-        let sub = map.sub_map(&[0, 2]);
+        let sub = map.sub_map(&[0, 2]).unwrap();
         assert_eq!(sub.result_count(), 2);
         assert_eq!(sub.result(0).unwrap(), d0);
         assert_eq!(sub.result(1).unwrap(), d2);
+    }
+
+    #[test]
+    fn fail_to_create_sub_map_out_of_bounds() {
+        let context = Context::new();
+        let map = AffineMap::multi_dim_identity(&context, 1);
+        assert_eq!(
+            map.sub_map(&[0, 1]),
+            Err(Error::PositionOutOfBounds {
+                name: "affine map result",
+                value: "(d0) -> (d0)".into(),
+                index: 1,
+            })
+        );
     }
 
     #[test]
@@ -499,7 +549,11 @@ mod tests {
     #[test]
     fn is_permutation() {
         let context = Context::new();
-        assert!(AffineMap::permutation(&context, &[2, 0, 1]).is_permutation());
+        assert!(
+            AffineMap::permutation(&context, &[2, 0, 1])
+                .unwrap()
+                .is_permutation()
+        );
         assert!(!AffineMap::constant(&context, 0).is_permutation());
     }
 
@@ -507,7 +561,11 @@ mod tests {
     fn is_projected_permutation() {
         let context = Context::new();
         // A permutation is also a projected permutation
-        assert!(AffineMap::permutation(&context, &[1, 0]).is_projected_permutation());
+        assert!(
+            AffineMap::permutation(&context, &[1, 0])
+                .unwrap()
+                .is_projected_permutation()
+        );
     }
 
     #[test]

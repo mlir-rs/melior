@@ -453,7 +453,7 @@ pub trait OperationLike<'c: 'a, 'a>: Copy + Display + 'a {
 }
 
 /// A trait for mutable operation-like types.
-pub trait OperationMutLike<'c: 'a, 'a> {
+pub trait OperationMutLike<'c: 'a, 'a>: Display {
     /// Converts an operation into a raw object.
     fn to_raw(&self) -> MlirOperation;
 
@@ -518,8 +518,18 @@ pub trait OperationMutLike<'c: 'a, 'a> {
     }
 
     /// Sets the operand at `index` to `value`.
-    fn set_operand(&mut self, index: usize, value: Value<'c, 'a>) {
-        unsafe { mlirOperationSetOperand(self.to_raw(), index as isize, value.to_raw()) }
+    fn set_operand(&mut self, index: usize, value: Value<'c, 'a>) -> Result<(), Error> {
+        if index >= unsafe { mlirOperationGetNumOperands(self.to_raw()) } as usize {
+            return Err(Error::PositionOutOfBounds {
+                name: "operation operand",
+                value: self.to_string(),
+                index,
+            });
+        }
+
+        unsafe { mlirOperationSetOperand(self.to_raw(), index as isize, value.to_raw()) };
+
+        Ok(())
     }
 
     /// Replaces all operands of the operation with `values`.
@@ -538,8 +548,18 @@ pub trait OperationMutLike<'c: 'a, 'a> {
     /// # Safety
     ///
     /// The block must not be destroyed while the operation refers to it.
-    unsafe fn set_successor(&mut self, index: usize, block: &Block<'c>) {
-        unsafe { mlirOperationSetSuccessor(self.to_raw(), index as isize, block.to_raw()) }
+    unsafe fn set_successor(&mut self, index: usize, block: &Block<'c>) -> Result<(), Error> {
+        if index >= unsafe { mlirOperationGetNumSuccessors(self.to_raw()) } as usize {
+            return Err(Error::PositionOutOfBounds {
+                name: "successor",
+                value: self.to_string(),
+                index,
+            });
+        }
+
+        unsafe { mlirOperationSetSuccessor(self.to_raw(), index as isize, block.to_raw()) };
+
+        Ok(())
     }
 
     /// Sets a discardable attribute by name, adding it if absent or replacing
