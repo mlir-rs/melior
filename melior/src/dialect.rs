@@ -2,6 +2,7 @@
 
 pub mod arith;
 pub mod cf;
+pub mod enzyme;
 pub mod func;
 mod handle;
 pub mod index;
