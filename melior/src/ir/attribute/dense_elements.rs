@@ -44,6 +44,15 @@ macro_rules! dense_elements_constructor {
     };
 }
 
+macro_rules! dense_elements_splat_constructor {
+    ($name:ident, $type:ty, $function:ident) => {
+        #[doc = concat!(" Creates a splat dense elements attribute with the given ", stringify!($type), " value.")]
+        pub fn $name(r#type: Type<'c>, value: $type) -> Self {
+            unsafe { Self::from_raw($function(r#type.to_raw(), value)) }
+        }
+    };
+}
+
 macro_rules! dense_element_accessor {
     ($name:ident, $type:ty, $guard:ident, $type_name:expr, $ffi:ident) => {
         #[doc = concat!(" Returns an element of `", stringify!($type), "` at the given index.")]
@@ -62,6 +71,15 @@ macro_rules! dense_element_accessor {
                     index,
                 })
             }
+        }
+    };
+}
+
+macro_rules! dense_elements_splat_accessor {
+    ($name:ident, $type:ty, $function:ident) => {
+        #[doc = concat!(" Returns the ", stringify!($type), " splat value.")]
+        pub fn $name(&self) -> $type {
+            unsafe { $function(self.attribute.to_raw()) }
         }
     };
 }
@@ -152,45 +170,14 @@ impl<'c> DenseElementsAttribute<'c> {
         }
     }
 
-    /// Creates a splat dense elements attribute with a bool value.
-    pub fn bool_splat(r#type: Type<'c>, value: bool) -> Self {
-        unsafe { Self::from_raw(mlirDenseElementsAttrBoolSplatGet(r#type.to_raw(), value)) }
-    }
-
-    /// Creates a splat dense elements attribute with an i8 value.
-    pub fn i8_splat(r#type: Type<'c>, value: i8) -> Self {
-        unsafe { Self::from_raw(mlirDenseElementsAttrInt8SplatGet(r#type.to_raw(), value)) }
-    }
-
-    /// Creates a splat dense elements attribute with an i32 value.
-    pub fn i32_splat(r#type: Type<'c>, value: i32) -> Self {
-        unsafe { Self::from_raw(mlirDenseElementsAttrInt32SplatGet(r#type.to_raw(), value)) }
-    }
-
-    /// Creates a splat dense elements attribute with an i64 value.
-    pub fn i64_splat(r#type: Type<'c>, value: i64) -> Self {
-        unsafe { Self::from_raw(mlirDenseElementsAttrInt64SplatGet(r#type.to_raw(), value)) }
-    }
-
-    /// Creates a splat dense elements attribute with a u32 value.
-    pub fn u32_splat(r#type: Type<'c>, value: u32) -> Self {
-        unsafe { Self::from_raw(mlirDenseElementsAttrUInt32SplatGet(r#type.to_raw(), value)) }
-    }
-
-    /// Creates a splat dense elements attribute with a u64 value.
-    pub fn u64_splat(r#type: Type<'c>, value: u64) -> Self {
-        unsafe { Self::from_raw(mlirDenseElementsAttrUInt64SplatGet(r#type.to_raw(), value)) }
-    }
-
-    /// Creates a splat dense elements attribute with an f32 value.
-    pub fn f32_splat(r#type: Type<'c>, value: f32) -> Self {
-        unsafe { Self::from_raw(mlirDenseElementsAttrFloatSplatGet(r#type.to_raw(), value)) }
-    }
-
-    /// Creates a splat dense elements attribute with an f64 value.
-    pub fn f64_splat(r#type: Type<'c>, value: f64) -> Self {
-        unsafe { Self::from_raw(mlirDenseElementsAttrDoubleSplatGet(r#type.to_raw(), value)) }
-    }
+    dense_elements_splat_constructor!(bool_splat, bool, mlirDenseElementsAttrBoolSplatGet);
+    dense_elements_splat_constructor!(i8_splat, i8, mlirDenseElementsAttrInt8SplatGet);
+    dense_elements_splat_constructor!(i32_splat, i32, mlirDenseElementsAttrInt32SplatGet);
+    dense_elements_splat_constructor!(i64_splat, i64, mlirDenseElementsAttrInt64SplatGet);
+    dense_elements_splat_constructor!(u32_splat, u32, mlirDenseElementsAttrUInt32SplatGet);
+    dense_elements_splat_constructor!(u64_splat, u64, mlirDenseElementsAttrUInt64SplatGet);
+    dense_elements_splat_constructor!(f32_splat, f32, mlirDenseElementsAttrFloatSplatGet);
+    dense_elements_splat_constructor!(f64_splat, f64, mlirDenseElementsAttrDoubleSplatGet);
 
     // -------------------------------------------------------------------------
     // Misc
@@ -353,40 +340,37 @@ impl<'c> DenseElementsAttribute<'c> {
         unsafe { mlirDenseElementsAttrGetBoolSplatValue(self.attribute.to_raw()) != 0 }
     }
 
-    /// Returns the i8 splat value.
-    pub fn i8_splat_value(&self) -> i8 {
-        unsafe { mlirDenseElementsAttrGetInt8SplatValue(self.attribute.to_raw()) }
-    }
-
-    /// Returns the i32 splat value.
-    pub fn i32_splat_value(&self) -> i32 {
-        unsafe { mlirDenseElementsAttrGetInt32SplatValue(self.attribute.to_raw()) }
-    }
-
-    /// Returns the i64 splat value.
-    pub fn i64_splat_value(&self) -> i64 {
-        unsafe { mlirDenseElementsAttrGetInt64SplatValue(self.attribute.to_raw()) }
-    }
-
-    /// Returns the u32 splat value.
-    pub fn u32_splat_value(&self) -> u32 {
-        unsafe { mlirDenseElementsAttrGetUInt32SplatValue(self.attribute.to_raw()) }
-    }
-
-    /// Returns the u64 splat value.
-    pub fn u64_splat_value(&self) -> u64 {
-        unsafe { mlirDenseElementsAttrGetUInt64SplatValue(self.attribute.to_raw()) }
-    }
-
-    /// Returns the f32 splat value.
-    pub fn f32_splat_value(&self) -> f32 {
-        unsafe { mlirDenseElementsAttrGetFloatSplatValue(self.attribute.to_raw()) }
-    }
-
-    /// Returns the f64 splat value.
-    pub fn f64_splat_value(&self) -> f64 {
-        unsafe { mlirDenseElementsAttrGetDoubleSplatValue(self.attribute.to_raw()) }
-    }
+    dense_elements_splat_accessor!(i8_splat_value, i8, mlirDenseElementsAttrGetInt8SplatValue);
+    dense_elements_splat_accessor!(
+        i32_splat_value,
+        i32,
+        mlirDenseElementsAttrGetInt32SplatValue
+    );
+    dense_elements_splat_accessor!(
+        i64_splat_value,
+        i64,
+        mlirDenseElementsAttrGetInt64SplatValue
+    );
+    dense_elements_splat_accessor!(
+        u32_splat_value,
+        u32,
+        mlirDenseElementsAttrGetUInt32SplatValue
+    );
+    dense_elements_splat_accessor!(
+        u64_splat_value,
+        u64,
+        mlirDenseElementsAttrGetUInt64SplatValue
+    );
+    dense_elements_splat_accessor!(
+        f32_splat_value,
+        f32,
+        mlirDenseElementsAttrGetFloatSplatValue
+    );
+    dense_elements_splat_accessor!(
+        f64_splat_value,
+        f64,
+        mlirDenseElementsAttrGetDoubleSplatValue
+    );
 
     /// Returns the string splat value.
     pub fn string_splat_value(&self) -> &str {
