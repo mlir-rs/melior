@@ -1,9 +1,12 @@
 mod attribute_accessor;
 mod element_accessor;
 mod operation_builder;
+mod operation_enum;
 mod region_accessor;
 mod successor_accessor;
+mod type_state_builder;
 
+pub use self::operation_enum::generate_operation_enum;
 use self::{
     attribute_accessor::generate_attribute_accessors,
     element_accessor::generate_element_accessor,
@@ -12,8 +15,9 @@ use self::{
     },
     region_accessor::generate_region_accessor,
     successor_accessor::generate_successor_accessor,
+    type_state_builder::TypeStateBuilder,
 };
-use super::operation::{Operation, OperationBuilder};
+use super::operation::Operation;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
@@ -44,7 +48,7 @@ pub fn generate_operation(operation: &Operation) -> TokenStream {
         .map(generate_attribute_accessors)
         .collect::<Vec<_>>();
 
-    let builder = OperationBuilder::new(operation);
+    let builder = TypeStateBuilder::new(operation);
     let builder_tokens = generate_operation_builder(&builder);
     let builder_fn = generate_operation_builder_fn(&builder);
     let default_constructor = generate_default_constructor(&builder);

@@ -1,5 +1,4 @@
 mod attribute;
-mod builder;
 mod element_kind;
 mod element_position;
 mod field_kind;
@@ -10,9 +9,9 @@ mod successor;
 mod variadic_kind;
 
 pub use self::{
-    attribute::Attribute, builder::OperationBuilder, element_kind::ElementKind,
-    element_position::ElementPosition, field_kind::FieldKind, operation_element::OperationElement,
-    region::Region, successor::Successor, variadic_kind::VariadicKind,
+    attribute::Attribute, element_kind::ElementKind, element_position::ElementPosition,
+    field_kind::FieldKind, operation_element::OperationElement, region::Region,
+    successor::Successor, variadic_kind::VariadicKind,
 };
 use super::utility::{sanitize_documentation, sanitize_snake_case_identifier};
 use crate::dialect::{
