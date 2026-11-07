@@ -1,11 +1,6 @@
 use super::{FieldKind, OperationField};
-use crate::dialect::{
-    error::Error,
-    utility::{generate_iterator_type, generate_result_type, sanitize_snake_case_identifier},
-};
-use proc_macro2::TokenStream;
-use quote::quote;
-use syn::{Ident, Type, parse_quote};
+use crate::dialect::{error::Error, utility::sanitize_snake_case_identifier};
+use syn::Ident;
 
 #[derive(Debug)]
 pub struct Successor<'a> {
@@ -47,38 +42,8 @@ impl OperationField for Successor<'_> {
         &self.singular_identifier
     }
 
-    fn parameter_type(&self) -> Type {
-        let r#type: Type = parse_quote!(&::melior::ir::Block<'c>);
-
-        if self.is_variadic() {
-            parse_quote!(&[#r#type])
-        } else {
-            r#type
-        }
-    }
-
-    fn return_type(&self) -> Type {
-        let r#type: Type = parse_quote!(::melior::ir::BlockRef<'c, '_>);
-
-        if self.is_variadic() {
-            generate_iterator_type(r#type)
-        } else {
-            generate_result_type(r#type)
-        }
-    }
-
     fn is_optional(&self) -> bool {
         false
-    }
-
-    fn add_arguments(&self) -> TokenStream {
-        let name = &self.singular_identifier;
-
-        if self.is_variadic() {
-            quote! { #name }
-        } else {
-            quote! { &[#name] }
-        }
     }
 
     // MLIR has no segment size attribute for successors.

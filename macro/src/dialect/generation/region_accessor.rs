@@ -1,3 +1,4 @@
+use super::generated_field::GeneratedField;
 use crate::dialect::operation::{OperationField, Region};
 use proc_macro2::TokenStream;
 use quote::quote;

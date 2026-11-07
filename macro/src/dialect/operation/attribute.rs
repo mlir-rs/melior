@@ -1,11 +1,9 @@
 use crate::dialect::{
     error::Error,
     operation::{FieldKind, operation_field::OperationField},
-    utility::{generate_result_type, sanitize_snake_case_identifier},
+    utility::sanitize_snake_case_identifier,
 };
-use proc_macro2::{Span, TokenStream};
-use quote::quote;
-use syn::{Ident, Type, parse_quote};
+use syn::Ident;
 use tblgen::{Record, error::TableGenError};
 
 #[derive(Debug)]
@@ -14,7 +12,7 @@ pub struct Attribute<'a> {
     singular_identifier: Ident,
     set_identifier: Ident,
     remove_identifier: Ident,
-    storage_type: Ident,
+    storage_type: String,
     optional: bool,
     default: bool,
     index: usize,
@@ -27,16 +25,12 @@ impl<'a> Attribute<'a> {
             singular_identifier: sanitize_snake_case_identifier(name)?,
             set_identifier: sanitize_snake_case_identifier(&format!("set_{name}"))?,
             remove_identifier: sanitize_snake_case_identifier(&format!("remove_{name}"))?,
-            storage_type: Ident::new(
-                Self::build_storage_type(
-                    // TODO Handle `?` attribute initializers properly.
-                    record
-                        .string_value("storageType")
-                        .unwrap_or_default()
-                        .trim(),
-                ),
-                Span::call_site(),
-            ),
+            // TODO Handle `?` attribute initializers properly.
+            storage_type: record
+                .string_value("storageType")
+                .unwrap_or_default()
+                .trim()
+                .into(),
             optional: record.bit_value("isOptional")?,
             default: match record.string_value("defaultValue") {
                 Ok(value) => !value.is_empty(),
@@ -61,26 +55,12 @@ impl<'a> Attribute<'a> {
         &self.remove_identifier
     }
 
-    pub fn is_type(&self) -> bool {
-        self.storage_type == "TypeAttribute"
+    pub fn storage_type(&self) -> &str {
+        &self.storage_type
     }
 
-    fn build_storage_type(storage_type: &str) -> &'static str {
-        match storage_type {
-            "::mlir::ArrayAttr" => "ArrayAttribute",
-            "::mlir::BoolAttr" => "BoolAttribute",
-            "::mlir::DenseElementsAttr" => "DenseElementsAttribute",
-            "::mlir::DenseI32ArrayAttr" => "DenseI32ArrayAttribute",
-            "::mlir::DenseI64ArrayAttr" => "DenseI64ArrayAttribute",
-            "::mlir::DictionaryAttr" => "DictionaryAttribute",
-            "::mlir::FlatSymbolRefAttr" => "FlatSymbolRefAttribute",
-            "::mlir::FloatAttr" => "FloatAttribute",
-            "::mlir::IntegerAttr" => "IntegerAttribute",
-            "::mlir::StringAttr" => "StringAttribute",
-            "::mlir::StridedLayoutAttr" => "StridedLayoutAttribute",
-            "::mlir::TypeAttr" => "TypeAttribute",
-            _ => "Attribute",
-        }
+    pub fn is_type(&self) -> bool {
+        self.storage_type == "::mlir::TypeAttr"
     }
 }
 
@@ -101,30 +81,8 @@ impl OperationField for Attribute<'_> {
         &self.singular_identifier
     }
 
-    fn parameter_type(&self) -> Type {
-        let r#type = &self.storage_type;
-
-        parse_quote!(::melior::ir::attribute::#r#type<'c>)
-    }
-
-    fn return_type(&self) -> Type {
-        generate_result_type(self.parameter_type())
-    }
-
     fn is_optional(&self) -> bool {
         self.optional || self.default
-    }
-
-    fn add_arguments(&self) -> TokenStream {
-        let name = &self.singular_identifier;
-        let name_string = &self.name;
-
-        quote! {
-            &[(
-                ::melior::ir::Identifier::new(self.context, #name_string),
-                #name.into(),
-            )]
-        }
     }
 
     // Attributes are not operands or results, so they have no group to size.

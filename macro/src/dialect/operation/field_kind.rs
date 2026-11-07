@@ -1,6 +1,3 @@
-use quote::format_ident;
-use syn::Ident;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FieldKind {
     Result,
@@ -39,14 +36,6 @@ impl FieldKind {
             Self::Successor => "S",
             Self::Attribute => "A",
         }
-    }
-
-    pub fn add_identifier(self) -> Ident {
-        format_ident!("add_{}", self.plural_name())
-    }
-
-    pub fn segment_size_field_identifier(self) -> Ident {
-        format_ident!("{}_segment_sizes", self.singular_name())
     }
 
     // The name of the attribute MLIR uses to store the sizes of the operand or

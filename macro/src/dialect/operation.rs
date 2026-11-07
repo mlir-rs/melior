@@ -248,19 +248,6 @@ impl<'a> Operation<'a> {
         self.attributes.iter().filter(|field| !field.is_optional())
     }
 
-    pub fn required_fields(&self) -> impl Iterator<Item = &dyn OperationField> {
-        fn convert(field: &impl OperationField) -> &dyn OperationField {
-            field
-        }
-
-        self.required_results()
-            .map(convert)
-            .chain(self.required_operands().map(convert))
-            .chain(self.regions().map(convert))
-            .chain(self.successors().map(convert))
-            .chain(self.required_attributes().map(convert))
-    }
-
     fn collect_successors(definition: Record<'a>) -> Result<Vec<Successor<'a>>, Error> {
         definition
             .dag_value("successors")?

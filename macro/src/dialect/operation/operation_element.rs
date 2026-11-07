@@ -1,12 +1,8 @@
 use super::{ElementKind, ElementPosition, FieldKind, OperationField, VariadicKind};
 use crate::dialect::{
-    error::Error,
-    r#type::Type as ElementType,
-    utility::{generate_iterator_type, generate_result_type, sanitize_snake_case_identifier},
+    error::Error, r#type::Type as ElementType, utility::sanitize_snake_case_identifier,
 };
-use proc_macro2::{Ident, TokenStream};
-use quote::quote;
-use syn::{Type, parse_quote};
+use proc_macro2::Ident;
 
 #[derive(Debug)]
 pub struct OperationElement<'a> {
@@ -31,6 +27,10 @@ impl<'a> OperationElement<'a> {
             r#type,
             position,
         })
+    }
+
+    pub const fn element_kind(&self) -> ElementKind {
+        self.kind
     }
 
     pub const fn is_variadic(&self) -> bool {
@@ -63,48 +63,8 @@ impl OperationField for OperationElement<'_> {
         &self.singular_identifier
     }
 
-    fn parameter_type(&self) -> Type {
-        let r#type: Type = match self.kind {
-            ElementKind::Operand => parse_quote!(::melior::ir::Value<'c, '_>),
-            ElementKind::Result => parse_quote!(::melior::ir::Type<'c>),
-        };
-
-        if self.is_variadic() {
-            parse_quote! { &[#r#type] }
-        } else {
-            r#type
-        }
-    }
-
-    fn return_type(&self) -> Type {
-        let r#type: Type = match self.kind {
-            ElementKind::Operand => parse_quote!(::melior::ir::Value<'c, '_>),
-            ElementKind::Result => {
-                parse_quote!(::melior::ir::operation::OperationResult<'c, '_>)
-            }
-        };
-
-        if !self.is_variadic() {
-            generate_result_type(r#type)
-        } else if self.position.variadic_kind() == Some(VariadicKind::AttributeSized) {
-            generate_result_type(generate_iterator_type(r#type))
-        } else {
-            generate_iterator_type(r#type)
-        }
-    }
-
     fn is_optional(&self) -> bool {
         self.r#type.is_optional()
-    }
-
-    fn add_arguments(&self) -> TokenStream {
-        let name = &self.singular_identifier;
-
-        if self.is_variadic() {
-            quote! { #name }
-        } else {
-            quote! { &[#name] }
-        }
     }
 
     fn segment(&self) -> Option<usize> {

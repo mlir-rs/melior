@@ -1,6 +1,6 @@
-use super::type_state::TypeStateBuilder;
+use super::{generated_field::GeneratedField, type_state::TypeStateBuilder};
 use crate::dialect::operation::{
-    Attribute, Operation, OperationElement, OperationField, TypeInference,
+    Attribute, FieldKind, Operation, OperationElement, OperationField, TypeInference,
 };
 use core::iter::repeat_n;
 use proc_macro2::{Ident, Span, TokenStream};
@@ -66,7 +66,7 @@ pub fn generate_operation_builder(builder: &TypeStateBuilder) -> TokenStream {
     );
     let type_parameters = builder.type_state().parameters().collect::<Vec<_>>();
     let segment_fields = builder.operation().segment_arrays().map(|(kind, length)| {
-        let identifier = kind.segment_size_field_identifier();
+        let identifier = generate_segment_size_field_identifier(kind);
 
         quote! { #identifier: [i32; #length] }
     });
@@ -97,12 +97,12 @@ pub fn generate_operation_builder(builder: &TypeStateBuilder) -> TokenStream {
 // array is copied forward.
 fn generate_segment_size_fields(
     operation: &Operation,
-    field: &impl OperationField,
+    field: &impl GeneratedField,
 ) -> Vec<TokenStream> {
     operation
         .segment_arrays()
         .map(|(kind, _)| {
-            let identifier = kind.segment_size_field_identifier();
+            let identifier = generate_segment_size_field_identifier(kind);
 
             if let Some(index) = field.segment()
                 && field.kind() == kind
@@ -132,7 +132,7 @@ fn generate_segment_size_fields(
 
 fn generate_setter(
     builder: &TypeStateBuilder,
-    field: &impl OperationField,
+    field: &impl GeneratedField,
     statements: TokenStream,
     calls: TokenStream,
 ) -> TokenStream {
@@ -186,7 +186,7 @@ fn generate_setter(
     }
 }
 
-fn generate_field_fn(builder: &TypeStateBuilder, field: &impl OperationField) -> TokenStream {
+fn generate_field_fn(builder: &TypeStateBuilder, field: &impl GeneratedField) -> TokenStream {
     let add_identifier = field.add_identifier();
     let add_arguments = field.add_arguments();
 
@@ -266,7 +266,7 @@ fn generate_build_fn(builder: &TypeStateBuilder) -> TokenStream {
     )
     .then_some(quote! { .enable_result_type_inference() });
     let add_segment_size_attributes = builder.operation().segment_arrays().map(|(kind, _)| {
-        let field_identifier = kind.segment_size_field_identifier();
+        let field_identifier = generate_segment_size_field_identifier(kind);
         let name = kind.segment_size_attribute_name();
 
         quote! {
@@ -296,7 +296,7 @@ fn generate_new_fn(builder: &TypeStateBuilder) -> TokenStream {
     let name = &builder.operation().full_operation_name();
     let arguments = builder.type_state().initial_arguments();
     let segment_fields = builder.operation().segment_arrays().map(|(kind, length)| {
-        let identifier = kind.segment_size_field_identifier();
+        let identifier = generate_segment_size_field_identifier(kind);
 
         quote! { #identifier: [0; #length] }
     });
@@ -334,9 +334,7 @@ pub fn generate_operation_builder_fn(builder: &TypeStateBuilder) -> TokenStream 
 pub fn generate_default_constructor(builder: &TypeStateBuilder) -> TokenStream {
     let operation_identifier = format_ident!("{}", &builder.operation().name());
     let constructor_identifier = builder.operation().constructor_identifier();
-    let arguments = builder
-        .operation()
-        .required_fields()
+    let arguments = required_fields(builder.operation())
         .map(|field| {
             let r#type = &field.parameter_type();
             let name = &field.singular_identifier();
@@ -345,9 +343,7 @@ pub fn generate_default_constructor(builder: &TypeStateBuilder) -> TokenStream {
         })
         .chain([quote! { location: ::melior::ir::Location<'c> }])
         .collect::<Vec<_>>();
-    let builder_calls = builder
-        .operation()
-        .required_fields()
+    let builder_calls = required_fields(builder.operation())
         .map(|field| {
             let name = &field.singular_identifier();
 
@@ -364,4 +360,22 @@ pub fn generate_default_constructor(builder: &TypeStateBuilder) -> TokenStream {
             #operation_identifier::builder(context, location)#(#builder_calls)*.build()
         }
     }
+}
+
+fn required_fields<'a>(operation: &'a Operation) -> impl Iterator<Item = &'a dyn GeneratedField> {
+    fn convert(field: &impl GeneratedField) -> &dyn GeneratedField {
+        field
+    }
+
+    operation
+        .required_results()
+        .map(convert)
+        .chain(operation.required_operands().map(convert))
+        .chain(operation.regions().map(convert))
+        .chain(operation.successors().map(convert))
+        .chain(operation.required_attributes().map(convert))
+}
+
+fn generate_segment_size_field_identifier(kind: FieldKind) -> Ident {
+    format_ident!("{}_segment_sizes", kind.singular_name())
 }

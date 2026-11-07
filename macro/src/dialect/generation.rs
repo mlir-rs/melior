@@ -1,5 +1,6 @@
 mod attribute_accessor;
 mod element_accessor;
+mod generated_field;
 mod operation_builder;
 mod operation_enum;
 mod region_accessor;
