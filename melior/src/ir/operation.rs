@@ -509,8 +509,47 @@ mod tests {
 
         // Use first_operation_mut to get a mutable reference.
         let mut op_ref = block.first_operation_mut().unwrap();
-        op_ref.set_operand(0, arg1);
+        op_ref.set_operand(0, arg1).unwrap();
         assert_eq!(op_ref.operand(0).unwrap(), arg1);
+    }
+
+    #[test]
+    fn fail_to_set_operand_out_of_bounds() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let location = Location::unknown(&context);
+        let block = Block::new(&[(Type::index(&context), location)]);
+        let mut operation = OperationBuilder::new("foo", location)
+            .add_operands(&[block.argument(0).unwrap().into()])
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            operation.set_operand(1, block.argument(0).unwrap().into()),
+            Err(Error::PositionOutOfBounds {
+                name: "operation operand",
+                value: operation.to_string(),
+                index: 1,
+            })
+        );
+    }
+
+    #[test]
+    fn fail_to_set_successor_out_of_bounds() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let mut operation = OperationBuilder::new("foo", Location::unknown(&context))
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            operation.set_successor(0, &Block::new(&[])),
+            Err(Error::PositionOutOfBounds {
+                name: "successor",
+                value: operation.to_string(),
+                index: 0,
+            })
+        );
     }
 
     #[test]

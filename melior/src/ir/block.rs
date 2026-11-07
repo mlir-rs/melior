@@ -501,11 +501,27 @@ mod tests {
         let i64_type = Type::from(IntegerType::new(&context, 64));
 
         let block = Block::new(&[(i64_type, location)]);
-        let inserted = block.insert_argument(0, i32_type, location);
+        let inserted = block.insert_argument(0, i32_type, location).unwrap();
 
         assert_eq!(block.argument_count(), 2);
         assert_eq!(inserted.r#type(), i32_type);
         assert_eq!(block.argument(0).unwrap().r#type(), i32_type);
+    }
+
+    #[test]
+    fn fail_to_insert_argument_out_of_bounds() {
+        let context = create_test_context();
+        let block = Block::new(&[]);
+
+        assert_eq!(
+            block.insert_argument(1, Type::index(&context), Location::unknown(&context)),
+            Err(Error::PositionOutOfBounds {
+                name: "block argument",
+                value: block.to_string(),
+                index: 1,
+            })
+        );
+        assert_eq!(block.argument_count(), 0);
     }
 
     #[test]
@@ -519,10 +535,24 @@ mod tests {
         assert_eq!(block.argument_count(), 2);
 
         // SAFETY: No BlockArgument handles are held at this point.
-        unsafe { block.erase_argument(0) };
+        unsafe { block.erase_argument(0) }.unwrap();
 
         assert_eq!(block.argument_count(), 1);
         assert_eq!(block.argument(0).unwrap().r#type(), i64_type);
+    }
+
+    #[test]
+    fn fail_to_erase_argument_out_of_bounds() {
+        let block = Block::new(&[]);
+
+        assert_eq!(
+            unsafe { block.erase_argument(0) },
+            Err(Error::PositionOutOfBounds {
+                name: "block argument",
+                value: block.to_string(),
+                index: 0,
+            })
+        );
     }
 
     #[test]
