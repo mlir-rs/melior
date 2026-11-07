@@ -319,7 +319,7 @@ pub trait OperationLike<'c: 'a, 'a>: Copy + Display + 'a {
     /// `WalkResult::Advance`/`Skip`/`Interrupt` you control the traversal.
     fn walk<F>(self, order: WalkOrder, mut callback: F)
     where
-        F: for<'y> FnMut(OperationRef<'c, 'y>) -> WalkResult,
+        F: for<'b> FnMut(OperationRef<'c, 'b>) -> WalkResult,
     {
         // trampoline from C to Rust
         unsafe extern "C" fn tramp<'c: 'a, 'a, F: FnMut(OperationRef<'c, 'a>) -> WalkResult>(
@@ -617,7 +617,7 @@ pub trait OperationMutLike<'c: 'a, 'a>: Display {
     /// `WalkResult::Advance`/`Skip`/`Interrupt` you control the traversal.
     fn walk_mut<F>(&mut self, order: WalkOrder, mut callback: F)
     where
-        F: for<'y> FnMut(OperationRefMut<'c, 'y>) -> WalkResult,
+        F: for<'b> FnMut(OperationRefMut<'c, 'b>) -> WalkResult,
     {
         // trampoline from C to Rust
         unsafe extern "C" fn tramp<'c: 'a, 'a, F: FnMut(OperationRefMut<'c, 'a>) -> WalkResult>(
