@@ -32,10 +32,10 @@ use mlir_sys::{
 };
 
 macro_rules! dense_elements_constructor {
-    ($name:ident, $type:ty, $element:expr, $function:ident) => {
+    ($name:ident, $type:ty, $function:ident) => {
         #[doc = concat!(" Creates a dense elements attribute from ", stringify!($type), " values.")]
         pub fn $name(r#type: Type<'c>, values: &[$type]) -> Result<Self, Error> {
-            Self::check_values(r#type, $element, stringify!($type), values.len())?;
+            Self::check_values::<$type>(r#type, stringify!($type), values.len())?;
 
             Ok(unsafe {
                 Self::from_raw($function(
@@ -49,10 +49,10 @@ macro_rules! dense_elements_constructor {
 }
 
 macro_rules! dense_elements_splat_constructor {
-    ($name:ident, $type:ty, $element:expr, $function:ident) => {
+    ($name:ident, $type:ty, $function:ident) => {
         #[doc = concat!(" Creates a splat dense elements attribute with the given ", stringify!($type), " value.")]
         pub fn $name(r#type: Type<'c>, value: $type) -> Result<Self, Error> {
-            Self::check_values(r#type, $element, stringify!($type), 1)?;
+            Self::check_values::<$type>(r#type, stringify!($type), 1)?;
 
             Ok(unsafe { Self::from_raw($function(r#type.to_raw(), value)) })
         }
@@ -60,10 +60,10 @@ macro_rules! dense_elements_splat_constructor {
 }
 
 macro_rules! dense_element_accessor {
-    ($name:ident, $type:ty, $element:expr, $type_name:expr, $ffi:ident) => {
+    ($name:ident, $type:ty, $type_name:expr, $ffi:ident) => {
         #[doc = concat!(" Returns an element of `", stringify!($type), "` at the given index.")]
         pub fn $name(&self, index: usize) -> Result<$type, Error> {
-            if !self.has_elements($element) {
+            if !self.has_elements::<$type>() {
                 Err(Error::ElementExpected {
                     r#type: $type_name,
                     value: self.to_string(),
@@ -82,81 +82,67 @@ macro_rules! dense_element_accessor {
 }
 
 macro_rules! dense_elements_splat_accessor {
-    ($name:ident, $type:ty, $element:expr, $function:ident) => {
+    ($name:ident, $type:ty, $function:ident) => {
         #[doc = concat!(" Returns the ", stringify!($type), " splat value.")]
         pub fn $name(&self) -> Result<$type, Error> {
-            self.check_splat($element, stringify!($type))?;
+            self.check_splat::<$type>(stringify!($type))?;
 
             Ok(unsafe { $function(self.attribute.to_raw()) })
         }
     };
 }
 
-#[derive(Clone, Copy)]
-enum Element {
-    Bool,
-    Integer { width: u32, signed: bool },
-    Float { width: u32 },
-    String,
+trait DenseElement {
+    fn matches(r#type: Type) -> bool;
 }
 
-impl Element {
-    const I8: Self = Self::Integer {
-        width: 8,
-        signed: true,
-    };
-    const I16: Self = Self::Integer {
-        width: 16,
-        signed: true,
-    };
-    const I32: Self = Self::Integer {
-        width: 32,
-        signed: true,
-    };
-    const I64: Self = Self::Integer {
-        width: 64,
-        signed: true,
-    };
-    const U8: Self = Self::Integer {
-        width: 8,
-        signed: false,
-    };
-    const U16: Self = Self::Integer {
-        width: 16,
-        signed: false,
-    };
-    const U32: Self = Self::Integer {
-        width: 32,
-        signed: false,
-    };
-    const U64: Self = Self::Integer {
-        width: 64,
-        signed: false,
-    };
-    const F32: Self = Self::Float { width: 32 };
-    const F64: Self = Self::Float { width: 64 };
-
-    fn matches(self, r#type: Type) -> bool {
-        match self {
-            Self::Bool => IntegerType::try_from(r#type).is_ok_and(|r#type| r#type.width() == 1),
-            Self::Integer { width, signed } => {
+macro_rules! integer_dense_element {
+    ($type:ty, $signed:expr) => {
+        impl DenseElement for $type {
+            fn matches(r#type: Type) -> bool {
                 if r#type.is_index() {
-                    width == 64
+                    <$type>::BITS == 64
                 } else {
                     IntegerType::try_from(r#type).is_ok_and(|r#type| {
-                        r#type.width() == width
-                            && (r#type.is_signless() || r#type.is_signed() == signed)
+                        r#type.width() == <$type>::BITS
+                            && (r#type.is_signless() || r#type.is_signed() == $signed)
                     })
                 }
             }
-            Self::Float { width } => r#type.is_float() && r#type.float_width() == width,
-            Self::String => {
-                !(r#type.is_integer()
-                    || r#type.is_index()
-                    || r#type.is_float()
-                    || r#type.is_complex())
+        }
+    };
+}
+
+macro_rules! float_dense_element {
+    ($type:ty, $width:expr) => {
+        impl DenseElement for $type {
+            fn matches(r#type: Type) -> bool {
+                r#type.is_float() && r#type.float_width() == $width
             }
         }
+    };
+}
+
+integer_dense_element!(i8, true);
+integer_dense_element!(i16, true);
+integer_dense_element!(i32, true);
+integer_dense_element!(i64, true);
+integer_dense_element!(u8, false);
+integer_dense_element!(u16, false);
+integer_dense_element!(u32, false);
+integer_dense_element!(u64, false);
+float_dense_element!(f32, 32);
+float_dense_element!(f64, 64);
+
+impl DenseElement for bool {
+    fn matches(r#type: Type) -> bool {
+        IntegerType::try_from(r#type).is_ok_and(|r#type| r#type.width() == 1)
+    }
+}
+
+impl DenseElement for StringRef<'_> {
+    fn matches(r#type: Type) -> bool {
+        !(r#type.is_integer() || r#type.is_index() || r#type.is_float() || r#type.is_complex())
     }
 }
 
@@ -185,7 +171,7 @@ impl<'c> DenseElementsAttribute<'c> {
     /// The C API takes `int*`, so values are passed as `&[i32]` where non-zero
     /// means true.
     pub fn bool_values(r#type: Type<'c>, values: &[i32]) -> Result<Self, Error> {
-        Self::check_values(r#type, Element::Bool, "bool", values.len())?;
+        Self::check_values::<bool>(r#type, "bool", values.len())?;
 
         Ok(unsafe {
             Self::from_raw(mlirDenseElementsAttrBoolGet(
@@ -196,40 +182,20 @@ impl<'c> DenseElementsAttribute<'c> {
         })
     }
 
-    dense_elements_constructor!(i8_values, i8, Element::I8, mlirDenseElementsAttrInt8Get);
-    dense_elements_constructor!(i16_values, i16, Element::I16, mlirDenseElementsAttrInt16Get);
-    dense_elements_constructor!(i32_values, i32, Element::I32, mlirDenseElementsAttrInt32Get);
-    dense_elements_constructor!(i64_values, i64, Element::I64, mlirDenseElementsAttrInt64Get);
-    dense_elements_constructor!(u8_values, u8, Element::U8, mlirDenseElementsAttrUInt8Get);
-    dense_elements_constructor!(
-        u16_values,
-        u16,
-        Element::U16,
-        mlirDenseElementsAttrUInt16Get
-    );
-    dense_elements_constructor!(
-        u32_values,
-        u32,
-        Element::U32,
-        mlirDenseElementsAttrUInt32Get
-    );
-    dense_elements_constructor!(
-        u64_values,
-        u64,
-        Element::U64,
-        mlirDenseElementsAttrUInt64Get
-    );
-    dense_elements_constructor!(f32_values, f32, Element::F32, mlirDenseElementsAttrFloatGet);
-    dense_elements_constructor!(
-        f64_values,
-        f64,
-        Element::F64,
-        mlirDenseElementsAttrDoubleGet
-    );
+    dense_elements_constructor!(i8_values, i8, mlirDenseElementsAttrInt8Get);
+    dense_elements_constructor!(i16_values, i16, mlirDenseElementsAttrInt16Get);
+    dense_elements_constructor!(i32_values, i32, mlirDenseElementsAttrInt32Get);
+    dense_elements_constructor!(i64_values, i64, mlirDenseElementsAttrInt64Get);
+    dense_elements_constructor!(u8_values, u8, mlirDenseElementsAttrUInt8Get);
+    dense_elements_constructor!(u16_values, u16, mlirDenseElementsAttrUInt16Get);
+    dense_elements_constructor!(u32_values, u32, mlirDenseElementsAttrUInt32Get);
+    dense_elements_constructor!(u64_values, u64, mlirDenseElementsAttrUInt64Get);
+    dense_elements_constructor!(f32_values, f32, mlirDenseElementsAttrFloatGet);
+    dense_elements_constructor!(f64_values, f64, mlirDenseElementsAttrDoubleGet);
 
     /// Creates a dense elements attribute from string values.
     pub fn string_values(r#type: Type<'c>, values: &[StringRef]) -> Result<Self, Error> {
-        Self::check_values(r#type, Element::String, "string", values.len())?;
+        Self::check_values::<StringRef>(r#type, "string", values.len())?;
 
         let mut raws: Vec<MlirStringRef> = values.iter().map(|s| s.to_raw()).collect();
 
@@ -246,7 +212,7 @@ impl<'c> DenseElementsAttribute<'c> {
     /// data, or returns `None` if the buffer does not match the type.
     pub fn raw_buffer(r#type: Type<'c>, buffer: &[u8]) -> Option<Self> {
         if Self::element_count(r#type).is_err()
-            || Element::String.matches(Self::shaped_element_type(r#type))
+            || StringRef::matches(Self::shaped_element_type(r#type))
         {
             return None;
         }
@@ -278,49 +244,14 @@ impl<'c> DenseElementsAttribute<'c> {
         })
     }
 
-    dense_elements_splat_constructor!(
-        bool_splat,
-        bool,
-        Element::Bool,
-        mlirDenseElementsAttrBoolSplatGet
-    );
-    dense_elements_splat_constructor!(i8_splat, i8, Element::I8, mlirDenseElementsAttrInt8SplatGet);
-    dense_elements_splat_constructor!(
-        i32_splat,
-        i32,
-        Element::I32,
-        mlirDenseElementsAttrInt32SplatGet
-    );
-    dense_elements_splat_constructor!(
-        i64_splat,
-        i64,
-        Element::I64,
-        mlirDenseElementsAttrInt64SplatGet
-    );
-    dense_elements_splat_constructor!(
-        u32_splat,
-        u32,
-        Element::U32,
-        mlirDenseElementsAttrUInt32SplatGet
-    );
-    dense_elements_splat_constructor!(
-        u64_splat,
-        u64,
-        Element::U64,
-        mlirDenseElementsAttrUInt64SplatGet
-    );
-    dense_elements_splat_constructor!(
-        f32_splat,
-        f32,
-        Element::F32,
-        mlirDenseElementsAttrFloatSplatGet
-    );
-    dense_elements_splat_constructor!(
-        f64_splat,
-        f64,
-        Element::F64,
-        mlirDenseElementsAttrDoubleSplatGet
-    );
+    dense_elements_splat_constructor!(bool_splat, bool, mlirDenseElementsAttrBoolSplatGet);
+    dense_elements_splat_constructor!(i8_splat, i8, mlirDenseElementsAttrInt8SplatGet);
+    dense_elements_splat_constructor!(i32_splat, i32, mlirDenseElementsAttrInt32SplatGet);
+    dense_elements_splat_constructor!(i64_splat, i64, mlirDenseElementsAttrInt64SplatGet);
+    dense_elements_splat_constructor!(u32_splat, u32, mlirDenseElementsAttrUInt32SplatGet);
+    dense_elements_splat_constructor!(u64_splat, u64, mlirDenseElementsAttrUInt64SplatGet);
+    dense_elements_splat_constructor!(f32_splat, f32, mlirDenseElementsAttrFloatSplatGet);
+    dense_elements_splat_constructor!(f64_splat, f64, mlirDenseElementsAttrDoubleSplatGet);
 
     // -------------------------------------------------------------------------
     // Misc
@@ -347,7 +278,7 @@ impl<'c> DenseElementsAttribute<'c> {
     pub fn reshape(&self, r#type: Type<'c>) -> Result<Self, Error> {
         let count = Self::element_count(r#type)?;
 
-        if self.has_elements(Element::String) {
+        if self.has_elements::<StringRef>() {
             Err(Error::AttributeExpected(
                 "numeric dense elements",
                 self.to_string(),
@@ -375,7 +306,7 @@ impl<'c> DenseElementsAttribute<'c> {
 
     /// Returns a raw pointer to the packed element data.
     pub fn raw_data(&self) -> Result<*const core::ffi::c_void, Error> {
-        if self.has_elements(Element::String) {
+        if self.has_elements::<StringRef>() {
             Err(Error::AttributeExpected(
                 "numeric dense elements",
                 self.to_string(),
@@ -392,102 +323,40 @@ impl<'c> DenseElementsAttribute<'c> {
     dense_element_accessor!(
         bool_element,
         bool,
-        Element::Bool,
         "bool",
         mlirDenseElementsAttrGetBoolValue
     );
 
-    dense_element_accessor!(
-        i8_element,
-        i8,
-        Element::I8,
-        "i8",
-        mlirDenseElementsAttrGetInt8Value
-    );
+    dense_element_accessor!(i8_element, i8, "i8", mlirDenseElementsAttrGetInt8Value);
 
-    dense_element_accessor!(
-        i16_element,
-        i16,
-        Element::I16,
-        "i16",
-        mlirDenseElementsAttrGetInt16Value
-    );
+    dense_element_accessor!(i16_element, i16, "i16", mlirDenseElementsAttrGetInt16Value);
 
-    dense_element_accessor!(
-        i32_element,
-        i32,
-        Element::I32,
-        "i32",
-        mlirDenseElementsAttrGetInt32Value
-    );
+    dense_element_accessor!(i32_element, i32, "i32", mlirDenseElementsAttrGetInt32Value);
 
-    dense_element_accessor!(
-        i64_element,
-        i64,
-        Element::I64,
-        "i64",
-        mlirDenseElementsAttrGetInt64Value
-    );
+    dense_element_accessor!(i64_element, i64, "i64", mlirDenseElementsAttrGetInt64Value);
 
-    dense_element_accessor!(
-        u8_element,
-        u8,
-        Element::U8,
-        "u8",
-        mlirDenseElementsAttrGetUInt8Value
-    );
+    dense_element_accessor!(u8_element, u8, "u8", mlirDenseElementsAttrGetUInt8Value);
 
-    dense_element_accessor!(
-        u16_element,
-        u16,
-        Element::U16,
-        "u16",
-        mlirDenseElementsAttrGetUInt16Value
-    );
+    dense_element_accessor!(u16_element, u16, "u16", mlirDenseElementsAttrGetUInt16Value);
 
-    dense_element_accessor!(
-        u32_element,
-        u32,
-        Element::U32,
-        "u32",
-        mlirDenseElementsAttrGetUInt32Value
-    );
+    dense_element_accessor!(u32_element, u32, "u32", mlirDenseElementsAttrGetUInt32Value);
 
-    dense_element_accessor!(
-        u64_element,
-        u64,
-        Element::U64,
-        "u64",
-        mlirDenseElementsAttrGetUInt64Value
-    );
+    dense_element_accessor!(u64_element, u64, "u64", mlirDenseElementsAttrGetUInt64Value);
 
-    dense_element_accessor!(
-        f32_element,
-        f32,
-        Element::F32,
-        "f32",
-        mlirDenseElementsAttrGetFloatValue
-    );
+    dense_element_accessor!(f32_element, f32, "f32", mlirDenseElementsAttrGetFloatValue);
 
-    dense_element_accessor!(
-        f64_element,
-        f64,
-        Element::F64,
-        "f64",
-        mlirDenseElementsAttrGetDoubleValue
-    );
+    dense_element_accessor!(f64_element, f64, "f64", mlirDenseElementsAttrGetDoubleValue);
 
     dense_element_accessor!(
         index_element,
         u64,
-        Element::U64,
         "index",
         mlirDenseElementsAttrGetIndexValue
     );
 
     /// Returns a string element at the given index.
     pub fn string_element(&self, index: usize) -> Result<&str, Error> {
-        if !self.has_elements(Element::String) {
+        if !self.has_elements::<StringRef>() {
             Err(Error::ElementExpected {
                 r#type: "string",
                 value: self.to_string(),
@@ -532,57 +401,46 @@ impl<'c> DenseElementsAttribute<'c> {
 
     /// Returns the bool splat value. Non-zero means true.
     pub fn bool_splat_value(&self) -> Result<bool, Error> {
-        self.check_splat(Element::Bool, "bool")?;
+        self.check_splat::<bool>("bool")?;
 
         Ok(unsafe { mlirDenseElementsAttrGetBoolSplatValue(self.attribute.to_raw()) != 0 })
     }
 
-    dense_elements_splat_accessor!(
-        i8_splat_value,
-        i8,
-        Element::I8,
-        mlirDenseElementsAttrGetInt8SplatValue
-    );
+    dense_elements_splat_accessor!(i8_splat_value, i8, mlirDenseElementsAttrGetInt8SplatValue);
     dense_elements_splat_accessor!(
         i32_splat_value,
         i32,
-        Element::I32,
         mlirDenseElementsAttrGetInt32SplatValue
     );
     dense_elements_splat_accessor!(
         i64_splat_value,
         i64,
-        Element::I64,
         mlirDenseElementsAttrGetInt64SplatValue
     );
     dense_elements_splat_accessor!(
         u32_splat_value,
         u32,
-        Element::U32,
         mlirDenseElementsAttrGetUInt32SplatValue
     );
     dense_elements_splat_accessor!(
         u64_splat_value,
         u64,
-        Element::U64,
         mlirDenseElementsAttrGetUInt64SplatValue
     );
     dense_elements_splat_accessor!(
         f32_splat_value,
         f32,
-        Element::F32,
         mlirDenseElementsAttrGetFloatSplatValue
     );
     dense_elements_splat_accessor!(
         f64_splat_value,
         f64,
-        Element::F64,
         mlirDenseElementsAttrGetDoubleSplatValue
     );
 
     /// Returns the string splat value.
     pub fn string_splat_value(&self) -> Result<&str, Error> {
-        self.check_splat(Element::String, "string")?;
+        self.check_splat::<StringRef>("string")?;
 
         let raw = unsafe { mlirDenseElementsAttrGetStringSplatValue(self.attribute.to_raw()) };
 
@@ -598,17 +456,12 @@ impl<'c> DenseElementsAttribute<'c> {
         Self::shaped_element_type(self.attribute.r#type())
     }
 
-    fn has_elements(&self, element: Element) -> bool {
-        element.matches(self.element_type())
-            && match element {
-                Element::Bool | Element::Integer { .. } => self.is_dense_int_elements(),
-                Element::Float { .. } => self.is_dense_fp_elements(),
-                Element::String => true,
-            }
+    fn has_elements<T: DenseElement>(&self) -> bool {
+        T::matches(self.element_type())
     }
 
-    fn check_splat(&self, element: Element, name: &'static str) -> Result<(), Error> {
-        if !self.has_elements(element) {
+    fn check_splat<T: DenseElement>(&self, name: &'static str) -> Result<(), Error> {
+        if !self.has_elements::<T>() {
             return Err(Error::ElementExpected {
                 r#type: name,
                 value: self.to_string(),
@@ -654,15 +507,14 @@ impl<'c> DenseElementsAttribute<'c> {
         Ok(())
     }
 
-    fn check_values(
+    fn check_values<T: DenseElement>(
         r#type: Type<'c>,
-        element: Element,
         name: &'static str,
         len: usize,
     ) -> Result<(), Error> {
         let count = Self::element_count(r#type)?;
 
-        if !element.matches(Self::shaped_element_type(r#type)) {
+        if !T::matches(Self::shaped_element_type(r#type)) {
             return Err(Error::ElementExpected {
                 r#type: name,
                 value: r#type.to_string(),
