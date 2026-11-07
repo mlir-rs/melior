@@ -1,6 +1,6 @@
 use super::type_state::TypeStateBuilder;
 use crate::dialect::operation::{
-    Attribute, Operation, OperationElement, OperationField, TypeInference,
+    Attribute, FieldKind, Operation, OperationElement, OperationField, TypeInference,
 };
 use core::iter::repeat_n;
 use proc_macro2::{Ident, Span, TokenStream};
@@ -143,6 +143,14 @@ fn generate_setter(
     let doc = format!("Sets `{}`.", field.name());
     let kind = field.kind();
     let index = field.index();
+    let successor = kind == FieldKind::Successor;
+    let unsafety = successor.then(|| quote!(unsafe));
+    let safety_doc = successor.then(generate_successor_safety_doc);
+    let calls = if successor {
+        quote! { unsafe { self.builder #calls } }
+    } else {
+        quote! { self.builder #calls }
+    };
 
     if builder.type_state().has_parameter(kind, index) {
         let arguments_set = builder.type_state().arguments_with(kind, index, true);
@@ -158,13 +166,14 @@ fn generate_setter(
         quote! {
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
                 #[doc = #doc]
-                pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
+                #safety_doc
+                pub #unsafety fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
                     #statements
 
                     #builder_identifier {
                         context: self.context,
                         #(#segment_size_fields,)*
-                        builder: self.builder #calls,
+                        builder: #calls,
                         _state: Default::default(),
                     }
                 }
@@ -176,9 +185,10 @@ fn generate_setter(
         quote! {
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#parameters),*> {
                 #[doc = #doc]
-                pub fn #identifier(mut self, #argument) -> #builder_identifier<'c, #(#parameters),*> {
+                #safety_doc
+                pub #unsafety fn #identifier(mut self, #argument) -> #builder_identifier<'c, #(#parameters),*> {
                     #statements
-                    self.builder = self.builder #calls;
+                    self.builder = #calls;
                     self
                 }
             }
@@ -356,12 +366,33 @@ pub fn generate_default_constructor(builder: &TypeStateBuilder) -> TokenStream {
         .collect::<Vec<_>>();
 
     let doc = format!("Creates {}.", builder.operation().documentation_name());
+    let successor = builder.operation().successors().next().is_some();
+    let unsafety = successor.then(|| quote!(unsafe));
+    let safety_doc = successor.then(generate_successor_safety_doc);
+    let body = quote! {
+        #operation_identifier::builder(context, location)#(#builder_calls)*.build()
+    };
+    let body = if successor {
+        quote! { unsafe { #body } }
+    } else {
+        body
+    };
 
     quote! {
         #[allow(clippy::too_many_arguments)]
         #[doc = #doc]
-        pub fn #constructor_identifier<'c>(context: &'c ::melior::Context, #(#arguments),*) -> #operation_identifier<'c> {
-            #operation_identifier::builder(context, location)#(#builder_calls)*.build()
+        #safety_doc
+        pub #unsafety fn #constructor_identifier<'c>(context: &'c ::melior::Context, #(#arguments),*) -> #operation_identifier<'c> {
+            #body
         }
+    }
+}
+
+fn generate_successor_safety_doc() -> TokenStream {
+    quote! {
+        #[doc = ""]
+        #[doc = "# Safety"]
+        #[doc = ""]
+        #[doc = "The successor blocks must not be destroyed while the operation refers to them."]
     }
 }

@@ -1,0 +1,17 @@
+error[E0133]: call to unsafe function `melior::dialect::ods::cf::br` is unsafe and requires unsafe block
+  --> tests/ui/successor_without_unsafe.rs:12:5
+   |
+12 |     cf::br(&context, &[], &block, location);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ call to unsafe function
+   |
+   = note: consult the function's documentation for information on how to avoid undefined behavior
+
+error[E0133]: call to unsafe function `melior::dialect::ods::cf::BranchOperationBuilder::<'c, O0, melior::dialect::ods::__private::Unset>::dest` is unsafe and requires unsafe block
+  --> tests/ui/successor_without_unsafe.rs:13:5
+   |
+13 | /     cf::BranchOperation::builder(&context, location)
+14 | |         .dest_operands(&[])
+15 | |         .dest(&block)
+   | |_____________________^ call to unsafe function
+   |
+   = note: consult the function's documentation for information on how to avoid undefined behavior

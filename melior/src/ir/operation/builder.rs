@@ -96,9 +96,14 @@ impl<'c> OperationBuilder<'c> {
     }
 
     /// Adds successor blocks.
-    // TODO Fix this to ensure blocks are alive while they are referenced by the
-    // operation.
-    pub fn add_successors(mut self, successors: &[&Block<'c>]) -> Self {
+    ///
+    /// # Safety
+    ///
+    /// The successor blocks must not be destroyed while the operation refers to
+    /// them.
+    // TODO Provide a safe way to add successors, such as inserting operations
+    // into blocks in the same regions as their successors.
+    pub unsafe fn add_successors(mut self, successors: &[&Block<'c>]) -> Self {
         for block in successors {
             unsafe {
                 mlirOperationStateAddSuccessors(&mut self.raw, 1, &[block.to_raw()] as *const _)
@@ -214,11 +219,13 @@ mod tests {
     fn add_successors() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
+        let block = Block::new(&[], &[]).unwrap();
 
-        OperationBuilder::new("foo", Location::unknown(&context))
-            .add_successors(&[&Block::new(&[], &[]).unwrap()])
-            .build()
-            .unwrap();
+        unsafe {
+            OperationBuilder::new("foo", Location::unknown(&context)).add_successors(&[&block])
+        }
+        .build()
+        .unwrap();
     }
 
     #[test]

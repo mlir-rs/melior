@@ -31,20 +31,32 @@ pub fn assert<'c>(
 }
 
 /// Creates a `cf.br` operation.
-pub fn br<'c>(
+///
+/// # Safety
+///
+/// The successor blocks must not be destroyed while the operation refers to
+/// them.
+pub unsafe fn br<'c>(
     successor: &Block<'c>,
     destination_operands: &[Value<'c, '_>],
     location: Location<'c>,
 ) -> Operation<'c> {
-    OperationBuilder::new("cf.br", location)
-        .add_operands(destination_operands)
-        .add_successors(&[successor])
-        .build()
-        .expect("valid operation")
+    unsafe {
+        OperationBuilder::new("cf.br", location)
+            .add_operands(destination_operands)
+            .add_successors(&[successor])
+    }
+    .build()
+    .expect("valid operation")
 }
 
 /// Creates a `cf.cond_br` operation.
-pub fn cond_br<'c>(
+///
+/// # Safety
+///
+/// The successor blocks must not be destroyed while the operation refers to
+/// them.
+pub unsafe fn cond_br<'c>(
     context: &'c Context,
     condition: Value<'c, '_>,
     true_successor: &Block<'c>,
@@ -53,34 +65,41 @@ pub fn cond_br<'c>(
     false_successor_operands: &[Value<'c, '_>],
     location: Location<'c>,
 ) -> Operation<'c> {
-    OperationBuilder::new("cf.cond_br", location)
-        .add_attributes(&[(
-            Identifier::new(context, "operand_segment_sizes"),
-            DenseI32ArrayAttribute::new(
-                context,
-                &[
-                    1,
-                    true_successor.argument_count() as i32,
-                    false_successor.argument_count() as i32,
-                ],
+    unsafe {
+        OperationBuilder::new("cf.cond_br", location)
+            .add_attributes(&[(
+                Identifier::new(context, "operand_segment_sizes"),
+                DenseI32ArrayAttribute::new(
+                    context,
+                    &[
+                        1,
+                        true_successor.argument_count() as i32,
+                        false_successor.argument_count() as i32,
+                    ],
+                )
+                .into(),
+            )])
+            .add_operands(
+                &[condition]
+                    .into_iter()
+                    .chain(true_successor_operands.iter().copied())
+                    .chain(false_successor_operands.iter().copied())
+                    .collect::<Vec<_>>(),
             )
-            .into(),
-        )])
-        .add_operands(
-            &[condition]
-                .into_iter()
-                .chain(true_successor_operands.iter().copied())
-                .chain(false_successor_operands.iter().copied())
-                .collect::<Vec<_>>(),
-        )
-        .add_successors(&[true_successor, false_successor])
-        .build()
-        .expect("valid operation")
+            .add_successors(&[true_successor, false_successor])
+    }
+    .build()
+    .expect("valid operation")
 }
 
 /// Creates a `cf.switch` operation.
+///
+/// # Safety
+///
+/// The successor blocks must not be destroyed while the operation refers to
+/// them.
 #[expect(clippy::too_many_arguments)]
-pub fn switch<'c>(
+pub unsafe fn switch<'c>(
     context: &'c Context,
     case_values: &[i64],
     flag: Value<'c, '_>,
@@ -92,57 +111,59 @@ pub fn switch<'c>(
     location: Location<'c>,
 ) -> Result<Operation<'c>, Error> {
     // TODO Ensure every case destination has a corresponding operand segment.
-    Ok(case_operands
-        .iter()
-        .fold(
-            OperationBuilder::new("cf.switch", location)
-                .add_operands(&[flag])
-                .add_operands(default_operands),
-            |builder, operands| builder.add_operands(operands),
-        )
-        .add_attributes(&[
-            (
-                Identifier::new(context, "case_values"),
-                DenseElementsAttribute::new(
-                    RankedTensorType::new(&[case_values.len() as u64], flag_type, None).into(),
-                    &case_values
-                        .iter()
-                        .map(|value| IntegerAttribute::new(flag_type, *value).into())
-                        .collect::<Vec<_>>(),
-                )?
-                .into(),
-            ),
-            (
-                Identifier::new(context, "case_operand_segments"),
-                DenseI32ArrayAttribute::new(
-                    context,
-                    &case_operands
-                        .iter()
-                        .map(|operands| operands.len() as i32)
-                        .collect::<Vec<_>>(),
-                )
-                .into(),
-            ),
-            (
-                Identifier::new(context, "operand_segment_sizes"),
-                DenseI32ArrayAttribute::new(
-                    context,
-                    &[
-                        1,
-                        default_operands.len() as i32,
-                        case_operands
+    Ok(unsafe {
+        case_operands
+            .iter()
+            .fold(
+                OperationBuilder::new("cf.switch", location)
+                    .add_operands(&[flag])
+                    .add_operands(default_operands),
+                |builder, operands| builder.add_operands(operands),
+            )
+            .add_attributes(&[
+                (
+                    Identifier::new(context, "case_values"),
+                    DenseElementsAttribute::new(
+                        RankedTensorType::new(&[case_values.len() as u64], flag_type, None).into(),
+                        &case_values
+                            .iter()
+                            .map(|value| IntegerAttribute::new(flag_type, *value).into())
+                            .collect::<Vec<_>>(),
+                    )?
+                    .into(),
+                ),
+                (
+                    Identifier::new(context, "case_operand_segments"),
+                    DenseI32ArrayAttribute::new(
+                        context,
+                        &case_operands
                             .iter()
                             .map(|operands| operands.len() as i32)
-                            .sum(),
-                    ],
-                )
-                .into(),
-            ),
-        ])
-        .add_successors(&[default_destination])
-        .add_successors(case_destinations)
-        .build()
-        .expect("valid operation"))
+                            .collect::<Vec<_>>(),
+                    )
+                    .into(),
+                ),
+                (
+                    Identifier::new(context, "operand_segment_sizes"),
+                    DenseI32ArrayAttribute::new(
+                        context,
+                        &[
+                            1,
+                            default_operands.len() as i32,
+                            case_operands
+                                .iter()
+                                .map(|operands| operands.len() as i32)
+                                .sum(),
+                        ],
+                    )
+                    .into(),
+                ),
+            ])
+            .add_successors(&[default_destination])
+            .add_successors(case_destinations)
+    }
+    .build()
+    .expect("valid operation"))
 }
 
 #[cfg(test)]
@@ -229,7 +250,7 @@ mod tests {
                     .result(0)
                     .unwrap();
 
-                block.append_operation(br(&dest_block, &[operand.into()], location));
+                block.append_operation(unsafe { br(&dest_block, &[operand.into()], location) });
 
                 dest_block.append_operation(func::r#return(&[], location));
 
@@ -286,15 +307,17 @@ mod tests {
                     .unwrap()
                     .into();
 
-                block.append_operation(cond_br(
-                    &context,
-                    condition,
-                    &true_block,
-                    &false_block,
-                    &[operand],
-                    &[operand],
-                    location,
-                ));
+                block.append_operation(unsafe {
+                    cond_br(
+                        &context,
+                        condition,
+                        &true_block,
+                        &false_block,
+                        &[operand],
+                        &[operand],
+                        location,
+                    )
+                });
 
                 true_block.append_operation(func::r#return(&[], location));
                 false_block.append_operation(func::r#return(&[], location));
@@ -343,17 +366,19 @@ mod tests {
                     .into();
 
                 block.append_operation(
-                    switch(
-                        &context,
-                        &[0, 1],
-                        operand,
-                        i32_type,
-                        &default_block,
-                        &[operand],
-                        &[&first_block, &second_block],
-                        &[&[operand], &[operand]],
-                        location,
-                    )
+                    unsafe {
+                        switch(
+                            &context,
+                            &[0, 1],
+                            operand,
+                            i32_type,
+                            &default_block,
+                            &[operand],
+                            &[&first_block, &second_block],
+                            &[&[operand], &[operand]],
+                            location,
+                        )
+                    }
                     .unwrap(),
                 );
 
