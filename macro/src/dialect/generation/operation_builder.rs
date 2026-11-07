@@ -129,14 +129,16 @@ fn generate_segment_size_fields(
         .collect()
 }
 
-// TODO Split this function for different kinds of fields.
-fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) -> TokenStream {
+fn generate_setter(
+    builder: &OperationBuilder,
+    field: &impl OperationField,
+    statements: TokenStream,
+    calls: TokenStream,
+) -> TokenStream {
     let builder_identifier = builder.identifier();
     let identifier = field.singular_identifier();
     let parameter_type = field.parameter_type();
     let argument = quote! { #identifier: #parameter_type };
-    let add_identifier = field.add_identifier();
-    let add_arguments = field.add_arguments();
     let doc = format!("Sets `{}`.", field.name());
     let kind = field.kind();
     let index = field.index();
@@ -156,10 +158,12 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
                 #[doc = #doc]
                 pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
+                    #statements
+
                     #builder_identifier {
                         context: self.context,
                         #(#segment_size_fields,)*
-                        builder: self.builder.#add_identifier(#add_arguments),
+                        builder: self.builder #calls,
                         _state: Default::default(),
                     }
                 }
@@ -172,12 +176,25 @@ fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) ->
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#parameters),*> {
                 #[doc = #doc]
                 pub fn #identifier(mut self, #argument) -> #builder_identifier<'c, #(#parameters),*> {
-                    self.builder = self.builder.#add_identifier(#add_arguments);
+                    #statements
+                    self.builder = self.builder #calls;
                     self
                 }
             }
         }
     }
+}
+
+fn generate_field_fn(builder: &OperationBuilder, field: &impl OperationField) -> TokenStream {
+    let add_identifier = field.add_identifier();
+    let add_arguments = field.add_arguments();
+
+    generate_setter(
+        builder,
+        field,
+        quote! {},
+        quote! { .#add_identifier(#add_arguments) },
+    )
 }
 
 // Mirrors C++'s genUseOperandAsResultTypeSeparateParamBuilder. Intentionally a
@@ -187,13 +204,9 @@ fn generate_same_operands_first_fn(
     builder: &OperationBuilder,
     field: &OperationElement,
 ) -> TokenStream {
-    let builder_identifier = builder.identifier();
     let identifier = field.singular_identifier();
-    let parameter_type = field.parameter_type();
-    let argument = quote! { #identifier: #parameter_type };
     let add_identifier = field.add_identifier();
     let add_arguments = field.add_arguments();
-    let doc = format!("Sets `{}`.", field.name());
     let result_type_copies = repeat_n(quote! { result_type }, builder.operation().result_len());
     // For variadic operands the parameter is `&[Value]`; index into it for the
     // type. For singular operands the parameter is `Value`; take a reference
@@ -204,46 +217,22 @@ fn generate_same_operands_first_fn(
         quote! { ::melior::ir::ValueLike::r#type(&#identifier) }
     };
 
-    let kind = field.kind();
-    let index = field.index();
-    let arguments_set = builder.type_state().arguments_with(kind, index, true);
-    let arguments_unset = builder
-        .type_state()
-        .arguments_with(kind, index, false)
-        .collect::<Vec<_>>();
-    let parameters = arguments_unset
-        .iter()
-        .filter_map(|argument| argument.parameter());
-    let segment_size_fields = generate_segment_size_fields(builder.operation(), field);
-
-    quote! {
-        impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
-            #[doc = #doc]
-            pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
-                let result_type = #type_access;
-
-                #builder_identifier {
-                    context: self.context,
-                    #(#segment_size_fields,)*
-                    builder: self.builder
-                        .add_results(&[#(#result_type_copies),*])
-                        .#add_identifier(#add_arguments),
-                    _state: Default::default(),
-                }
-            }
-        }
-    }
+    generate_setter(
+        builder,
+        field,
+        quote! { let result_type = #type_access; },
+        quote! {
+            .add_results(&[#(#result_type_copies),*])
+            .#add_identifier(#add_arguments)
+        },
+    )
 }
 
 // Mirrors C++'s genUseAttrAsResultTypeBuilder. Intentionally a sibling of
 // generate_field_fn for the same reason as generate_same_operands_first_fn.
 fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute) -> TokenStream {
-    let builder_identifier = builder.identifier();
     let identifier = field.singular_identifier();
-    let parameter_type = field.parameter_type();
-    let argument = quote! { #identifier: #parameter_type };
     let add_arguments = field.add_arguments();
-    let doc = format!("Sets `{}`.", field.name());
     let result_type_copies = repeat_n(quote! { result_type }, builder.operation().result_len());
     // If the attribute is a TypeAttr, use its wrapped type; otherwise use the
     // attribute's own type.
@@ -253,50 +242,15 @@ fn generate_first_attr_derived_fn(builder: &OperationBuilder, field: &Attribute)
         quote! { ::melior::ir::attribute::AttributeLike::r#type(&#identifier) }
     };
 
-    if field.is_optional() {
-        let parameters = builder.type_state().parameters().collect::<Vec<_>>();
+    generate_setter(
+        builder,
+        field,
+        quote! { let result_type = #type_access; },
         quote! {
-            impl<'c, #(#parameters),*> #builder_identifier<'c, #(#parameters),*> {
-                #[doc = #doc]
-                pub fn #identifier(mut self, #argument) -> #builder_identifier<'c, #(#parameters),*> {
-                    let result_type = #type_access;
-                    self.builder = self.builder
-                        .add_results(&[#(#result_type_copies),*])
-                        .add_attributes(#add_arguments);
-                    self
-                }
-            }
-        }
-    } else {
-        let kind = field.kind();
-        let index = field.index();
-        let arguments_set = builder.type_state().arguments_with(kind, index, true);
-        let arguments_unset = builder
-            .type_state()
-            .arguments_with(kind, index, false)
-            .collect::<Vec<_>>();
-        let parameters = arguments_unset
-            .iter()
-            .filter_map(|argument| argument.parameter());
-        let segment_size_fields = generate_segment_size_fields(builder.operation(), field);
-
-        quote! {
-            impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
-                #[doc = #doc]
-                pub fn #identifier(self, #argument) -> #builder_identifier<'c, #(#arguments_set),*> {
-                    let result_type = #type_access;
-                    #builder_identifier {
-                        context: self.context,
-                        #(#segment_size_fields,)*
-                        builder: self.builder
-                            .add_results(&[#(#result_type_copies),*])
-                            .add_attributes(#add_arguments),
-                        _state: Default::default(),
-                    }
-                }
-            }
-        }
-    }
+            .add_results(&[#(#result_type_copies),*])
+            .add_attributes(#add_arguments)
+        },
+    )
 }
 
 fn generate_build_fn(builder: &OperationBuilder) -> TokenStream {
