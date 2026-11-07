@@ -238,11 +238,6 @@ pub trait OperationLike<'c: 'a, 'a>: Copy + Display + 'a {
         unsafe { OperationRef::from_option_raw(mlirOperationGetNextInBlock(self.to_raw())) }
     }
 
-    /// Returns a mutable reference to the next operation in the same block.
-    fn next_in_block_mut(self) -> Option<OperationRefMut<'c, 'a>> {
-        unsafe { OperationRefMut::from_option_raw(mlirOperationGetNextInBlock(self.to_raw())) }
-    }
-
     /// Returns a reference to the previous operation in the same block.
     #[expect(clippy::todo)]
     fn previous_in_block(self) -> Option<OperationRef<'c, 'a>> {
@@ -252,13 +247,6 @@ pub trait OperationLike<'c: 'a, 'a>: Copy + Display + 'a {
     /// Returns a reference to a parent operation.
     fn parent_operation(self) -> Option<OperationRef<'c, 'a>> {
         unsafe { OperationRef::from_option_raw(mlirOperationGetParentOperation(self.to_raw())) }
-    }
-
-    /// Returns a mutable reference to a parent operation.
-    // TODO Move this method to the mutable operation trait, and make mutable
-    // operation references non-copyable.
-    fn parent_operation_mut(self) -> Option<OperationRefMut<'c, 'a>> {
-        unsafe { OperationRefMut::from_option_raw(mlirOperationGetParentOperation(self.to_raw())) }
     }
 
     /// Verifies an operation.
@@ -468,6 +456,16 @@ pub trait OperationLike<'c: 'a, 'a>: Copy + Display + 'a {
 pub trait OperationMutLike<'c: 'a, 'a> {
     /// Converts an operation into a raw object.
     fn to_raw(&self) -> MlirOperation;
+
+    /// Returns a mutable reference to the next operation in the same block.
+    fn next_in_block_mut(&mut self) -> Option<OperationRefMut<'c, '_>> {
+        unsafe { OperationRefMut::from_option_raw(mlirOperationGetNextInBlock(self.to_raw())) }
+    }
+
+    /// Returns a mutable reference to a parent operation.
+    fn parent_operation_mut(&mut self) -> Option<OperationRefMut<'c, '_>> {
+        unsafe { OperationRefMut::from_option_raw(mlirOperationGetParentOperation(self.to_raw())) }
+    }
 
     /// Sets the attribute with the given name to the given attribute.
     fn set_attribute(&mut self, name: &str, attribute: Attribute<'c>) {
