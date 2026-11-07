@@ -1,0 +1,12 @@
+error[E0597]: `context` does not live long enough
+ --> tests/ui/call_site_location_context_escape.rs:7:47
+  |
+4 |     let location = {
+  |         -------- borrow later stored here
+5 |         let context = Context::new();
+  |             ------- binding `context` declared here
+6 |
+7 |         Location::call_site(Location::unknown(&context), Location::unknown(&context))
+  |                                               ^^^^^^^^ borrowed value does not live long enough
+8 |     };
+  |     - `context` dropped here while still borrowed

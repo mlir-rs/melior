@@ -7,7 +7,7 @@ use crate::{
     string_ref::StringRef,
 };
 use alloc::ffi::CString;
-use core::{marker::PhantomData, mem::forget};
+use core::{cell::Cell, marker::PhantomData, mem::forget};
 use mlir_sys::{
     MlirModule, mlirModuleCreateEmpty, mlirModuleCreateParse, mlirModuleDestroy,
     mlirModuleFromOperation, mlirModuleGetBody, mlirModuleGetContext, mlirModuleGetOperation,
@@ -17,17 +17,17 @@ use mlir_sys::{
 #[derive(Debug)]
 pub struct Module<'c> {
     raw: MlirModule,
-    _context: PhantomData<&'c Context>,
+    _context: PhantomData<Cell<&'c Context>>,
 }
 
 impl<'c> Module<'c> {
     /// Creates a module.
-    pub fn new(location: Location) -> Self {
+    pub fn new(location: Location<'c>) -> Self {
         unsafe { Self::from_raw(mlirModuleCreateEmpty(location.to_raw())) }
     }
 
     /// Parses a module.
-    pub fn parse(context: &Context, source: &str) -> Option<Self> {
+    pub fn parse(context: &'c Context, source: &str) -> Option<Self> {
         // TODO Use a string not null-terminated.
         // Somehow, we still need a null-terminated string for a source.
         let source = CString::new(source).unwrap();

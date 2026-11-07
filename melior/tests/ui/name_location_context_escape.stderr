@@ -1,0 +1,12 @@
+error[E0597]: `other_context` does not live long enough
+ --> tests/ui/name_location_context_escape.rs:8:59
+  |
+5 |     let location = {
+  |         -------- borrow later stored here
+6 |         let other_context = Context::new();
+  |             ------------- binding `other_context` declared here
+7 |
+8 |         Location::name(&context, "foo", Location::unknown(&other_context))
+  |                                                           ^^^^^^^^^^^^^^ borrowed value does not live long enough
+9 |     };
+  |     - `other_context` dropped here while still borrowed
