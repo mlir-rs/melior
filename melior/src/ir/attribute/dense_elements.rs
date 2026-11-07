@@ -415,9 +415,7 @@ impl<'c> DenseElementsAttribute<'c> {
                 r#type: name,
                 value: self.to_string(),
             });
-        }
-
-        if !self.is_splat() {
+        } else if !self.is_splat() {
             return Err(Error::AttributeExpected(
                 "splat dense elements",
                 self.to_string(),
