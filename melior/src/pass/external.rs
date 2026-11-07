@@ -180,7 +180,7 @@ pub fn create_external<'c, T: RunExternalPass<'c>>(
     name: &str,
     argument: &str,
     description: &str,
-    op_name: &str,
+    op_name: &'static str,
     dependent_dialects: &[DialectHandle],
 ) -> Pass {
     unsafe {

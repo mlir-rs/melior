@@ -1,0 +1,19 @@
+error[E0597]: `operation_name` does not live long enough
+  --> tests/ui/external_pass_operation_name_escape.rs:23:9
+   |
+15 |       let operation_name = String::from("func.func");
+   |           -------------- binding `operation_name` declared here
+16 |
+17 |       manager.add_pass(create_external(
+   |  ______________________-
+18 | |         |_: OperationRef, _: ExternalPass| {},
+19 | |         TypeId::create(&PASS_ID),
+20 | |         "name",
+...  |
+23 | |         &operation_name,
+   | |         ^^^^^^^^^^^^^^^ borrowed value does not live long enough
+24 | |         &[],
+25 | |     ));
+   | |_____- argument requires that `operation_name` is borrowed for `'static`
+26 |   }
+   |   - `operation_name` dropped here while still borrowed
