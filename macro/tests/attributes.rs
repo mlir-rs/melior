@@ -70,7 +70,7 @@ fn dense_elements_attr() {
     let context = context();
     let location = Location::unknown(&context);
     let tensor = RankedTensorType::new(&[2], Type::float64(&context), None).into();
-    let attribute = DenseElementsAttribute::f64_values(tensor, &[1.5, 2.5]);
+    let attribute = DenseElementsAttribute::f64_values(tensor, &[1.5, 2.5]).unwrap();
 
     let operation = attribute_test::dense_elements(&context, attribute, location);
 
