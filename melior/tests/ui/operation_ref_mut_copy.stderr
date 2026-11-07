@@ -1,0 +1,10 @@
+error[E0382]: borrow of moved value: `operation`
+  --> tests/ui/operation_ref_mut_copy.rs:12:5
+   |
+ 9 |     let mut operation = module.as_operation_mut();
+   |         ------------- move occurs because `operation` has type `OperationRefMut<'_, '_>`, which does not implement the `Copy` trait
+10 |     let mut other = operation;
+   |                     --------- value moved here
+11 |
+12 |     operation.set_attribute("foo", Attribute::unit(&context));
+   |     ^^^^^^^^^ value borrowed here after move
