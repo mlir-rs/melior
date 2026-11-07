@@ -130,7 +130,7 @@ mod tests {
     fn is_block_argument() {
         let context = create_test_context();
         let r#type = Type::index(&context);
-        let block = Block::new(&[(r#type, Location::unknown(&context))]);
+        let block = Block::new(&[r#type], &[Location::unknown(&context)]).unwrap();
 
         assert!(block.argument(0).unwrap().is_block_argument());
     }
@@ -270,7 +270,7 @@ mod tests {
         let index_type = Type::index(&context);
         let i32_type = Type::from(IntegerType::new(&context, 32));
 
-        let block = Block::new(&[(index_type, location)]);
+        let block = Block::new(&[index_type], &[location]).unwrap();
         let arg = block.argument(0).unwrap();
         let value = Value::from(arg);
 
@@ -285,7 +285,7 @@ mod tests {
         let location = Location::unknown(&context);
         let index_type = Type::index(&context);
 
-        let block = Block::new(&[(index_type, location)]);
+        let block = Block::new(&[index_type], &[location]).unwrap();
         let arg = block.argument(0).unwrap();
         let value = Value::from(arg);
 
@@ -298,7 +298,7 @@ mod tests {
         let location = Location::unknown(&context);
         let index_type = Type::index(&context);
 
-        let block = Block::new(&[(index_type, location)]);
+        let block = Block::new(&[index_type], &[location]).unwrap();
         let arg = block.argument(0).unwrap();
         let value = Value::from(arg);
 

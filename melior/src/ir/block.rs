@@ -5,7 +5,7 @@ mod block_like;
 
 pub use self::{argument::BlockArgument, block_like::BlockLike};
 use super::{Location, OperationRef, Type, TypeLike, Value};
-use crate::{context::Context, utility::print_callback};
+use crate::{Error, context::Context, utility::print_callback};
 use core::{
     cell::Cell,
     ffi::c_void,
@@ -27,23 +27,21 @@ pub struct Block<'c> {
 
 impl<'c> Block<'c> {
     /// Creates a block.
-    // TODO Should we accept types and locations separately?
-    pub fn new(arguments: &[(Type<'c>, Location<'c>)]) -> Self {
-        unsafe {
-            Self::from_raw(mlirBlockCreate(
-                arguments.len() as isize,
-                arguments
-                    .iter()
-                    .map(|(argument, _)| argument.to_raw())
-                    .collect::<Vec<_>>()
-                    .as_ptr() as *const _,
-                arguments
-                    .iter()
-                    .map(|(_, location)| location.to_raw())
-                    .collect::<Vec<_>>()
-                    .as_ptr() as *const _,
-            ))
+    pub fn new(types: &[Type<'c>], locations: &[Location<'c>]) -> Result<Self, Error> {
+        if types.len() != locations.len() {
+            return Err(Error::LocationCountMismatch {
+                types: types.len(),
+                locations: locations.len(),
+            });
         }
+
+        Ok(unsafe {
+            Self::from_raw(mlirBlockCreate(
+                types.len() as isize,
+                types.as_ptr() as *const _,
+                locations.as_ptr() as *const _,
+            ))
+        })
     }
 
     /// Detaches a block from a region and assumes its ownership.
@@ -266,7 +264,20 @@ mod tests {
 
     #[test]
     fn new() {
-        Block::new(&[]);
+        Block::new(&[], &[]).unwrap();
+    }
+
+    #[test]
+    fn new_with_mismatched_locations() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Block::new(&[Type::index(&context)], &[]).unwrap_err(),
+            Error::LocationCountMismatch {
+                types: 1,
+                locations: 0
+            }
+        );
     }
 
     #[test]
@@ -275,7 +286,8 @@ mod tests {
         let r#type = IntegerType::new(&context, 64).into();
 
         assert_eq!(
-            Block::new(&[(r#type, Location::unknown(&context))])
+            Block::new(&[r#type], &[Location::unknown(&context)])
+                .unwrap()
                 .argument(0)
                 .unwrap()
                 .r#type(),
@@ -286,7 +298,7 @@ mod tests {
     #[test]
     fn argument_error() {
         assert_eq!(
-            Block::new(&[]).argument(0).unwrap_err(),
+            Block::new(&[], &[]).unwrap().argument(0).unwrap_err(),
             Error::PositionOutOfBounds {
                 name: "block argument",
                 value: "<<UNLINKED BLOCK>>\n".into(),
@@ -297,20 +309,20 @@ mod tests {
 
     #[test]
     fn argument_count() {
-        assert_eq!(Block::new(&[]).argument_count(), 0);
+        assert_eq!(Block::new(&[], &[]).unwrap().argument_count(), 0);
     }
 
     #[test]
     fn parent_region() {
         let region = Region::new();
-        let block = region.append_block(Block::new(&[]));
+        let block = region.append_block(Block::new(&[], &[]).unwrap());
 
         assert_eq!(block.parent_region().as_deref(), Some(&region));
     }
 
     #[test]
     fn parent_region_none() {
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         assert_eq!(block.parent_region(), None);
     }
@@ -328,7 +340,7 @@ mod tests {
 
     #[test]
     fn parent_operation_none() {
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         assert_eq!(block.parent_operation(), None);
     }
@@ -337,7 +349,7 @@ mod tests {
     fn terminator() {
         let context = create_test_context();
 
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("func.return", Location::unknown(&context))
@@ -350,14 +362,14 @@ mod tests {
 
     #[test]
     fn terminator_none() {
-        assert_eq!(Block::new(&[]).terminator(), None);
+        assert_eq!(Block::new(&[], &[]).unwrap().terminator(), None);
     }
 
     #[test]
     fn first_operation() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("foo", Location::unknown(&context))
@@ -370,7 +382,7 @@ mod tests {
 
     #[test]
     fn first_operation_none() {
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         assert_eq!(block.first_operation(), None);
     }
@@ -379,7 +391,7 @@ mod tests {
     fn append_operation() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         block.append_operation(
             OperationBuilder::new("foo", Location::unknown(&context))
@@ -392,7 +404,7 @@ mod tests {
     fn insert_operation() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         block.insert_operation(
             0,
@@ -406,7 +418,7 @@ mod tests {
     fn insert_operation_after() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let first_operation = block.append_operation(
             OperationBuilder::new("foo", Location::unknown(&context))
@@ -431,7 +443,7 @@ mod tests {
     fn insert_operation_before() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let second_operation = block.append_operation(
             OperationBuilder::new("foo", Location::unknown(&context))
@@ -456,8 +468,8 @@ mod tests {
     fn next_in_region() {
         let region = Region::new();
 
-        let first_block = region.append_block(Block::new(&[]));
-        let second_block = region.append_block(Block::new(&[]));
+        let first_block = region.append_block(Block::new(&[], &[]).unwrap());
+        let second_block = region.append_block(Block::new(&[], &[]).unwrap());
 
         assert_eq!(first_block.next_in_region(), Some(second_block));
     }
@@ -465,7 +477,7 @@ mod tests {
     #[test]
     fn detach() {
         let region = Region::new();
-        let block = region.append_block(Block::new(&[]));
+        let block = region.append_block(Block::new(&[], &[]).unwrap());
 
         assert_eq!(
             unsafe { block.detach() }.unwrap().to_string(),
@@ -475,20 +487,23 @@ mod tests {
 
     #[test]
     fn detach_detached() {
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         assert!(unsafe { block.detach() }.is_none());
     }
 
     #[test]
     fn display() {
-        assert_eq!(Block::new(&[]).to_string(), "<<UNLINKED BLOCK>>\n");
+        assert_eq!(
+            Block::new(&[], &[]).unwrap().to_string(),
+            "<<UNLINKED BLOCK>>\n"
+        );
     }
 
     #[test]
     fn debug() {
         assert_eq!(
-            format!("{:?}", &Block::new(&[])),
+            format!("{:?}", &Block::new(&[], &[]).unwrap()),
             "Block(\n<<UNLINKED BLOCK>>\n)"
         );
     }
@@ -500,7 +515,7 @@ mod tests {
         let i32_type = Type::from(IntegerType::new(&context, 32));
         let i64_type = Type::from(IntegerType::new(&context, 64));
 
-        let block = Block::new(&[(i64_type, location)]);
+        let block = Block::new(&[i64_type], &[location]).unwrap();
         let inserted = block.insert_argument(0, i32_type, location);
 
         assert_eq!(block.argument_count(), 2);
@@ -515,7 +530,7 @@ mod tests {
         let i32_type = Type::from(IntegerType::new(&context, 32));
         let i64_type = Type::from(IntegerType::new(&context, 64));
 
-        let block = Block::new(&[(i32_type, location), (i64_type, location)]);
+        let block = Block::new(&[i32_type, i64_type], &[location, location]).unwrap();
         assert_eq!(block.argument_count(), 2);
 
         // SAFETY: No BlockArgument handles are held at this point.
@@ -527,13 +542,13 @@ mod tests {
 
     #[test]
     fn successor_count() {
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
         assert_eq!(block.successor_count(), 0);
     }
 
     #[test]
     fn successor_out_of_bounds() {
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
         assert_eq!(
             block.successor(0).unwrap_err(),
             Error::PositionOutOfBounds {
@@ -546,13 +561,13 @@ mod tests {
 
     #[test]
     fn predecessor_count() {
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
         assert_eq!(block.predecessor_count(), 0);
     }
 
     #[test]
     fn predecessor_out_of_bounds() {
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
         assert_eq!(
             block.predecessor(0).unwrap_err(),
             Error::PositionOutOfBounds {
@@ -567,7 +582,7 @@ mod tests {
     fn block_iterator() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let first_operation = block.append_operation(
             OperationBuilder::new("foo", Location::unknown(&context))

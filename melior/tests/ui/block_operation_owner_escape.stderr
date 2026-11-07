@@ -3,7 +3,7 @@ error[E0597]: `block` does not live long enough
    |
 11 |     let operation = {
    |         --------- borrow later stored here
-12 |         let block = Block::new(&[]);
+12 |         let block = Block::new(&[], &[]).unwrap();
    |             ----- binding `block` declared here
 13 |
 14 |         block.append_operation(OperationBuilder::new("foo.bar", location).build().unwrap())

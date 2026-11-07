@@ -230,11 +230,10 @@ mod tests {
         let module = Module::new(location);
 
         let block = Block::new(
-            &block_argument_types
-                .iter()
-                .map(|&r#type| (r#type, location))
-                .collect::<Vec<_>>(),
-        );
+            block_argument_types,
+            &vec![location; block_argument_types.len()],
+        )
+        .unwrap();
 
         let operation = operation(&block);
         let name = operation.name();
@@ -631,7 +630,7 @@ mod tests {
         let integer_type = IntegerType::new(&context, 64).into();
 
         let function = {
-            let block = Block::new(&[(integer_type, location), (integer_type, location)]);
+            let block = Block::new(&[integer_type, integer_type], &[location, location]).unwrap();
 
             let sum = block.append_operation(addi(
                 block.argument(0).unwrap().into(),
@@ -675,11 +674,11 @@ mod tests {
         let bool_type = IntegerType::new(&context, 1).into();
 
         let function = {
-            let block = Block::new(&[
-                (bool_type, location),
-                (integer_type, location),
-                (integer_type, location),
-            ]);
+            let block = Block::new(
+                &[bool_type, integer_type, integer_type],
+                &[location, location, location],
+            )
+            .unwrap();
 
             let val = block.append_operation(select(
                 block.argument(0).unwrap().into(),

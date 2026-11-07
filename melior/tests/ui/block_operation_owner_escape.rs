@@ -9,7 +9,7 @@ fn main() {
     let location = Location::unknown(&context);
 
     let operation = {
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         block.append_operation(OperationBuilder::new("foo.bar", location).build().unwrap())
     };

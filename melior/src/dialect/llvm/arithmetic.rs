@@ -78,7 +78,8 @@ mod tests {
                     ),
                     {
                         let block =
-                            Block::new(&[(integer_type, location), (integer_type, location)]);
+                            Block::new(&[integer_type, integer_type], &[location, location])
+                                .unwrap();
 
                         let operation = block.append_operation($builder(
                             block.argument(0).unwrap().into(),
