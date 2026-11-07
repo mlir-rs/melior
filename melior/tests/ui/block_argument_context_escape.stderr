@@ -1,0 +1,13 @@
+error[E0597]: `context` does not live long enough
+  --> tests/ui/block_argument_context_escape.rs:12:40
+   |
+10 |         let context = Context::new();
+   |             ------- binding `context` declared here
+11 |
+12 |         block.add_argument(Type::index(&context), Location::unknown(&context));
+   |                                        ^^^^^^^^ borrowed value does not live long enough
+13 |     }
+   |     - `context` dropped here while still borrowed
+14 |
+15 |     let _ = block.argument(0).unwrap().r#type().to_string();
+   |             ----- borrow later used here

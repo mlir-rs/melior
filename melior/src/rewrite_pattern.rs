@@ -2,7 +2,7 @@ use crate::{
     context::Context, ir::OperationRef, ir_rewriter::RewriterBase, logical_result::LogicalResult,
     string_ref::StringRef,
 };
-use core::{ffi::c_void, marker::PhantomData, mem::forget};
+use core::{cell::Cell, ffi::c_void, marker::PhantomData, mem::forget};
 use mlir_sys::{
     MlirFrozenRewritePatternSet, MlirOperation, MlirPatternRewriter, MlirRewritePattern,
     MlirRewritePatternCallbacks, MlirRewritePatternSet, mlirFreezeRewritePattern,
@@ -89,12 +89,13 @@ impl RewritePattern {
 ///
 /// This is a non-owning reference; it must not outlive the callback invocation.
 #[derive(Clone, Copy)]
-pub struct PatternRewriter<'a> {
+pub struct PatternRewriter<'c, 'a> {
     raw: MlirPatternRewriter,
+    _context: PhantomData<Cell<&'c Context>>,
     _reference: PhantomData<&'a MlirPatternRewriter>,
 }
 
-impl PatternRewriter<'_> {
+impl<'c> PatternRewriter<'c, '_> {
     /// Creates a pattern rewriter from a raw object.
     ///
     /// # Safety
@@ -103,12 +104,13 @@ impl PatternRewriter<'_> {
     pub const unsafe fn from_raw(raw: MlirPatternRewriter) -> Self {
         Self {
             raw,
+            _context: PhantomData,
             _reference: PhantomData,
         }
     }
 
     /// Returns the underlying rewriter base.
-    pub fn as_rewriter_base(&self) -> RewriterBase<'_, '_> {
+    pub fn as_rewriter_base(&self) -> RewriterBase<'c, '_> {
         unsafe { RewriterBase::from_raw(mlirPatternRewriterAsBase(self.raw)) }
     }
 }
@@ -128,7 +130,7 @@ pub fn create_op_rewrite_pattern<F>(
     generated_names: &[&str],
 ) -> RewritePattern
 where
-    F: FnMut(OperationRef, &PatternRewriter) -> bool + 'static,
+    F: for<'c> FnMut(OperationRef<'c, '_>, &PatternRewriter<'c, '_>) -> bool + 'static,
 {
     unsafe extern "C" fn destruct<F>(user_data: *mut c_void) {
         unsafe {
@@ -143,7 +145,7 @@ where
         user_data: *mut c_void,
     ) -> mlir_sys::MlirLogicalResult
     where
-        F: FnMut(OperationRef, &PatternRewriter) -> bool,
+        F: for<'c> FnMut(OperationRef<'c, '_>, &PatternRewriter<'c, '_>) -> bool,
     {
         LogicalResult::from(unsafe {
             (*(user_data as *mut F))(

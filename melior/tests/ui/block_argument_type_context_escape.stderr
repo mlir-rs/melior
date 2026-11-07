@@ -1,0 +1,13 @@
+error[E0597]: `other_context` does not live long enough
+  --> tests/ui/block_argument_type_context_escape.rs:16:35
+   |
+11 |         let other_context = Context::new();
+   |             ------------- binding `other_context` declared here
+...
+16 |             .set_type(Type::index(&other_context));
+   |                                   ^^^^^^^^^^^^^^ borrowed value does not live long enough
+17 |     }
+   |     - `other_context` dropped here while still borrowed
+18 |
+19 |     let _ = block.argument(0).unwrap().r#type().to_string();
+   |             ----- borrow later used here

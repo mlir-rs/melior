@@ -7,6 +7,7 @@ pub use self::{argument::BlockArgument, block_like::BlockLike};
 use super::{Location, OperationRef, Type, TypeLike, Value};
 use crate::{context::Context, utility::print_callback};
 use core::{
+    cell::Cell,
     ffi::c_void,
     fmt::{self, Debug, Display, Formatter},
     marker::PhantomData,
@@ -21,7 +22,7 @@ use mlir_sys::{
 /// A block.
 pub struct Block<'c> {
     raw: MlirBlock,
-    _context: PhantomData<&'c Context>,
+    _context: PhantomData<Cell<&'c Context>>,
 }
 
 impl<'c> Block<'c> {

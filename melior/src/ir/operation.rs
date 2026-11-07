@@ -17,6 +17,7 @@ use crate::{
     utility::{collect_bytes_callback, print_callback, print_string_callback},
 };
 use core::{
+    cell::Cell,
     ffi::c_void,
     fmt::{Debug, Display, Formatter},
     marker::PhantomData,
@@ -33,7 +34,7 @@ use mlir_sys::{
 /// An operation.
 pub struct Operation<'c> {
     raw: MlirOperation,
-    _context: PhantomData<&'c Context>,
+    _context: PhantomData<Cell<&'c Context>>,
 }
 
 impl Operation<'_> {

@@ -26,7 +26,7 @@ impl<'c> BlockArgument<'c, '_> {
     }
 
     /// Sets a type.
-    pub fn set_type(&self, r#type: Type) {
+    pub fn set_type(&self, r#type: Type<'c>) {
         unsafe { mlirBlockArgumentSetType(self.value.to_raw(), r#type.to_raw()) }
     }
 

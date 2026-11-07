@@ -1,0 +1,14 @@
+error[E0597]: `other_context` does not live long enough
+  --> tests/ui/module_body_context_escape.rs:14:64
+   |
+11 |         let other_context = Context::new();
+   |             ------------- binding `other_context` declared here
+...
+14 |             OperationBuilder::new("foo.bar", Location::unknown(&other_context))
+   |                                                                ^^^^^^^^^^^^^^ borrowed value does not live long enough
+...
+18 |     }
+   |     - `other_context` dropped here while still borrowed
+19 |
+20 |     let _ = module.as_operation().to_string();
+   |             ------ borrow later used here

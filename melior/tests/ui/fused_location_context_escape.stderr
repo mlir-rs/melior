@@ -1,0 +1,13 @@
+error[E0597]: `other_context` does not live long enough
+  --> tests/ui/fused_location_context_escape.rs:14:29
+   |
+ 8 |     let location = {
+   |         -------- borrow later stored here
+ 9 |         let other_context = Context::new();
+   |             ------------- binding `other_context` declared here
+...
+14 |             Attribute::unit(&other_context),
+   |                             ^^^^^^^^^^^^^^ borrowed value does not live long enough
+15 |         )
+16 |     };
+   |     - `other_context` dropped here while still borrowed

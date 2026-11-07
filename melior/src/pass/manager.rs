@@ -23,7 +23,7 @@ pub struct PassManager<'c> {
 
 impl<'c> PassManager<'c> {
     /// Creates a pass manager.
-    pub fn new(context: &Context) -> Self {
+    pub fn new(context: &'c Context) -> Self {
         Self {
             raw: unsafe { mlirPassManagerCreate(context.to_raw()) },
             _context: Default::default(),

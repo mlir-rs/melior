@@ -4,6 +4,7 @@ pub use self::value_like::ValueLike;
 use super::{Type, block::BlockArgument, operation::OperationResult};
 use crate::{Context, utility::print_callback};
 use core::{
+    cell::Cell,
     ffi::c_void,
     fmt::{self, Debug, Display, Formatter},
     marker::PhantomData,
@@ -17,7 +18,7 @@ use mlir_sys::{MlirValue, mlirValueEqual, mlirValuePrint};
 #[repr(transparent)]
 pub struct Value<'c, 'a> {
     raw: MlirValue,
-    _context: PhantomData<&'c Context>,
+    _context: PhantomData<Cell<&'c Context>>,
     _parent: PhantomData<&'a ()>,
 }
 

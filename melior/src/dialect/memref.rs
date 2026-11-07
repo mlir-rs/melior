@@ -332,7 +332,7 @@ mod tests {
         test::create_test_context,
     };
 
-    fn compile_operation(name: &str, context: &Context, build_block: impl Fn(&Block)) {
+    fn compile_operation<'c>(name: &str, context: &'c Context, build_block: impl Fn(&Block<'c>)) {
         let location = Location::unknown(context);
         let module = Module::new(location);
 

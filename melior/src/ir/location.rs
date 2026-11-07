@@ -43,7 +43,7 @@ impl<'c> Location<'c> {
     }
 
     /// Creates a fused location.
-    pub fn fused(context: &'c Context, locations: &[Self], attribute: Attribute) -> Self {
+    pub fn fused(context: &'c Context, locations: &[Self], attribute: Attribute<'c>) -> Self {
         unsafe {
             Self::from_raw(mlirLocationFusedGet(
                 context.to_raw(),
@@ -55,7 +55,7 @@ impl<'c> Location<'c> {
     }
 
     /// Creates a name location.
-    pub fn name(context: &'c Context, name: &str, child: Location) -> Self {
+    pub fn name(context: &'c Context, name: &str, child: Self) -> Self {
         unsafe {
             Self::from_raw(mlirLocationNameGet(
                 context.to_raw(),
@@ -66,7 +66,7 @@ impl<'c> Location<'c> {
     }
 
     /// Creates a call site location.
-    pub fn call_site(callee: Location, caller: Location) -> Self {
+    pub fn call_site(callee: Self, caller: Self) -> Self {
         unsafe { Self::from_raw(mlirLocationCallSiteGet(callee.to_raw(), caller.to_raw())) }
     }
 
