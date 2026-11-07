@@ -31,13 +31,6 @@ pub enum Error {
     OperationBuild,
     /// An operand not found.
     OperandNotFound(&'static str),
-    /// An operation of a name expected.
-    OperationExpected {
-        /// An expected operation name.
-        expected: &'static str,
-        /// An actual operation.
-        actual: String,
-    },
     /// An operation result expected.
     OperationResultExpected(String),
     /// A failure of pass pipeline parsing.
@@ -97,9 +90,6 @@ impl Display for Error {
             }
             Self::OperandNotFound(name) => {
                 write!(formatter, "operand {name} not found")
-            }
-            Self::OperationExpected { expected, actual } => {
-                write!(formatter, "expected operation {expected}, got {actual}")
             }
             Self::OperationResultExpected(value) => {
                 write!(formatter, "operation result expected: {value}")

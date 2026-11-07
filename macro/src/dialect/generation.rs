@@ -83,22 +83,15 @@ pub fn generate_operation(operation: &Operation) -> TokenStream {
         #default_constructor
 
         impl<'c> TryFrom<::melior::ir::operation::Operation<'c>> for #identifier<'c> {
-            type Error = ::melior::Error;
+            type Error = ::melior::ir::operation::Operation<'c>;
 
             fn try_from(
                 operation: ::melior::ir::operation::Operation<'c>,
                 ) -> Result<Self, Self::Error> {
-                let expected = #operation_name;
-                let name = operation.name();
-
-                if name.as_string_ref().as_str() == Ok(expected) {
+                if operation.name().as_string_ref().as_str() == Ok(#operation_name) {
                     Ok(Self { operation })
                 } else {
-                    Err(::melior::Error::OperationExpected {
-                        expected,
-                        actual: name.as_string_ref().as_str()
-                            .unwrap_or("<non-utf8>").to_owned(),
-                    })
+                    Err(operation)
                 }
             }
         }
