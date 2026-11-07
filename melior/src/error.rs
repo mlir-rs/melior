@@ -18,6 +18,13 @@ pub enum Error {
     AttributeParse(String),
     /// A block argument expected.
     BlockArgumentExpected(String),
+    /// Mismatched numbers of elements.
+    ElementCountMismatch {
+        /// An expected number of elements.
+        expected: usize,
+        /// An actual number of elements.
+        actual: usize,
+    },
     /// An element of a type expected.
     ElementExpected {
         /// A type name.
@@ -80,6 +87,12 @@ impl Display for Error {
             }
             Self::BlockArgumentExpected(value) => {
                 write!(formatter, "block argument expected: {value}")
+            }
+            Self::ElementCountMismatch { expected, actual } => {
+                write!(
+                    formatter,
+                    "element count mismatch: {expected} expected, {actual} given"
+                )
             }
             Self::ElementExpected { r#type, value } => {
                 write!(formatter, "element of {type} type expected: {value}")
