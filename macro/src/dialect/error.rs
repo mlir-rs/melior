@@ -33,15 +33,12 @@ impl Error {
     }
 
     pub fn to_compile_error(&self) -> TokenStream {
-        match self {
-            Self::Syn(err) => err.to_compile_error().into(),
-            Self::TableGen(_)
-            | Self::Ods(_)
-            | Self::Parse(_)
-            | Self::Format(_)
-            | Self::InvalidIdentifier(_) => syn::Error::new(Span::call_site(), self)
+        if let Self::Syn(error) = self {
+            error.to_compile_error().into()
+        } else {
+            syn::Error::new(Span::call_site(), self)
                 .to_compile_error()
-                .into(),
+                .into()
         }
     }
 }

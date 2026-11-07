@@ -1,17 +1,17 @@
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::{format_ident, quote};
+use syn::{Type, parse_quote};
 
 pub fn generate_binary(dialect: &Ident, names: &[Ident]) -> TokenStream {
     generate(
         dialect,
         names,
         &format_ident!("binary_operator"),
-        quote! {
-            lhs: crate::ir::Value<'c, '_>,
-            rhs: crate::ir::Value<'c, '_>,
-        },
-        quote! { lhs, rhs },
+        &[
+            (format_ident!("lhs"), parse_quote!(crate::ir::Value<'c, '_>)),
+            (format_ident!("rhs"), parse_quote!(crate::ir::Value<'c, '_>)),
+        ],
         quote! {
             .add_operands(&[lhs, rhs])
             .enable_result_type_inference()
@@ -24,10 +24,10 @@ pub fn generate_unary(dialect: &Ident, names: &[Ident]) -> TokenStream {
         dialect,
         names,
         &format_ident!("unary_operator"),
-        quote! {
-            value: crate::ir::Value<'c, '_>,
-        },
-        quote! { value },
+        &[(
+            format_ident!("value"),
+            parse_quote!(crate::ir::Value<'c, '_>),
+        )],
         quote! {
             .add_operands(&[value])
             .enable_result_type_inference()
@@ -40,11 +40,13 @@ pub fn generate_typed_unary(dialect: &Ident, names: &[Ident]) -> TokenStream {
         dialect,
         names,
         &format_ident!("typed_unary_operator"),
-        quote! {
-            value: crate::ir::Value<'c, '_>,
-            r#type: crate::ir::Type<'c>,
-        },
-        quote! { value, r#type },
+        &[
+            (
+                format_ident!("value"),
+                parse_quote!(crate::ir::Value<'c, '_>),
+            ),
+            (format_ident!("r#type"), parse_quote!(crate::ir::Type<'c>)),
+        ],
         quote! {
             .add_operands(&[value])
             .add_results(&[r#type])
@@ -56,14 +58,19 @@ fn generate(
     dialect: &Ident,
     names: &[Ident],
     helper: &Ident,
-    parameters: proc_macro2::TokenStream,
-    arguments: proc_macro2::TokenStream,
+    parameters: &[(Ident, Type)],
     builder: proc_macro2::TokenStream,
 ) -> TokenStream {
     let documents = names.iter().map(|name| create_document(dialect, name));
     let operation_names = names
         .iter()
         .map(|name| create_operation_name(dialect, name));
+    let parameter_names = parameters.iter().map(|(name, _)| name);
+    let arguments = quote! { #(#parameter_names),* };
+    let parameters = parameters
+        .iter()
+        .map(|(name, r#type)| quote! { #name: #r#type, })
+        .collect::<proc_macro2::TokenStream>();
 
     quote! {
         #(
