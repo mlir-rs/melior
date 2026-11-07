@@ -91,6 +91,7 @@ pub fn switch<'c>(
     case_operands: &[&[Value<'c, '_>]],
     location: Location<'c>,
 ) -> Result<Operation<'c>, Error> {
+    // TODO Ensure every case destination has a corresponding operand segment.
     Ok(case_operands
         .iter()
         .fold(
