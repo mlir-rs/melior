@@ -46,7 +46,6 @@ pub enum TypeInference {
 pub struct Operation<'a> {
     name: String,
     short_name: String,
-    short_dialect_name: &'a str,
     dialect_name: &'a str,
     operation_name: &'a str,
     constructor_identifier: Ident,
@@ -78,8 +77,7 @@ impl<'a> Operation<'a> {
         Ok(Self {
             name: short_name.clone() + "Operation",
             short_name,
-            dialect_name: definition.def_value("opDialect")?.name()?,
-            short_dialect_name: definition.def_value("opDialect")?.str_value("name")?,
+            dialect_name: definition.def_value("opDialect")?.str_value("name")?,
             operation_name,
             constructor_identifier: sanitize_snake_case_identifier(operation_name)?,
             summary: definition.str_value("summary")?,
@@ -140,16 +138,12 @@ impl<'a> Operation<'a> {
         self.type_inference
     }
 
-    pub const fn dialect_name(&self) -> &str {
-        self.dialect_name
-    }
-
     pub const fn operation_name(&self) -> &str {
         self.operation_name
     }
 
     pub fn full_operation_name(&self) -> String {
-        format!("{}.{}", self.short_dialect_name, self.operation_name)
+        format!("{}.{}", self.dialect_name, self.operation_name)
     }
 
     pub fn documentation_name(&self) -> String {

@@ -144,11 +144,16 @@ fn generate_dialect_module(
 ) -> Result<proc_macro2::TokenStream, Error> {
     let dialect_name = dialect.name()?;
 
-    let mut all_operations = record_keeper
+    let all_operations = record_keeper
         .all_derived_definitions("Op")
+        .filter(|definition| {
+            definition
+                .def_value("opDialect")
+                .and_then(Record::name)
+                .is_ok_and(|name| name == dialect_name)
+        })
         .map(Operation::new)
         .collect::<Result<Vec<_>, _>>()?;
-    all_operations.retain(|operation| operation.dialect_name() == dialect_name);
 
     let operations = all_operations
         .iter()
@@ -186,4 +191,57 @@ fn resolve_include_directory(path: &str) -> String {
     }
     .display()
     .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_record_keeper() -> RecordKeeper<'static> {
+        TableGenParser::new()
+            .add_include_directory(LLVM_INCLUDE_DIRECTORY)
+            .add_source(&unindent::unindent(
+                r#"
+                include "mlir/IR/OpBase.td"
+
+                def Foo_Dialect : Dialect {
+                    let name = "foo";
+                }
+
+                def Bar_Dialect : Dialect {
+                    let name = "bar";
+                }
+
+                def Foo_BazOp : Op<Foo_Dialect, "baz">;
+
+                def Bar_QuxOp : Op<Bar_Dialect, "qux"> {
+                    let arguments = (ins Variadic<I32>:$lhs, Variadic<I32>:$rhs);
+                }
+                "#,
+            ))
+            .unwrap()
+            .parse()
+            .unwrap()
+    }
+
+    #[test]
+    fn ignore_invalid_operation_in_other_dialect() {
+        let keeper = create_record_keeper();
+        let module = generate_dialect_module("foo", keeper.def("Foo_Dialect").unwrap(), &keeper)
+            .unwrap()
+            .to_string();
+
+        assert!(module.contains("BazOperation"));
+        assert!(!module.contains("QuxOperation"));
+    }
+
+    #[test]
+    fn fail_to_generate_dialect_with_invalid_operation() {
+        let keeper = create_record_keeper();
+
+        assert!(matches!(
+            generate_dialect_module("bar", keeper.def("Bar_Dialect").unwrap(), &keeper),
+            Err(Error::Ods(_))
+        ));
+    }
 }
