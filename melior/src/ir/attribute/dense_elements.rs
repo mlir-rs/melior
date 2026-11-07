@@ -609,18 +609,20 @@ impl<'c> DenseElementsAttribute<'c> {
 
     fn check_splat(&self, element: Element, name: &'static str) -> Result<(), Error> {
         if !self.has_elements(element) {
-            Err(Error::ElementExpected {
+            return Err(Error::ElementExpected {
                 r#type: name,
                 value: self.to_string(),
-            })
-        } else if self.is_splat() {
-            Ok(())
-        } else {
-            Err(Error::AttributeExpected(
+            });
+        }
+
+        if !self.is_splat() {
+            return Err(Error::AttributeExpected(
                 "splat dense elements",
                 self.to_string(),
-            ))
+            ));
         }
+
+        Ok(())
     }
 
     fn element_count(r#type: Type<'c>) -> Result<usize, Error> {
@@ -641,15 +643,15 @@ impl<'c> DenseElementsAttribute<'c> {
     }
 
     const fn check_count(count: usize, len: usize) -> Result<(), Error> {
-        if len == 1 || len == count {
-            Ok(())
-        } else {
-            Err(Error::CountMismatch {
+        if len != 1 && len != count {
+            return Err(Error::CountMismatch {
                 name: "dense element",
                 expected: count,
                 actual: len,
-            })
+            });
         }
+
+        Ok(())
     }
 
     fn check_values(
@@ -660,14 +662,14 @@ impl<'c> DenseElementsAttribute<'c> {
     ) -> Result<(), Error> {
         let count = Self::element_count(r#type)?;
 
-        if element.matches(Self::shaped_element_type(r#type)) {
-            Self::check_count(count, len)
-        } else {
-            Err(Error::ElementExpected {
+        if !element.matches(Self::shaped_element_type(r#type)) {
+            return Err(Error::ElementExpected {
                 r#type: name,
                 value: r#type.to_string(),
-            })
+            });
         }
+
+        Self::check_count(count, len)
     }
 
     fn check_attributes(r#type: Type<'c>, values: &[Attribute<'c>]) -> Result<(), Error> {
@@ -675,12 +677,14 @@ impl<'c> DenseElementsAttribute<'c> {
 
         let element_type = Self::shaped_element_type(r#type);
 
-        values
+        if let Some(value) = values
             .iter()
             .find(|value| !Self::is_element(element_type, **value))
-            .map_or(Ok(()), |value| {
-                Err(Error::AttributeExpected("dense element", value.to_string()))
-            })
+        {
+            return Err(Error::AttributeExpected("dense element", value.to_string()));
+        }
+
+        Ok(())
     }
 
     fn is_element(r#type: Type<'c>, value: Attribute<'c>) -> bool {
