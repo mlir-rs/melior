@@ -34,6 +34,8 @@ pub enum Error {
         /// A value.
         value: String,
     },
+    /// A failure of execution engine creation.
+    ExecutionEngineCreation,
     /// A failure of function invocation.
     InvokeFunction,
     /// Mismatched numbers of types and locations.
@@ -112,6 +114,7 @@ impl Display for Error {
             Self::ElementExpected { r#type, value } => {
                 write!(formatter, "element of {type} type expected: {value}")
             }
+            Self::ExecutionEngineCreation => write!(formatter, "failed to create execution engine"),
             Self::InvokeFunction => write!(formatter, "failed to invoke JIT-compiled function"),
             Self::LocationCountMismatch { types, locations } => {
                 write!(
