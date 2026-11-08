@@ -10,7 +10,6 @@ use syn::{Type, parse_quote};
 
 #[derive(Debug)]
 pub struct OperationElement {
-    // Owned, as names for unnamed ODS results are generated.
     name: String,
     kind: ElementKind,
     singular_identifier: Ident,
@@ -20,15 +19,15 @@ pub struct OperationElement {
 
 impl OperationElement {
     pub fn new(
-        name: &str,
+        name: String,
         kind: ElementKind,
         r#type: ElementType,
         position: ElementPosition,
     ) -> Result<Self, Error> {
         Ok(Self {
-            name: name.into(),
+            singular_identifier: sanitize_snake_case_identifier(&name)?,
+            name,
             kind,
-            singular_identifier: sanitize_snake_case_identifier(name)?,
             r#type,
             position,
         })

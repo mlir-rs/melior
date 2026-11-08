@@ -1,0 +1,24 @@
+error[E0415]: identifier `result_1` is bound more than once in this parameter list
+ --> tests/ui/unnamed_result_conflicting_with_result.rs:1:1
+  |
+1 | / melior_macro::dialect! {
+2 | |     name: "result_conflict",
+3 | |     files: ["unnamed_result_conflict.td"],
+4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+5 | | }
+  | |_^ used as parameter more than once
+
+error[E0592]: duplicate definitions with name `result_1`
+ --> tests/ui/unnamed_result_conflicting_with_result.rs:1:1
+  |
+1 | / melior_macro::dialect! {
+2 | |     name: "result_conflict",
+3 | |     files: ["unnamed_result_conflict.td"],
+4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+5 | | }
+  | | ^
+  | | |
+  | |_duplicate definitions for `result_1`
+  |   other definition for `result_1`
+  |
+  = note: this error originates in the macro `melior_macro::dialect` (in Nightly builds, run with -Z macro-backtrace for more info)

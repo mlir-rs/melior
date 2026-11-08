@@ -6,7 +6,6 @@ use core::{
 #[derive(Debug)]
 pub enum OdsError {
     ExpectedSuperClass(&'static str),
-    GeneratedNameConflict(String),
     InvalidTrait,
     MissingVariadicSizeTrait,
     UnexpectedSuperClass(&'static str),
@@ -18,12 +17,6 @@ impl Display for OdsError {
         match self {
             Self::ExpectedSuperClass(class) => {
                 write!(formatter, "record should be a sub-class of {class}",)
-            }
-            Self::GeneratedNameConflict(name) => {
-                write!(
-                    formatter,
-                    "generated name {name} for an unnamed result conflicts with a named element"
-                )
             }
             Self::InvalidTrait => write!(formatter, "record is not a supported trait"),
             Self::MissingVariadicSizeTrait => write!(
