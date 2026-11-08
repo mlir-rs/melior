@@ -1,6 +1,6 @@
 use crate::{
     Error,
-    ir::{Module, OperationRef},
+    ir::{Module, operation::OperationMutLike},
     logical_result::LogicalResult,
     rewrite_pattern::FrozenRewritePatternSet,
 };
@@ -208,7 +208,7 @@ impl Drop for GreedyRewriteDriverConfig {
 
 /// Applies patterns and folds greedily to the given module.
 pub fn apply_patterns_and_fold_greedily(
-    module: &Module,
+    module: &mut Module,
     patterns: &FrozenRewritePatternSet,
     config: &GreedyRewriteDriverConfig,
 ) -> Result<(), Error> {
@@ -224,8 +224,8 @@ pub fn apply_patterns_and_fold_greedily(
 }
 
 /// Applies patterns and folds greedily to the given operation.
-pub fn apply_patterns_and_fold_greedily_with_op(
-    op: OperationRef,
+pub fn apply_patterns_and_fold_greedily_with_op<'c: 'a, 'a>(
+    op: &mut impl OperationMutLike<'c, 'a>,
     patterns: &FrozenRewritePatternSet,
     config: &GreedyRewriteDriverConfig,
 ) -> Result<(), Error> {
@@ -241,7 +241,10 @@ pub fn apply_patterns_and_fold_greedily_with_op(
 }
 
 /// Walks the operation and applies patterns using a fast walk-based driver.
-pub fn walk_and_apply_patterns(op: OperationRef, patterns: &FrozenRewritePatternSet) {
+pub fn walk_and_apply_patterns<'c: 'a, 'a>(
+    op: &mut impl OperationMutLike<'c, 'a>,
+    patterns: &FrozenRewritePatternSet,
+) {
     unsafe { mlirWalkAndApplyPatterns(op.to_raw(), patterns.to_raw()) }
 }
 
@@ -345,46 +348,50 @@ mod tests {
     #[test]
     fn apply_frozen_patterns() {
         let context = create_test_context();
-        let module = Module::new(Location::unknown(&context));
+        let mut module = Module::new(Location::unknown(&context));
         let patterns = RewritePatternSet::new(&context);
         let frozen = patterns.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
     }
 
     #[test]
     fn apply_frozen_patterns_with_op() {
         let context = create_test_context();
-        let module = Module::new(Location::unknown(&context));
+        let mut module = Module::new(Location::unknown(&context));
         let patterns = RewritePatternSet::new(&context);
         let frozen = patterns.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
         assert!(
-            apply_patterns_and_fold_greedily_with_op(module.as_operation(), &frozen, &config)
-                .is_ok()
+            apply_patterns_and_fold_greedily_with_op(
+                &mut module.as_operation_mut(),
+                &frozen,
+                &config
+            )
+            .is_ok()
         );
     }
 
     #[test]
     fn apply_frozen_patterns_twice() {
         let context = create_test_context();
-        let module = Module::new(Location::unknown(&context));
+        let mut module = Module::new(Location::unknown(&context));
         let frozen = RewritePatternSet::new(&context).freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
-        assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
     }
 
     #[test]
     fn walk_and_apply_frozen_patterns() {
         let context = create_test_context();
-        let module = Module::new(Location::unknown(&context));
+        let mut module = Module::new(Location::unknown(&context));
 
         walk_and_apply_patterns(
-            module.as_operation(),
+            &mut module.as_operation_mut(),
             &RewritePatternSet::new(&context).freeze(),
         );
     }
