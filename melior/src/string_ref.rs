@@ -35,16 +35,12 @@ impl<'a> StringRef<'a> {
     }
 
     /// Converts a string reference into a `str`.
-    pub fn as_str(&self) -> Result<&'a str, Utf8Error> {
-        unsafe {
-            let bytes = slice::from_raw_parts(self.raw.data as *mut u8, self.raw.length);
-
-            str::from_utf8(if bytes[bytes.len() - 1] == 0 {
-                &bytes[..bytes.len() - 1]
-            } else {
-                bytes
-            })
-        }
+    pub const fn as_str(&self) -> Result<&'a str, Utf8Error> {
+        str::from_utf8(if self.raw.length == 0 {
+            &[]
+        } else {
+            unsafe { slice::from_raw_parts(self.raw.data as *const u8, self.raw.length) }
+        })
     }
 
     /// Converts a string reference into a raw object.
@@ -76,6 +72,7 @@ impl Eq for StringRef<'_> {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::ptr::null;
 
     #[test]
     fn equal() {
@@ -85,6 +82,31 @@ mod tests {
     #[test]
     fn equal_str() {
         assert_eq!(StringRef::new("foo").as_str().unwrap(), "foo");
+    }
+
+    #[test]
+    fn as_empty_str() {
+        assert_eq!(StringRef::new("").as_str().unwrap(), "");
+    }
+
+    #[test]
+    fn as_null_str() {
+        assert_eq!(
+            unsafe {
+                StringRef::from_raw(MlirStringRef {
+                    data: null(),
+                    length: 0,
+                })
+            }
+            .as_str()
+            .unwrap(),
+            ""
+        );
+    }
+
+    #[test]
+    fn as_str_with_trailing_nul() {
+        assert_eq!(StringRef::new("foo\0").as_str().unwrap(), "foo\0");
     }
 
     #[test]
