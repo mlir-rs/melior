@@ -213,12 +213,12 @@ mod tests {
     #[test]
     fn apply_frozen_patterns() {
         let context = create_test_context();
-        let module = Module::new(Location::unknown(&context));
+        let mut module = Module::new(Location::unknown(&context));
         let patterns = RewritePatternSet::new(&context);
         let frozen = patterns.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
     }
 
     #[test]
@@ -251,7 +251,7 @@ mod tests {
     #[test]
     fn apply_op_rewrite_pattern() {
         let context = create_test_context();
-        let module = Module::new(Location::unknown(&context));
+        let mut module = Module::new(Location::unknown(&context));
 
         let pattern =
             create_op_rewrite_pattern("arith.constant", 1, &context, |_op, _rewriter| false, &[]);
@@ -262,13 +262,13 @@ mod tests {
         let frozen = set.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
     }
 
     #[test]
     fn pattern_rewriter_as_rewriter_base() {
         let context = create_test_context();
-        let module = Module::parse(
+        let mut module = Module::parse(
             &context,
             indoc!(
                 "
@@ -301,14 +301,14 @@ mod tests {
         let frozen = set.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
         insta::assert_snapshot!(module.as_operation());
     }
 
     #[test]
     fn fall_back_to_next_pattern() {
         let context = create_test_context();
-        let module = Module::parse(
+        let mut module = Module::parse(
             &context,
             indoc!(
                 "
@@ -346,7 +346,7 @@ mod tests {
         let frozen = set.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
         insta::assert_snapshot!(module.as_operation());
     }
 }

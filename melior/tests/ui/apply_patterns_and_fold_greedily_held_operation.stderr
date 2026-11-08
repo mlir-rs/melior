@@ -1,0 +1,11 @@
+error[E0502]: cannot borrow `module` as mutable because it is also borrowed as immutable
+  --> tests/ui/apply_patterns_and_fold_greedily_held_operation.rs:26:9
+   |
+14 |     let operation = module
+   |                     ------ immutable borrow occurs here
+...
+26 |         &mut module,
+   |         ^^^^^^^^^^^ mutable borrow occurs here
+...
+32 |     println!("{operation}");
+   |                --------- immutable borrow later used here
