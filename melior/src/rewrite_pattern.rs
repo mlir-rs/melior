@@ -26,7 +26,7 @@ impl<'c> RewritePatternSet<'c> {
     }
 
     /// Adds a pattern to the set. The pattern's ownership is transferred.
-    pub fn add(&self, pattern: RewritePattern) {
+    pub fn add(&self, pattern: RewritePattern<'c>) {
         unsafe { mlirRewritePatternSetAdd(self.raw, pattern.into_raw()) }
     }
 
@@ -73,15 +73,25 @@ impl Drop for FrozenRewritePatternSet {
 }
 
 /// A single rewrite pattern.
-#[must_use = "add to a RewritePatternSet or resources will leak"]
-pub struct RewritePattern {
+pub struct RewritePattern<'c> {
     raw: MlirRewritePattern,
+    context: &'c Context,
 }
 
-impl RewritePattern {
+impl RewritePattern<'_> {
     /// Converts the pattern into a raw object, transferring ownership.
     pub const fn into_raw(self) -> MlirRewritePattern {
-        self.raw
+        let raw = self.raw;
+
+        forget(self);
+
+        raw
+    }
+}
+
+impl Drop for RewritePattern<'_> {
+    fn drop(&mut self) {
+        unsafe { mlirRewritePatternSetAdd(RewritePatternSet::new(self.context).raw, self.raw) }
     }
 }
 
@@ -122,13 +132,13 @@ impl<'c> PatternRewriter<'c, '_> {
 /// should rewrite the operation and return `true`, or return `false` without
 /// modifying the IR if the pattern does not match. Panics in the callback abort
 /// the process because they might leave the IR partially rewritten.
-pub fn create_op_rewrite_pattern<F>(
+pub fn create_op_rewrite_pattern<'a, F>(
     root_name: &str,
     benefit: u32,
-    context: &Context,
+    context: &'a Context,
     callback: F,
     generated_names: &[&str],
-) -> RewritePattern
+) -> RewritePattern<'a>
 where
     F: for<'c> FnMut(OperationRef<'c, '_>, &PatternRewriter<'c, '_>) -> bool + 'static,
 {
@@ -181,7 +191,7 @@ where
         )
     };
 
-    RewritePattern { raw }
+    RewritePattern { raw, context }
 }
 
 #[cfg(test)]
@@ -193,6 +203,7 @@ mod tests {
         ir::{Location, Module},
         test::create_test_context,
     };
+    use alloc::rc::Rc;
     use indoc::indoc;
 
     #[test]
@@ -246,6 +257,30 @@ mod tests {
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);
+    }
+
+    #[test]
+    fn drop_op_rewrite_pattern_without_add() {
+        let context = create_test_context();
+        let value = Rc::new(());
+
+        drop(create_op_rewrite_pattern(
+            "arith.constant",
+            1,
+            &context,
+            {
+                let value = value.clone();
+
+                move |_op, _rewriter| {
+                    let _ = &value;
+
+                    false
+                }
+            },
+            &[],
+        ));
+
+        assert_eq!(Rc::strong_count(&value), 1);
     }
 
     #[test]
