@@ -1,24 +1,21 @@
 mod attribute;
-mod builder;
+mod element_kind;
 mod element_position;
-mod operand;
+mod field_kind;
 mod operation_element;
 mod operation_field;
 mod region;
-mod result;
-mod segment_kind;
 mod successor;
 mod variadic_kind;
 
 pub use self::{
-    attribute::Attribute, builder::OperationBuilder, element_position::ElementPosition,
-    operand::Operand, operation_element::OperationElement, region::Region, result::OperationResult,
-    segment_kind::SegmentKind, successor::Successor, variadic_kind::VariadicKind,
+    attribute::Attribute, element_kind::ElementKind, element_position::ElementPosition,
+    field_kind::FieldKind, operation_element::OperationElement, region::Region,
+    successor::Successor, variadic_kind::VariadicKind,
 };
 use super::utility::{sanitize_documentation, sanitize_snake_case_identifier};
 use crate::dialect::{
     error::{Error, OdsError},
-    r#trait::Trait,
     r#type::Type,
     utility::capitalize_string,
 };
@@ -48,15 +45,14 @@ pub enum TypeInference {
 pub struct Operation<'a> {
     name: String,
     short_name: String,
-    short_dialect_name: &'a str,
     dialect_name: &'a str,
     operation_name: &'a str,
     constructor_identifier: Ident,
     summary: &'a str,
     description: String,
     type_inference: Option<TypeInference>,
-    results: Vec<OperationResult>,
-    operands: Vec<Operand<'a>>,
+    results: Vec<OperationElement>,
+    operands: Vec<OperationElement>,
     regions: Vec<Region<'a>>,
     successors: Vec<Successor<'a>>,
     attributes: Vec<Attribute<'a>>,
@@ -66,11 +62,7 @@ pub struct Operation<'a> {
 impl<'a> Operation<'a> {
     pub fn new(definition: Record<'a>) -> Result<Self, Error> {
         let operation_name = definition.str_value("opName")?;
-        let traits = Self::collect_traits(definition)?;
-        let trait_names = traits
-            .iter()
-            .flat_map(|r#trait| r#trait.name())
-            .collect::<HashSet<_>>();
+        let trait_names = Self::collect_trait_names(definition)?;
 
         let arguments = Self::dag_constraints(definition, "arguments")?;
         let regions = Self::collect_regions(definition)?;
@@ -98,7 +90,7 @@ impl<'a> Operation<'a> {
             )
             .map(ToString::to_string)
             .collect::<HashSet<_>>();
-        let (results, unfixed_result_count) = Self::collect_results(
+        let results = Self::collect_results(
             definition,
             &member_identifiers,
             trait_names.contains("::mlir::OpTrait::SameVariadicResultSize"),
@@ -109,25 +101,19 @@ impl<'a> Operation<'a> {
         Ok(Self {
             name: short_name.clone() + "Operation",
             short_name,
-            dialect_name: definition.def_value("opDialect")?.name()?,
-            short_dialect_name: definition.def_value("opDialect")?.str_value("name")?,
+            dialect_name: definition.def_value("opDialect")?.str_value("name")?,
             operation_name,
             constructor_identifier: sanitize_snake_case_identifier(operation_name)?,
             summary: definition.str_value("summary")?,
             description: sanitize_documentation(definition.str_value("description")?)?,
             type_inference: {
+                let has_unfixed_results = results.iter().any(OperationElement::is_unfixed);
                 let has_interface = regions.is_empty()
-                    && traits.iter().any(|r#trait| {
-                        r#trait.name() == Some("::mlir::InferTypeOpInterface::Trait")
-                    });
-                let has_same_operands = unfixed_result_count == 0
-                    && traits.iter().any(|r#trait| {
-                        r#trait.name() == Some("::mlir::OpTrait::SameOperandsAndResultType")
-                    });
-                let has_first_attr_derived = unfixed_result_count == 0
-                    && traits.iter().any(|r#trait| {
-                        r#trait.name() == Some("::mlir::OpTrait::FirstAttrDerivedResultType")
-                    });
+                    && trait_names.contains("::mlir::InferTypeOpInterface::Trait");
+                let has_same_operands = !has_unfixed_results
+                    && trait_names.contains("::mlir::OpTrait::SameOperandsAndResultType");
+                let has_first_attr_derived = !has_unfixed_results
+                    && trait_names.contains("::mlir::OpTrait::FirstAttrDerivedResultType");
                 if has_interface {
                     Some(TypeInference::Interface)
                 } else if has_same_operands {
@@ -171,24 +157,22 @@ impl<'a> Operation<'a> {
         self.type_inference
     }
 
-    pub const fn dialect_name(&self) -> &str {
-        self.dialect_name
-    }
-
     pub const fn operation_name(&self) -> &str {
         self.operation_name
     }
 
     pub fn full_operation_name(&self) -> String {
-        format!("{}.{}", self.short_dialect_name, self.operation_name)
+        format!("{}.{}", self.dialect_name, self.operation_name)
     }
 
     pub fn documentation_name(&self) -> String {
-        let article = VOWELS.contains(&self.operation_name()[..1]);
-
         format!(
             "{} [`{}`]({}) operation",
-            if article { "an" } else { "a" },
+            if VOWELS.contains(&self.operation_name()[..1]) {
+                "an"
+            } else {
+                "a"
+            },
             self.operation_name,
             self.name
         )
@@ -214,34 +198,34 @@ impl<'a> Operation<'a> {
         &self.constructor_identifier
     }
 
-    pub fn results(&self) -> impl Iterator<Item = &OperationResult> + Clone {
+    pub fn results(&self) -> impl Iterator<Item = &OperationElement> + Clone {
         self.results.iter()
     }
 
-    pub fn result_len(&self) -> usize {
+    pub const fn result_len(&self) -> usize {
         self.results.len()
     }
 
-    pub fn operands(&self) -> impl Iterator<Item = &Operand<'a>> + Clone {
+    pub fn operands(&self) -> impl Iterator<Item = &OperationElement> + Clone {
         self.operands.iter()
     }
 
-    pub fn operand_len(&self) -> usize {
+    pub const fn operand_len(&self) -> usize {
         self.operands.len()
     }
 
     // The segment size arrays a builder for this operation fills in, with their
     // lengths. Result types are not set by the builder if they are inferred, so
     // their group sizes cannot be computed either.
-    pub fn segment_arrays(&self) -> impl Iterator<Item = (SegmentKind, usize)> {
+    pub fn segment_arrays(&self) -> impl Iterator<Item = (FieldKind, usize)> {
         let operands = self
             .operands
             .iter()
             .any(|operand| operand.segment().is_some())
-            .then_some((SegmentKind::Operand, self.operand_len()));
+            .then_some((FieldKind::Operand, self.operand_len()));
         let results = (self.type_inference.is_none()
             && self.results.iter().any(|result| result.segment().is_some()))
-        .then_some((SegmentKind::Result, self.result_len()));
+        .then_some((FieldKind::Result, self.result_len()));
 
         operands.into_iter().chain(results)
     }
@@ -263,7 +247,7 @@ impl<'a> Operation<'a> {
     }
 
     // Results whose types are given to builders rather than inferred.
-    pub fn non_inferred_results(&self) -> impl Iterator<Item = &OperationResult> {
+    pub fn non_inferred_results(&self) -> impl Iterator<Item = &OperationElement> {
         if self.type_inference.is_some() {
             Default::default()
         } else {
@@ -271,12 +255,12 @@ impl<'a> Operation<'a> {
         }
     }
 
-    pub fn required_results(&self) -> impl Iterator<Item = &OperationResult> {
+    pub fn required_results(&self) -> impl Iterator<Item = &OperationElement> {
         self.non_inferred_results()
             .filter(|field| !field.is_optional())
     }
 
-    pub fn required_operands(&self) -> impl Iterator<Item = &'_ Operand<'_>> {
+    pub fn required_operands(&self) -> impl Iterator<Item = &OperationElement> {
         self.operands.iter().filter(|field| !field.is_optional())
     }
 
@@ -301,15 +285,16 @@ impl<'a> Operation<'a> {
         definition
             .dag_value("successors")?
             .args()
-            .map(|(name, value)| {
-                let name = name.ok_or_else(|| {
-                    OdsError::UnnamedDagArg("successors").with_location(definition)
-                })?;
+            .enumerate()
+            .map(|(index, (name, value))| {
                 Successor::new(
-                    name,
+                    name.ok_or_else(|| {
+                        OdsError::UnnamedDagArg("successors").with_location(definition)
+                    })?,
                     Record::try_from(value)
                         .map_err(|error| error.set_location(definition))?
                         .subclass_of("VariadicSuccessor"),
+                    index,
                 )
             })
             .collect()
@@ -319,22 +304,24 @@ impl<'a> Operation<'a> {
         definition
             .dag_value("regions")?
             .args()
-            .map(|(name, value)| {
-                let name = name
-                    .ok_or_else(|| OdsError::UnnamedDagArg("regions").with_location(definition))?;
+            .enumerate()
+            .map(|(index, (name, value))| {
                 Region::new(
-                    name,
+                    name.ok_or_else(|| {
+                        OdsError::UnnamedDagArg("regions").with_location(definition)
+                    })?,
                     Record::try_from(value)
                         .map_err(|error| error.set_location(definition))?
                         .subclass_of("VariadicRegion"),
+                    index,
                 )
             })
             .collect()
     }
 
-    fn collect_traits(definition: Record<'a>) -> Result<Vec<Trait>, Error> {
+    fn collect_trait_names(definition: Record<'a>) -> Result<HashSet<String>, Error> {
         let mut trait_lists = vec![definition.list_of_defs_value("traits")?];
-        let mut traits = vec![];
+        let mut names = HashSet::new();
 
         while let Some(trait_list) = trait_lists.pop() {
             for definition in trait_list {
@@ -344,12 +331,33 @@ impl<'a> Operation<'a> {
                     if definition.subclass_of("Interface") {
                         trait_lists.push(definition.list_of_defs_value("baseInterfaces")?);
                     }
-                    traits.push(Trait::new(definition)?)
+                    names.extend(Self::build_trait_name(definition)?);
                 }
             }
         }
 
-        Ok(traits)
+        Ok(names)
+    }
+
+    // Predicate traits have no names.
+    fn build_trait_name(definition: Record) -> Result<Option<String>, Error> {
+        Ok(if definition.subclass_of("PredTrait") {
+            None
+        } else if definition.subclass_of("InterfaceTrait") || definition.subclass_of("NativeTrait")
+        {
+            let name = definition.string_value("trait")?;
+            let namespace = definition.string_value("cppNamespace")?;
+
+            Some(if namespace.is_empty() {
+                name
+            } else {
+                format!("{namespace}::{name}")
+            })
+        } else if definition.subclass_of("GenInternalTrait") {
+            Some(definition.string_value("trait")?)
+        } else {
+            return Err(OdsError::InvalidTrait.with_location(definition).into());
+        })
     }
 
     fn dag_constraints(
@@ -380,7 +388,7 @@ impl<'a> Operation<'a> {
         member_identifiers: &HashSet<String>,
         same_size: bool,
         attribute_sized: bool,
-    ) -> Result<(Vec<OperationResult>, usize), Error> {
+    ) -> Result<Vec<OperationElement>, Error> {
         let results = Self::dag_constraints(definition, "results")?;
         // Unnamed results (e.g. `(outs AnyType)` without `$name`) get generated
         // names so that they are preserved in builders and accessors. Conflicts
@@ -416,11 +424,11 @@ impl<'a> Operation<'a> {
 
         Self::collect_elements(
             definition,
+            ElementKind::Result,
             &named
                 .iter()
                 .map(|(name, r#type)| (name.as_str(), *r#type))
                 .collect::<Vec<_>>(),
-            OperationResult::new,
             same_size,
             attribute_sized,
         )
@@ -431,29 +439,28 @@ impl<'a> Operation<'a> {
         arguments: &[(Option<&'a str>, Record<'a>)],
         same_size: bool,
         attribute_sized: bool,
-    ) -> Result<Vec<Operand<'a>>, Error> {
-        Ok(Self::collect_elements(
+    ) -> Result<Vec<OperationElement>, Error> {
+        Self::collect_elements(
             definition,
+            ElementKind::Operand,
             &arguments
                 .iter()
                 .filter_map(|(name, definition)| Some(((*name)?, *definition)))
                 .filter(|(_, definition)| definition.subclass_of("TypeConstraint"))
                 .map(|(name, definition)| (name, Type::new(definition)))
                 .collect::<Vec<_>>(),
-            Operand::new,
             same_size,
             attribute_sized,
-        )?
-        .0)
+        )
     }
 
-    fn collect_elements<'n, T>(
+    fn collect_elements(
         definition: Record<'a>,
-        elements: &[(&'n str, Type)],
-        create: impl Fn(&'n str, Type, ElementPosition) -> Result<T, Error>,
+        kind: ElementKind,
+        elements: &[(&str, Type)],
         same_size: bool,
         attribute_sized: bool,
-    ) -> Result<(Vec<T>, usize), Error> {
+    ) -> Result<Vec<OperationElement>, Error> {
         let unfixed_count = Self::count_unfixed_elements(elements);
         let variadic_kind = if unfixed_count <= 1 {
             None
@@ -468,25 +475,23 @@ impl<'a> Operation<'a> {
                 .into());
         };
 
-        Ok((
-            elements
-                .iter()
-                .enumerate()
-                .map(|(index, (name, r#type))| {
-                    create(
-                        name,
-                        *r#type,
-                        ElementPosition::new(
-                            index,
-                            Self::count_unfixed_elements(&elements[..index]),
-                            unfixed_count,
-                            variadic_kind,
-                        ),
-                    )
-                })
-                .collect::<Result<_, _>>()?,
-            unfixed_count,
-        ))
+        elements
+            .iter()
+            .enumerate()
+            .map(|(index, (name, r#type))| {
+                OperationElement::new(
+                    name,
+                    kind,
+                    *r#type,
+                    ElementPosition::new(
+                        index,
+                        Self::count_unfixed_elements(&elements[..index]),
+                        unfixed_count,
+                        variadic_kind,
+                    ),
+                )
+            })
+            .collect()
     }
 
     fn count_unfixed_elements(elements: &[(&str, Type)]) -> usize {
@@ -503,13 +508,14 @@ impl<'a> Operation<'a> {
             .iter()
             .filter_map(|(name, definition)| Some(((*name)?, *definition)))
             .filter(|(_, definition)| definition.subclass_of("Attr"))
-            .map(|(name, definition)| {
+            .enumerate()
+            .map(|(index, (name, definition))| {
                 if definition.subclass_of("DerivedAttr") {
                     Err(OdsError::UnexpectedSuperClass("DerivedAttr")
                         .with_location(definition)
                         .into())
                 } else {
-                    Attribute::new(name, definition)
+                    Attribute::new(name, definition, index)
                 }
             })
             .collect()
@@ -523,9 +529,10 @@ impl<'a> Operation<'a> {
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
             .filter(|definition| definition.subclass_of("Attr"))
-            .map(|definition| {
+            .enumerate()
+            .map(|(index, definition)| {
                 if definition.subclass_of("DerivedAttr") {
-                    Attribute::new(definition.name()?, definition)
+                    Attribute::new(definition.name()?, definition, index)
                 } else {
                     Err(OdsError::ExpectedSuperClass("DerivedAttr")
                         .with_location(definition)

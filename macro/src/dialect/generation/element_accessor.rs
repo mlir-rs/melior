@@ -1,21 +1,14 @@
-use crate::dialect::{
-    operation::{OperationElement, VariadicKind},
-    utility::segment_size_attribute_name,
-};
-use proc_macro2::{Span, TokenStream};
-use quote::quote;
-use syn::Ident;
+use crate::dialect::operation::{OperationElement, OperationField, VariadicKind};
+use convert_case::{Case, Casing};
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
 
-pub fn generate_element_getter(
-    field: &impl OperationElement,
-    singular_kind: &str,
-    plural_kind: &str,
-    error_variant: &Ident,
-    length: usize,
-) -> TokenStream {
-    let singular_kind_identifier = Ident::new(singular_kind, Span::call_site());
-    let plural_kind_identifier = Ident::new(plural_kind, Span::call_site());
-    let count = Ident::new(&format!("{singular_kind}_count"), Span::call_site());
+pub fn generate_element_accessor(field: &OperationElement, length: usize) -> TokenStream {
+    let kind = field.kind();
+    let singular_kind_identifier = format_ident!("{}", kind.singular_name());
+    let plural_kind_identifier = format_ident!("{}", kind.plural_name());
+    let count = format_ident!("{}_count", kind.singular_name());
+    let error_variant = format_ident!("{}NotFound", kind.singular_name().to_case(Case::Pascal));
     let name = field.name();
     let position = field.position();
     let index = position.index();
@@ -79,7 +72,7 @@ pub fn generate_element_getter(
             }
         }
         Some(VariadicKind::AttributeSized) => {
-            let segment_size_attribute = segment_size_attribute_name(singular_kind);
+            let segment_size_attribute = kind.segment_size_attribute_name();
             let get_elements = if !field.is_unfixed() {
                 quote! {
                     self.operation.#singular_kind_identifier(start)
@@ -106,9 +99,7 @@ pub fn generate_element_getter(
                     )?;
                 let start = (0..#index)
                     .map(|index| attribute.element(index))
-                    .collect::<Result<Vec<_>, _>>()?
-                    .into_iter()
-                    .sum::<i32>() as usize;
+                    .sum::<Result<i32, _>>()? as usize;
                 let group_len = attribute.element(#index)? as usize;
 
                 #get_elements
@@ -118,8 +109,17 @@ pub fn generate_element_getter(
 
     let identifier = field.singular_identifier();
     let return_type = field.return_type();
+    let doc = format!(
+        "Returns the `{name}` {}.",
+        if field.is_variadic() {
+            kind.plural_name()
+        } else {
+            kind.singular_name()
+        }
+    );
 
     quote! {
+        #[doc = #doc]
         pub fn #identifier(&self) -> #return_type {
             #body
         }

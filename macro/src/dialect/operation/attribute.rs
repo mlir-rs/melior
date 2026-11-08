@@ -1,6 +1,6 @@
 use crate::dialect::{
     error::Error,
-    operation::{SegmentKind, operation_field::OperationField},
+    operation::{FieldKind, operation_field::OperationField},
     utility::{generate_result_type, sanitize_snake_case_identifier},
 };
 use proc_macro2::{Span, TokenStream};
@@ -17,10 +17,11 @@ pub struct Attribute<'a> {
     storage_type: Ident,
     optional: bool,
     default: bool,
+    index: usize,
 }
 
 impl<'a> Attribute<'a> {
-    pub fn new(name: &'a str, record: Record<'a>) -> Result<Self, Error> {
+    pub fn new(name: &'a str, record: Record<'a>, index: usize) -> Result<Self, Error> {
         Ok(Self {
             name,
             singular_identifier: sanitize_snake_case_identifier(name)?,
@@ -48,6 +49,7 @@ impl<'a> Attribute<'a> {
                     false
                 }
             },
+            index,
         })
     }
 
@@ -87,6 +89,14 @@ impl OperationField for Attribute<'_> {
         self.name
     }
 
+    fn kind(&self) -> FieldKind {
+        FieldKind::Attribute
+    }
+
+    fn index(&self) -> usize {
+        self.index
+    }
+
     fn singular_identifier(&self) -> &Ident {
         &self.singular_identifier
     }
@@ -105,10 +115,6 @@ impl OperationField for Attribute<'_> {
         self.optional || self.default
     }
 
-    fn add_identifier(&self) -> Ident {
-        Ident::new("add_attributes", Span::call_site())
-    }
-
     fn add_arguments(&self) -> TokenStream {
         let name = &self.singular_identifier;
         let name_string = &self.name;
@@ -122,7 +128,7 @@ impl OperationField for Attribute<'_> {
     }
 
     // Attributes are not operands or results, so they have no group to size.
-    fn segment(&self) -> Option<(SegmentKind, usize)> {
+    fn segment(&self) -> Option<usize> {
         None
     }
 }

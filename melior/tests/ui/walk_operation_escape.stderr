@@ -1,0 +1,14 @@
+error[E0521]: borrowed data escapes outside of closure
+  --> tests/ui/walk_operation_escape.rs:15:9
+   |
+12 |     let mut operations = Vec::<OperationRef>::new();
+   |         -------------- `operations` declared here, outside of the closure body
+13 |
+14 |     module.as_operation().walk(WalkOrder::PreOrder, |operation| {
+   |                                                      --------- `operation` is a reference that is only valid in the closure body
+15 |         operations.push(operation);
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `operation` escapes the closure body here
+   |
+   = note: requirement occurs because of a mutable reference to `Vec<OperationRef<'_, '_>>`
+   = note: mutable references are invariant over their type parameter
+   = help: see <https://doc.rust-lang.org/nomicon/subtyping.html> for more information about variance

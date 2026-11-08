@@ -1,3 +1,5 @@
+#![expect(missing_docs)]
+
 mod utility;
 
 use melior::ir::{Block, Location, Type, ValueLike, block::BlockLike, operation::OperationLike};
@@ -16,7 +18,7 @@ fn simple() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[(r#type, location), (r#type, location)]);
+    let block = Block::new(&[r#type, r#type], &[location, location]).unwrap();
     let operation = operand_test::simple(
         &context,
         r#type,
@@ -40,7 +42,7 @@ fn variadic_after_single() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[(r#type, location), (r#type, location), (r#type, location)]);
+    let block = Block::new(&[r#type, r#type, r#type], &[location, location, location]).unwrap();
     let operation = operand_test::variadic(
         &context,
         r#type,
@@ -78,7 +80,7 @@ fn empty_variadic_after_single() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[(r#type, location)]);
+    let block = Block::new(&[r#type], &[location]).unwrap();
     let operation = operand_test::variadic(
         &context,
         r#type,
@@ -103,7 +105,7 @@ fn variadic_before_single() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[(r#type, location), (r#type, location), (r#type, location)]);
+    let block = Block::new(&[r#type, r#type, r#type], &[location, location, location]).unwrap();
     let operation = operand_test::variadic_before_single(
         &context,
         r#type,
@@ -136,7 +138,7 @@ fn empty_variadic_before_single() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[(r#type, location)]);
+    let block = Block::new(&[r#type], &[location]).unwrap();
     let operation = operand_test::variadic_before_single(
         &context,
         r#type,
@@ -158,7 +160,7 @@ fn optional_before_single() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[(r#type, location), (r#type, location)]);
+    let block = Block::new(&[r#type, r#type], &[location, location]).unwrap();
     let operation = operand_test::OptionalBeforeSingleOperation::builder(&context, location)
         .res(r#type)
         .optional(block.argument(0).unwrap().into())
@@ -181,7 +183,7 @@ fn absent_optional_before_single() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[(r#type, location)]);
+    let block = Block::new(&[r#type], &[location]).unwrap();
     let operation = operand_test::optional_before_single(
         &context,
         r#type,
@@ -202,7 +204,7 @@ fn attribute_sized_variadic_named_sizes() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[(r#type, location), (r#type, location), (r#type, location)]);
+    let block = Block::new(&[r#type, r#type, r#type], &[location, location, location]).unwrap();
     let operation = operand_test::attribute_sized(
         &context,
         r#type,
@@ -239,12 +241,11 @@ fn attribute_sized_with_optional() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[
-        (r#type, location),
-        (r#type, location),
-        (r#type, location),
-        (r#type, location),
-    ]);
+    let block = Block::new(
+        &[r#type, r#type, r#type, r#type],
+        &[location, location, location, location],
+    )
+    .unwrap();
     let operation = operand_test::AttributeSizedOptionalOperation::builder(&context, location)
         .res(r#type)
         .first(block.argument(0).unwrap().into())
@@ -283,7 +284,7 @@ fn attribute_sized_without_optional() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[(r#type, location), (r#type, location), (r#type, location)]);
+    let block = Block::new(&[r#type, r#type, r#type], &[location, location, location]).unwrap();
     let operation = operand_test::attribute_sized_optional(
         &context,
         r#type,
@@ -320,12 +321,11 @@ fn same_size() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[
-        (r#type, location),
-        (r#type, location),
-        (r#type, location),
-        (r#type, location),
-    ]);
+    let block = Block::new(
+        &[r#type, r#type, r#type, r#type],
+        &[location, location, location, location],
+    )
+    .unwrap();
     let operation = operand_test::same_size(
         &context,
         r#type,
@@ -385,15 +385,13 @@ fn same_size_with_singles() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[
-        (r#type, location),
-        (r#type, location),
-        (r#type, location),
-        (r#type, location),
-        (r#type, location),
-        (r#type, location),
-        (r#type, location),
-    ]);
+    let block = Block::new(
+        &[r#type, r#type, r#type, r#type, r#type, r#type, r#type],
+        &[
+            location, location, location, location, location, location, location,
+        ],
+    )
+    .unwrap();
     let operation = operand_test::same_size_with_singles(
         &context,
         r#type,
@@ -445,7 +443,7 @@ fn empty_same_size_with_singles() {
     let location = Location::unknown(&context);
 
     let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[(r#type, location), (r#type, location), (r#type, location)]);
+    let block = Block::new(&[r#type, r#type, r#type], &[location, location, location]).unwrap();
     let operation = operand_test::same_size_with_singles(
         &context,
         r#type,

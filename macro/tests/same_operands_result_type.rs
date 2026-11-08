@@ -1,3 +1,5 @@
+#![expect(missing_docs)]
+
 mod utility;
 
 use melior::ir::{Block, Location, Type, ValueLike, block::BlockLike, operation::OperationLike};
@@ -16,7 +18,7 @@ fn same_operands_result_type_has_result() {
     let location = Location::unknown(&context);
     let i32_type = Type::parse(&context, "i32").unwrap();
 
-    let block = Block::new(&[(i32_type, location), (i32_type, location)]);
+    let block = Block::new(&[i32_type, i32_type], &[location, location]).unwrap();
     let lhs = block.argument(0).unwrap().into();
     let rhs = block.argument(1).unwrap().into();
 
@@ -34,7 +36,7 @@ fn variadic_first_operand_infers_result_type() {
     let location = Location::unknown(&context);
     let i32_type = Type::parse(&context, "i32").unwrap();
 
-    let block = Block::new(&[(i32_type, location), (i32_type, location)]);
+    let block = Block::new(&[i32_type, i32_type], &[location, location]).unwrap();
     let a = block.argument(0).unwrap().into();
     let b = block.argument(1).unwrap().into();
 
@@ -52,7 +54,7 @@ fn tensor_type_infers_result_type() {
     let location = Location::unknown(&context);
     let tensor_type = Type::parse(&context, "tensor<4xi32>").unwrap();
 
-    let block = Block::new(&[(tensor_type, location), (tensor_type, location)]);
+    let block = Block::new(&[tensor_type, tensor_type], &[location, location]).unwrap();
     let lhs = block.argument(0).unwrap().into();
     let rhs = block.argument(1).unwrap().into();
 

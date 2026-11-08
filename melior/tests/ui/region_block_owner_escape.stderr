@@ -1,0 +1,12 @@
+error[E0597]: `region` does not live long enough
+ --> tests/ui/region_block_owner_escape.rs:7:9
+  |
+4 |     let block = {
+  |         ----- borrow later stored here
+5 |         let region = Region::new();
+  |             ------ binding `region` declared here
+6 |
+7 |         region.append_block(Block::new(&[], &[]).unwrap())
+  |         ^^^^^^ borrowed value does not live long enough
+8 |     };
+  |     - `region` dropped here while still borrowed

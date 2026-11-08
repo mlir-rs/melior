@@ -3,27 +3,28 @@ use crate::{
     context::{Context, ContextRef},
     string_ref::StringRef,
 };
+use alloc::ffi::CString;
+use core::{cell::Cell, marker::PhantomData, mem::forget};
 use mlir_sys::{
     MlirModule, mlirModuleCreateEmpty, mlirModuleCreateParse, mlirModuleDestroy,
     mlirModuleFromOperation, mlirModuleGetBody, mlirModuleGetContext, mlirModuleGetOperation,
 };
-use std::{ffi::CString, marker::PhantomData};
 
 /// A module.
 #[derive(Debug)]
 pub struct Module<'c> {
     raw: MlirModule,
-    _context: PhantomData<&'c Context>,
+    _context: PhantomData<Cell<&'c Context>>,
 }
 
 impl<'c> Module<'c> {
     /// Creates a module.
-    pub fn new(location: Location) -> Self {
+    pub fn new(location: Location<'c>) -> Self {
         unsafe { Self::from_raw(mlirModuleCreateEmpty(location.to_raw())) }
     }
 
     /// Parses a module.
-    pub fn parse(context: &Context, source: &str) -> Option<Self> {
+    pub fn parse(context: &'c Context, source: &str) -> Option<Self> {
         // TODO Use a string not null-terminated.
         // Somehow, we still need a null-terminated string for a source.
         let source = CString::new(source).unwrap();
@@ -50,11 +51,6 @@ impl<'c> Module<'c> {
     /// Returns a block of a module body.
     pub fn body(&self) -> BlockRef<'c, '_> {
         unsafe { BlockRef::from_raw(mlirModuleGetBody(self.raw)) }
-    }
-
-    /// Converts an operation into a module.
-    pub fn from_operation(operation: Operation) -> Option<Self> {
-        unsafe { Self::from_option_raw(mlirModuleFromOperation(operation.into_raw())) }
     }
 
     /// Creates a module from a raw object.
@@ -88,6 +84,22 @@ impl<'c> Module<'c> {
     }
 }
 
+impl<'c> TryFrom<Operation<'c>> for Module<'c> {
+    type Error = Operation<'c>;
+
+    fn try_from(operation: Operation<'c>) -> Result<Self, Self::Error> {
+        if let Some(module) =
+            unsafe { Self::from_option_raw(mlirModuleFromOperation(operation.to_raw())) }
+        {
+            forget(operation);
+
+            Ok(module)
+        } else {
+            Err(operation)
+        }
+    }
+}
+
 impl Drop for Module<'_> {
     fn drop(&mut self) {
         unsafe { mlirModuleDestroy(self.raw) };
@@ -99,7 +111,7 @@ mod tests {
     use super::*;
     use crate::{
         ir::{
-            Block, Region, RegionLike,
+            Block, Identifier, Region, RegionLike,
             attribute::StringAttribute,
             operation::{OperationBuilder, OperationLike, OperationMutLike},
         },
@@ -127,13 +139,13 @@ mod tests {
     }
 
     #[test]
-    fn from_operation() {
+    fn try_from_operation() {
         let context = create_test_context();
 
         let region = Region::new();
-        region.append_block(Block::new(&[]));
+        region.append_block(Block::new(&[], &[]).unwrap());
 
-        let module = Module::from_operation(
+        let module = Module::try_from(
             OperationBuilder::new("builtin.module", Location::unknown(&context))
                 .add_regions([region])
                 .build()
@@ -146,16 +158,18 @@ mod tests {
     }
 
     #[test]
-    fn from_operation_fail() {
+    fn try_from_operation_fail() {
         let context = create_test_context();
 
-        assert!(
-            Module::from_operation(
-                OperationBuilder::new("func.func", Location::unknown(&context),)
+        assert_eq!(
+            Module::try_from(
+                OperationBuilder::new("func.func", Location::unknown(&context))
                     .build()
                     .unwrap()
             )
-            .is_none()
+            .unwrap_err()
+            .name(),
+            Identifier::new(&context, "func.func")
         );
     }
 

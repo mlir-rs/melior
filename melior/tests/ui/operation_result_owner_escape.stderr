@@ -1,0 +1,12 @@
+error[E0597]: `operation` does not live long enough
+  --> tests/ui/operation_result_owner_escape.rs:19:9
+   |
+13 |     let result = {
+   |         ------ borrow later stored here
+14 |         let operation = OperationBuilder::new("foo.bar", Location::unknown(&context))
+   |             --------- binding `operation` declared here
+...
+19 |         operation.result(0).unwrap()
+   |         ^^^^^^^^^ borrowed value does not live long enough
+20 |     };
+   |     - `operation` dropped here while still borrowed

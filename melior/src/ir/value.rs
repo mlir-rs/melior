@@ -3,12 +3,13 @@ mod value_like;
 pub use self::value_like::ValueLike;
 use super::{Type, block::BlockArgument, operation::OperationResult};
 use crate::{Context, utility::print_callback};
-use mlir_sys::{MlirValue, mlirValueEqual, mlirValuePrint};
-use std::{
+use core::{
+    cell::Cell,
     ffi::c_void,
     fmt::{self, Debug, Display, Formatter},
     marker::PhantomData,
 };
+use mlir_sys::{MlirValue, mlirValueEqual, mlirValuePrint};
 
 /// A value.
 // Values are always non-owning references to their parents, such as operations
@@ -17,7 +18,7 @@ use std::{
 #[repr(transparent)]
 pub struct Value<'c, 'a> {
     raw: MlirValue,
-    _context: PhantomData<&'c Context>,
+    _context: PhantomData<Cell<&'c Context>>,
     _parent: PhantomData<&'a ()>,
 }
 
@@ -129,7 +130,7 @@ mod tests {
     fn is_block_argument() {
         let context = create_test_context();
         let r#type = Type::index(&context);
-        let block = Block::new(&[(r#type, Location::unknown(&context))]);
+        let block = Block::new(&[r#type], &[Location::unknown(&context)]).unwrap();
 
         assert!(block.argument(0).unwrap().is_block_argument());
     }
@@ -269,7 +270,7 @@ mod tests {
         let index_type = Type::index(&context);
         let i32_type = Type::from(IntegerType::new(&context, 32));
 
-        let block = Block::new(&[(index_type, location)]);
+        let block = Block::new(&[index_type], &[location]).unwrap();
         let arg = block.argument(0).unwrap();
         let value = Value::from(arg);
 
@@ -284,7 +285,7 @@ mod tests {
         let location = Location::unknown(&context);
         let index_type = Type::index(&context);
 
-        let block = Block::new(&[(index_type, location)]);
+        let block = Block::new(&[index_type], &[location]).unwrap();
         let arg = block.argument(0).unwrap();
         let value = Value::from(arg);
 
@@ -297,7 +298,7 @@ mod tests {
         let location = Location::unknown(&context);
         let index_type = Type::index(&context);
 
-        let block = Block::new(&[(index_type, location)]);
+        let block = Block::new(&[index_type], &[location]).unwrap();
         let arg = block.argument(0).unwrap();
         let value = Value::from(arg);
 

@@ -25,7 +25,7 @@ impl Type {
     }
 
     // TODO Support variadic-of-variadic.
-    #[allow(unused)]
+    #[expect(unused)]
     pub const fn is_variadic_of_variadic(&self) -> bool {
         self.variadic_of_variadic
     }

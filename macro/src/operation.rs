@@ -1,114 +1,100 @@
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
-use quote::quote;
+use quote::{format_ident, quote};
+use syn::{Type, parse_quote};
 
 pub fn generate_binary(dialect: &Ident, names: &[Ident]) -> TokenStream {
-    let mut stream = TokenStream::new();
-
-    for name in names {
-        let document = create_document(dialect, name);
-        let operation_name = create_operation_name(dialect, name);
-
-        stream.extend(TokenStream::from(quote! {
-            #[doc = #document]
-            pub fn #name<'c>(
-                lhs: crate::ir::Value<'c, '_>,
-                rhs: crate::ir::Value<'c, '_>,
-                location: crate::ir::Location<'c>,
-            ) -> crate::ir::Operation<'c> {
-                binary_operator(#operation_name, lhs, rhs, location)
-            }
-        }));
-    }
-
-    stream.extend(TokenStream::from(quote! {
-        fn binary_operator<'c>(
-            name: &str,
-            lhs: crate::ir::Value<'c, '_>,
-            rhs: crate::ir::Value<'c, '_>,
-            location: crate::ir::Location<'c>,
-        ) -> crate::ir::Operation<'c> {
-            crate::ir::operation::OperationBuilder::new( name, location)
-                .add_operands(&[lhs, rhs])
-                .enable_result_type_inference()
-                .build()
-                .expect("valid operation")
-        }
-    }));
-
-    stream
+    generate(
+        dialect,
+        names,
+        &format_ident!("binary_operator"),
+        &[
+            (format_ident!("lhs"), parse_quote!(crate::ir::Value<'c, '_>)),
+            (format_ident!("rhs"), parse_quote!(crate::ir::Value<'c, '_>)),
+        ],
+        quote! {
+            .add_operands(&[lhs, rhs])
+            .enable_result_type_inference()
+        },
+    )
 }
 
 pub fn generate_unary(dialect: &Ident, names: &[Ident]) -> TokenStream {
-    let mut stream = TokenStream::new();
-
-    for name in names {
-        let document = create_document(dialect, name);
-        let operation_name = create_operation_name(dialect, name);
-
-        stream.extend(TokenStream::from(quote! {
-            #[doc = #document]
-            pub fn #name<'c>(
-                value: crate::ir::Value<'c, '_>,
-                location: crate::ir::Location<'c>,
-            ) -> crate::ir::Operation<'c> {
-                unary_operator(#operation_name, value, location)
-            }
-        }));
-    }
-
-    stream.extend(TokenStream::from(quote! {
-        fn unary_operator<'c>(
-            name: &str,
-            value: crate::ir::Value<'c, '_>,
-            location: crate::ir::Location<'c>,
-        ) -> crate::ir::Operation<'c> {
-            crate::ir::operation::OperationBuilder::new( name, location)
-                .add_operands(&[value])
-                .enable_result_type_inference()
-                .build()
-                .expect("valid operation")
-        }
-    }));
-
-    stream
+    generate(
+        dialect,
+        names,
+        &format_ident!("unary_operator"),
+        &[(
+            format_ident!("value"),
+            parse_quote!(crate::ir::Value<'c, '_>),
+        )],
+        quote! {
+            .add_operands(&[value])
+            .enable_result_type_inference()
+        },
+    )
 }
 
 pub fn generate_typed_unary(dialect: &Ident, names: &[Ident]) -> TokenStream {
-    let mut stream = TokenStream::new();
+    generate(
+        dialect,
+        names,
+        &format_ident!("typed_unary_operator"),
+        &[
+            (
+                format_ident!("value"),
+                parse_quote!(crate::ir::Value<'c, '_>),
+            ),
+            (format_ident!("r#type"), parse_quote!(crate::ir::Type<'c>)),
+        ],
+        quote! {
+            .add_operands(&[value])
+            .add_results(&[r#type])
+        },
+    )
+}
 
-    for name in names {
-        let document = create_document(dialect, name);
-        let operation_name = create_operation_name(dialect, name);
+fn generate(
+    dialect: &Ident,
+    names: &[Ident],
+    helper: &Ident,
+    parameters: &[(Ident, Type)],
+    builder: proc_macro2::TokenStream,
+) -> TokenStream {
+    let documents = names.iter().map(|name| create_document(dialect, name));
+    let operation_names = names
+        .iter()
+        .map(|name| create_operation_name(dialect, name));
+    let parameter_names = parameters.iter().map(|(name, _)| name);
+    let arguments = quote! { #(#parameter_names),* };
+    let parameters = parameters
+        .iter()
+        .map(|(name, r#type)| quote! { #name: #r#type, })
+        .collect::<proc_macro2::TokenStream>();
 
-        stream.extend(TokenStream::from(quote! {
-            #[doc = #document]
-            pub fn #name<'c>(
-                value: crate::ir::Value<'c, '_>,
-                r#type: crate::ir::Type<'c>,
+    quote! {
+        #(
+            #[doc = #documents]
+            pub fn #names<'c>(
+                #parameters
                 location: crate::ir::Location<'c>,
             ) -> crate::ir::Operation<'c> {
-                typed_unary_operator(#operation_name, value, r#type, location)
+                #helper(#operation_names, #arguments, location)
             }
-        }));
-    }
+        )*
 
-    stream.extend(TokenStream::from(quote! {
-        fn typed_unary_operator<'c>(
+        fn #helper<'c>(
             name: &str,
-            value: crate::ir::Value<'c, '_>,
-            r#type: crate::ir::Type<'c>,
+            #parameters
             location: crate::ir::Location<'c>,
         ) -> crate::ir::Operation<'c> {
-            crate::ir::operation::OperationBuilder::new( name, location)
-                .add_operands(&[value])
-                .add_results(&[r#type])
+            crate::ir::operation::OperationBuilder::new(name, location)
+                #builder
                 .build()
                 .expect("valid operation")
         }
-    }));
-
-    stream
+    }
+    .into()
 }
 
 fn create_document(dialect: &Ident, name: &Ident) -> String {

@@ -11,7 +11,7 @@ keywords.workspace = true
 categories = ["api-bindings"]
 
 [dependencies]
-melior-macro = { path = "../macro", version = "0.29.0" }
+melior-macro = { path = "../macro", version = "0.29.1" }
 mlir-sys = "230.0.2"
 
 [dev-dependencies]
@@ -24,3 +24,6 @@ trybuild = { version = "1.0.108", features = ["diff"] }
 # Enable the BlockExt trait (requires ods feature)
 helpers = ["ods-dialects"]
 ods-dialects = []
+
+[lints]
+workspace = true

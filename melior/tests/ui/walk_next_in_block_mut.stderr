@@ -1,0 +1,7 @@
+error[E0596]: cannot borrow data in dereference of `OperationRef<'_, '_>` as mutable
+  --> tests/ui/walk_next_in_block_mut.rs:22:33
+   |
+22 |         if let Some(mut next) = operation.next_in_block_mut() {
+   |                                 ^^^^^^^^^ cannot borrow as mutable
+   |
+   = help: trait `DerefMut` is required to modify through a dereference, but it is not implemented for `OperationRef<'_, '_>`

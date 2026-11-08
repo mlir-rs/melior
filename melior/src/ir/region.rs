@@ -2,17 +2,18 @@ mod region_like;
 
 pub use self::region_like::RegionLike;
 use super::{Block, BlockRef};
-use mlir_sys::{
-    MlirRegion, mlirBlockGetNextInRegion, mlirRegionCreate, mlirRegionDestroy, mlirRegionEqual,
-};
-use std::{
+use core::{
     marker::PhantomData,
     mem::{forget, transmute},
     ops::Deref,
 };
+use mlir_sys::{
+    MlirRegion, mlirBlockGetNextInRegion, mlirRegionCreate, mlirRegionDestroy, mlirRegionEqual,
+};
 
 /// A region.
 #[derive(Debug)]
+#[repr(transparent)]
 pub struct Region<'c> {
     raw: MlirRegion,
     _block: PhantomData<Block<'c>>,
@@ -37,8 +38,8 @@ impl Region<'_> {
     }
 }
 
-impl<'c: 'a, 'a> RegionLike<'c, 'a> for Region<'c> {
-    fn to_raw(&self) -> MlirRegion {
+impl<'c: 'a, 'a> RegionLike<'c, 'a> for &'a Region<'c> {
+    fn to_raw(self) -> MlirRegion {
         self.raw
     }
 }
@@ -98,7 +99,7 @@ impl RegionRef<'_, '_> {
 }
 
 impl<'c: 'a, 'a> RegionLike<'c, 'a> for RegionRef<'c, 'a> {
-    fn to_raw(&self) -> MlirRegion {
+    fn to_raw(self) -> MlirRegion {
         self.raw
     }
 }
@@ -184,7 +185,7 @@ mod tests {
     #[test]
     fn append_block() {
         let region = Region::new();
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         region.append_block(block);
 
@@ -195,8 +196,8 @@ mod tests {
     fn insert_block_after() {
         let region = Region::new();
 
-        let block = region.append_block(Block::new(&[]));
-        region.insert_block_after(block, Block::new(&[]));
+        let block = region.append_block(Block::new(&[], &[]).unwrap());
+        region.insert_block_after(block, Block::new(&[], &[]).unwrap());
 
         assert_eq!(region.first_block(), Some(block));
     }
@@ -205,8 +206,8 @@ mod tests {
     fn insert_block_before() {
         let region = Region::new();
 
-        let block = region.append_block(Block::new(&[]));
-        let block = region.insert_block_before(block, Block::new(&[]));
+        let block = region.append_block(Block::new(&[], &[]).unwrap());
+        let block = region.insert_block_before(block, Block::new(&[], &[]).unwrap());
 
         assert_eq!(region.first_block(), Some(block));
     }
@@ -227,8 +228,8 @@ mod tests {
     fn region_iterator() {
         let region = Region::new();
 
-        let block1 = region.append_block(Block::new(&[]));
-        let block2 = region.insert_block_after(block1, Block::new(&[]));
+        let block1 = region.append_block(Block::new(&[], &[]).unwrap());
+        let block2 = region.insert_block_after(block1, Block::new(&[], &[]).unwrap());
 
         let mut iter = region.into_iter();
         assert_eq!(iter.next(), Some(block1));

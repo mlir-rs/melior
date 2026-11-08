@@ -26,9 +26,9 @@ macro_rules! type_traits {
             }
         }
 
-        impl<'c> std::fmt::Display for $name<'c> {
-            fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                std::fmt::Display::fmt(&self.r#type, formatter)
+        impl<'c> core::fmt::Display for $name<'c> {
+            fn fmt(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                core::fmt::Display::fmt(&self.r#type, formatter)
             }
         }
     };

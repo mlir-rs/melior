@@ -1,4 +1,4 @@
-use std::{
+use core::{
     convert::Infallible,
     error,
     fmt::{self, Display, Formatter},
@@ -8,38 +8,78 @@ use std::{
 /// A Melior error.
 #[derive(Debug, Eq, PartialEq)]
 pub enum Error {
+    /// A failure of pattern application.
     ApplyPatterns,
+    /// An attribute of a type expected.
     AttributeExpected(&'static str, String),
+    /// An attribute not found.
     AttributeNotFound(String),
+    /// A failure of attribute parsing.
     AttributeParse(String),
+    /// A block argument expected.
     BlockArgumentExpected(String),
-    ElementExpected {
-        r#type: &'static str,
-        value: String,
-    },
-    InvokeFunction,
-    OperationBuild,
-    OperandNotFound(&'static str),
-    OperationExpected {
-        expected: &'static str,
-        actual: String,
-    },
-    OperationResultExpected(String),
-    ParsePassPipeline(String),
-    PositionOutOfBounds {
+    /// Mismatched numbers of items.
+    CountMismatch {
+        /// A name of items.
         name: &'static str,
+        /// An expected number of items.
+        expected: usize,
+        /// An actual number of items.
+        actual: usize,
+    },
+    /// An element of a type expected.
+    ElementExpected {
+        /// A type name.
+        r#type: &'static str,
+        /// A value.
         value: String,
+    },
+    /// A failure of function invocation.
+    InvokeFunction,
+    /// Mismatched numbers of types and locations.
+    LocationCountMismatch {
+        /// A number of types.
+        types: usize,
+        /// A number of locations.
+        locations: usize,
+    },
+    /// A failure of operation build.
+    OperationBuild,
+    /// An operand not found.
+    OperandNotFound(&'static str),
+    /// An operation result expected.
+    OperationResultExpected(String),
+    /// A failure of pass pipeline parsing.
+    ParsePassPipeline(String),
+    /// A permutation expected.
+    PermutationExpected(String),
+    /// A position out of bounds.
+    PositionOutOfBounds {
+        /// A name of positioned elements.
+        name: &'static str,
+        /// A value containing the elements.
+        value: String,
+        /// An index.
         index: usize,
     },
+    /// A result not found.
     ResultNotFound(&'static str),
+    /// A failure of a pass run.
     RunPass,
+    /// A type expected.
     TypeExpected(&'static str, String),
+    /// An unknown diagnostic severity.
     UnknownDiagnosticSeverity(u32),
+    /// A UTF-8 error.
     Utf8(Utf8Error),
+    /// Mismatched numbers of values.
     ValueCountMismatch {
+        /// A number of values to replace.
         from: usize,
+        /// A number of replacement values.
         to: usize,
     },
+    /// A failure of bytecode writing.
     WriteBytecode,
 }
 
@@ -59,24 +99,40 @@ impl Display for Error {
             Self::BlockArgumentExpected(value) => {
                 write!(formatter, "block argument expected: {value}")
             }
+            Self::CountMismatch {
+                name,
+                expected,
+                actual,
+            } => {
+                write!(
+                    formatter,
+                    "{name} count mismatch: {expected} expected, {actual} given"
+                )
+            }
             Self::ElementExpected { r#type, value } => {
                 write!(formatter, "element of {type} type expected: {value}")
             }
             Self::InvokeFunction => write!(formatter, "failed to invoke JIT-compiled function"),
+            Self::LocationCountMismatch { types, locations } => {
+                write!(
+                    formatter,
+                    "location count mismatch: {types} types, {locations} locations"
+                )
+            }
             Self::OperationBuild => {
                 write!(formatter, "operation build failed")
             }
             Self::OperandNotFound(name) => {
                 write!(formatter, "operand {name} not found")
             }
-            Self::OperationExpected { expected, actual } => {
-                write!(formatter, "expected operation {expected}, got {actual}")
-            }
             Self::OperationResultExpected(value) => {
                 write!(formatter, "operation result expected: {value}")
             }
             Self::ParsePassPipeline(message) => {
                 write!(formatter, "failed to parse pass pipeline:\n{message}")
+            }
+            Self::PermutationExpected(value) => {
+                write!(formatter, "permutation expected: {value}")
             }
             Self::PositionOutOfBounds { name, value, index } => {
                 write!(formatter, "{name} position {index} out of bounds: {value}")

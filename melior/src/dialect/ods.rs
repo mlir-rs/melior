@@ -201,12 +201,13 @@ mod tests {
     use crate::{
         Context, dialect,
         ir::{
-            Block, BlockLike, Location, Module, Region, RegionLike, Type, Value, ValueLike,
+            Block, BlockLike, Identifier, Location, Module, Region, RegionLike, Type, Value,
+            ValueLike,
             attribute::{
                 ArrayAttribute, Attribute, DenseI64ArrayAttribute, IntegerAttribute,
                 StringAttribute, TypeAttribute,
             },
-            operation::OperationLike,
+            operation::{OperationBuilder, OperationLike},
             r#type::{FunctionType, IntegerType, MemRefType, RankedTensorType},
         },
         pass::{self, PassManager},
@@ -244,13 +245,8 @@ mod tests {
             func::func(
                 context,
                 {
-                    let block = Block::new(
-                        &argument_types
-                            .iter()
-                            .copied()
-                            .map(|r#type| (r#type, location))
-                            .collect::<Vec<_>>(),
-                    );
+                    let block =
+                        Block::new(argument_types, &vec![location; argument_types.len()]).unwrap();
 
                     callback(&block);
 
@@ -399,13 +395,8 @@ mod tests {
             func::func(
                 context,
                 {
-                    let block = Block::new(
-                        &argument_types
-                            .iter()
-                            .copied()
-                            .map(|r#type| (r#type, location))
-                            .collect::<Vec<_>>(),
-                    );
+                    let block =
+                        Block::new(argument_types, &vec![location; argument_types.len()]).unwrap();
 
                     callback(&block);
                     block.append_operation(func::r#return(context, &[], location).into());
@@ -438,11 +429,11 @@ mod tests {
             &[memref_type, memref_type, memref_type],
             |block| {
                 let region = Region::new();
-                let body = Block::new(&[
-                    (element_type, location),
-                    (element_type, location),
-                    (element_type, location),
-                ]);
+                let body = Block::new(
+                    &[element_type, element_type, element_type],
+                    &[location, location, location],
+                )
+                .unwrap();
 
                 let product = body.append_operation(
                     arith::mulf(
@@ -498,11 +489,11 @@ mod tests {
             &[tensor_type, tensor_type, tensor_type],
             |block| {
                 let region = Region::new();
-                let body = Block::new(&[
-                    (element_type, location),
-                    (element_type, location),
-                    (element_type, location),
-                ]);
+                let body = Block::new(
+                    &[element_type, element_type, element_type],
+                    &[location, location, location],
+                )
+                .unwrap();
 
                 let product = body.append_operation(
                     arith::mulf(
@@ -565,11 +556,11 @@ mod tests {
             &[memref_type, memref_type, memref_type],
             |block| {
                 let region = Region::new();
-                let body = Block::new(&[
-                    (element_type, location),
-                    (element_type, location),
-                    (element_type, location),
-                ]);
+                let body = Block::new(
+                    &[element_type, element_type, element_type],
+                    &[location, location, location],
+                )
+                .unwrap();
 
                 let sum = body.append_operation(
                     arith::addf(
@@ -618,11 +609,11 @@ mod tests {
             &[memref_type, memref_type, memref_type],
             |block| {
                 let region = Region::new();
-                let body = Block::new(&[
-                    (element_type, location),
-                    (element_type, location),
-                    (element_type, location),
-                ]);
+                let body = Block::new(
+                    &[element_type, element_type, element_type],
+                    &[location, location, location],
+                )
+                .unwrap();
 
                 let sum = body.append_operation(
                     arith::addf(
@@ -672,11 +663,11 @@ mod tests {
             &[input_type, filter_type, output_type],
             |block| {
                 let region = Region::new();
-                let body = Block::new(&[
-                    (element_type, location),
-                    (element_type, location),
-                    (element_type, location),
-                ]);
+                let body = Block::new(
+                    &[element_type, element_type, element_type],
+                    &[location, location, location],
+                )
+                .unwrap();
 
                 let product = body.append_operation(
                     arith::mulf(
@@ -749,7 +740,11 @@ mod tests {
         let context = create_test_context();
         let location = Location::unknown(&context);
 
-        let block = Block::new(&[(Type::parse(&context, "memref<8x8xf32>").unwrap(), location)]);
+        let block = Block::new(
+            &[Type::parse(&context, "memref<8x8xf32>").unwrap()],
+            &[location],
+        )
+        .unwrap();
         let operation = memref::subview(
             &context,
             Type::parse(&context, "memref<4x4xf32, strided<[8, 1]>>").unwrap(),
@@ -775,15 +770,16 @@ mod tests {
         let token_type = Type::parse(&context, "!gpu.async.token").unwrap();
         let dense_tensor_type = Type::parse(&context, "!gpu.sparse.dntensor_handle").unwrap();
 
-        let block = Block::new(&[
-            (token_type, location),
-            (
+        let block = Block::new(
+            &[
+                token_type,
                 Type::parse(&context, "!gpu.sparse.spmat_handle").unwrap(),
-                location,
-            ),
-            (dense_tensor_type, location),
-            (dense_tensor_type, location),
-        ]);
+                dense_tensor_type,
+                dense_tensor_type,
+            ],
+            &[location, location, location, location],
+        )
+        .unwrap();
         let operation = gpu::SpMMBufferSizeOperation::builder(&context, location)
             .buffer_szs(&[index_type])
             .async_token(token_type)
@@ -813,7 +809,7 @@ mod tests {
         let index_type = Type::index(&context);
         let memref_type = Type::parse(&context, "memref<?x?xf32>").unwrap();
 
-        let block = Block::new(&[(index_type, location), (index_type, location)]);
+        let block = Block::new(&[index_type, index_type], &[location, location]).unwrap();
         let operation = memref::alloc(
             &context,
             memref_type,
@@ -843,19 +839,17 @@ mod tests {
         let input_type = MemRefType::new(element_type, &[4, 8], None, None).into();
         let init_type = MemRefType::new(element_type, &[4], None, None).into();
 
-        let block = Block::new(&[
-            (input_type, location),
-            (input_type, location),
-            (init_type, location),
-            (init_type, location),
-        ]);
+        let block = Block::new(
+            &[input_type, input_type, init_type, init_type],
+            &[location, location, location, location],
+        )
+        .unwrap();
         let region = Region::new();
-        let body = Block::new(&[
-            (element_type, location),
-            (element_type, location),
-            (element_type, location),
-            (element_type, location),
-        ]);
+        let body = Block::new(
+            &[element_type, element_type, element_type, element_type],
+            &[location, location, location, location],
+        )
+        .unwrap();
 
         let first_sum = body.append_operation(
             arith::addf(
@@ -918,6 +912,36 @@ mod tests {
                 Value::from(block.argument(2).unwrap()),
                 Value::from(block.argument(3).unwrap()),
             ]
+        );
+    }
+
+    #[test]
+    fn convert_operation() {
+        let context = create_test_context();
+
+        assert!(
+            arith::AddFOperation::try_from(
+                OperationBuilder::new("arith.addf", Location::unknown(&context))
+                    .build()
+                    .unwrap()
+            )
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn fail_to_convert_operation() {
+        let context = create_test_context();
+
+        assert_eq!(
+            arith::AddFOperation::try_from(
+                OperationBuilder::new("arith.addi", Location::unknown(&context))
+                    .build()
+                    .unwrap()
+            )
+            .unwrap_err()
+            .name(),
+            Identifier::new(&context, "arith.addi")
         );
     }
 }

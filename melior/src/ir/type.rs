@@ -22,26 +22,27 @@ pub use self::{
     type_like::TypeLike,
 };
 use super::Location;
-use crate::{context::Context, string_ref::StringRef, utility::print_callback};
+use crate::{Error, context::Context, string_ref::StringRef, utility::print_callback};
+use core::{
+    ffi::c_void,
+    fmt::{self, Debug, Display, Formatter},
+    marker::PhantomData,
+};
 use mlir_sys::{
     MlirType, mlirBF16TypeGet, mlirF16TypeGet, mlirF32TypeGet, mlirF64TypeGet,
     mlirFloat4E2M1FNTypeGet, mlirFloat6E2M3FNTypeGet, mlirFloat6E3M2FNTypeGet,
     mlirFloat8E3M4TypeGet, mlirFloat8E4M3B11FNUZTypeGet, mlirFloat8E4M3FNTypeGet,
     mlirFloat8E4M3FNUZTypeGet, mlirFloat8E4M3TypeGet, mlirFloat8E5M2FNUZTypeGet,
     mlirFloat8E5M2TypeGet, mlirFloat8E8M0FNUTypeGet, mlirFloatTypeGetWidth, mlirIndexTypeGet,
-    mlirNoneTypeGet, mlirTypeEqual, mlirTypeParseGet, mlirTypePrint, mlirVectorTypeGet,
-    mlirVectorTypeGetChecked, mlirVectorTypeGetScalable, mlirVectorTypeGetScalableChecked,
-    mlirVectorTypeIsDimScalable, mlirVectorTypeIsScalable,
-};
-use std::{
-    ffi::c_void,
-    fmt::{self, Debug, Display, Formatter},
-    marker::PhantomData,
+    mlirNoneTypeGet, mlirShapedTypeGetRank, mlirTypeEqual, mlirTypeParseGet, mlirTypePrint,
+    mlirVectorTypeGet, mlirVectorTypeGetChecked, mlirVectorTypeGetScalable,
+    mlirVectorTypeGetScalableChecked, mlirVectorTypeIsDimScalable, mlirVectorTypeIsScalable,
 };
 
 /// A type.
 // Types are always values but their internal storage is owned by contexts.
 #[derive(Clone, Copy)]
+#[repr(transparent)]
 pub struct Type<'c> {
     raw: MlirType,
     _context: PhantomData<&'c Context>,
@@ -176,14 +177,26 @@ impl<'c> Type<'c> {
     }
 
     /// Creates a scalable vector type.
-    pub fn vector_scalable(dimensions: &[u64], scalable: &[bool], element_type: Self) -> Self {
-        unsafe {
-            Self::from_raw(mlirVectorTypeGetScalable(
-                dimensions.len() as isize,
-                dimensions.as_ptr() as *const i64,
-                scalable.as_ptr(),
-                element_type.raw,
-            ))
+    pub fn vector_scalable(
+        dimensions: &[u64],
+        scalable: &[bool],
+        element_type: Self,
+    ) -> Result<Self, Error> {
+        if dimensions.len() == scalable.len() {
+            Ok(unsafe {
+                Self::from_raw(mlirVectorTypeGetScalable(
+                    dimensions.len() as isize,
+                    dimensions.as_ptr() as *const i64,
+                    scalable.as_ptr(),
+                    element_type.raw,
+                ))
+            })
+        } else {
+            Err(Error::CountMismatch {
+                name: "scalable flag",
+                expected: dimensions.len(),
+                actual: scalable.len(),
+            })
         }
     }
 
@@ -194,14 +207,18 @@ impl<'c> Type<'c> {
         scalable: &[bool],
         element_type: Self,
     ) -> Option<Self> {
-        unsafe {
-            Self::from_option_raw(mlirVectorTypeGetScalableChecked(
-                location.to_raw(),
-                dimensions.len() as isize,
-                dimensions.as_ptr() as *const i64,
-                scalable.as_ptr(),
-                element_type.raw,
-            ))
+        if dimensions.len() == scalable.len() {
+            unsafe {
+                Self::from_option_raw(mlirVectorTypeGetScalableChecked(
+                    location.to_raw(),
+                    dimensions.len() as isize,
+                    dimensions.as_ptr() as *const i64,
+                    scalable.as_ptr(),
+                    element_type.raw,
+                ))
+            }
+        } else {
+            None
         }
     }
 
@@ -211,8 +228,18 @@ impl<'c> Type<'c> {
     }
 
     /// Returns `true` if the given dimension of a vector type is scalable.
-    pub fn is_vector_dim_scalable(&self, dim: usize) -> bool {
-        unsafe { mlirVectorTypeIsDimScalable(self.raw, dim as isize) }
+    pub fn is_vector_dim_scalable(&self, dim: usize) -> Result<bool, Error> {
+        if !self.is_vector() {
+            Err(Error::TypeExpected("vector", self.to_string()))
+        } else if dim < unsafe { mlirShapedTypeGetRank(self.raw) } as usize {
+            Ok(unsafe { mlirVectorTypeIsDimScalable(self.raw, dim as isize) })
+        } else {
+            Err(Error::PositionOutOfBounds {
+                name: "vector dimension",
+                value: self.to_string(),
+                index: dim,
+            })
+        }
     }
 
     /// Creates a type from a raw object.
@@ -279,9 +306,9 @@ impl Debug for Type<'_> {
     }
 }
 
-impl std::hash::Hash for Type<'_> {
+impl core::hash::Hash for Type<'_> {
     // Hashes the type's pointer since they are unique w.r.t. the MLIR context.
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         self.raw.ptr.hash(state);
     }
 }
@@ -525,7 +552,21 @@ mod tests {
 
         assert_eq!(
             Type::vector_scalable(&[4], &[true], Type::float32(&context)),
-            Type::parse(&context, "vector<[4]xf32>").unwrap()
+            Ok(Type::parse(&context, "vector<[4]xf32>").unwrap())
+        );
+    }
+
+    #[test]
+    fn fail_to_create_vector_scalable_with_mismatched_flags() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::vector_scalable(&[4, 8], &[true], Type::float32(&context)),
+            Err(Error::CountMismatch {
+                name: "scalable flag",
+                expected: 2,
+                actual: 1,
+            })
         );
     }
 
@@ -560,10 +601,29 @@ mod tests {
     }
 
     #[test]
+    fn fail_to_create_vector_scalable_checked_with_mismatched_flags() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::vector_scalable_checked(
+                Location::unknown(&context),
+                &[4],
+                &[true, false],
+                Type::float32(&context),
+            ),
+            None
+        );
+    }
+
+    #[test]
     fn is_scalable_vector() {
         let context = create_test_context();
 
-        assert!(Type::vector_scalable(&[4], &[true], Type::float32(&context)).is_scalable_vector());
+        assert!(
+            Type::vector_scalable(&[4], &[true], Type::float32(&context))
+                .unwrap()
+                .is_scalable_vector()
+        );
         assert!(!Type::vector(&[4], Type::float32(&context)).is_scalable_vector());
     }
 
@@ -571,8 +631,35 @@ mod tests {
     fn is_vector_dim_scalable() {
         let context = create_test_context();
 
-        let scalable = Type::vector_scalable(&[4, 8], &[true, false], Type::float32(&context));
-        assert!(scalable.is_vector_dim_scalable(0));
-        assert!(!scalable.is_vector_dim_scalable(1));
+        let scalable =
+            Type::vector_scalable(&[4, 8], &[true, false], Type::float32(&context)).unwrap();
+        assert_eq!(scalable.is_vector_dim_scalable(0), Ok(true));
+        assert_eq!(scalable.is_vector_dim_scalable(1), Ok(false));
+    }
+
+    #[test]
+    fn fail_to_check_vector_dim_scalable_out_of_bounds() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::vector_scalable(&[4], &[true], Type::float32(&context))
+                .unwrap()
+                .is_vector_dim_scalable(1),
+            Err(Error::PositionOutOfBounds {
+                name: "vector dimension",
+                value: "vector<[4]xf32>".into(),
+                index: 1,
+            })
+        );
+    }
+
+    #[test]
+    fn fail_to_check_vector_dim_scalable_of_non_vector() {
+        let context = create_test_context();
+
+        assert_eq!(
+            Type::index(&context).is_vector_dim_scalable(0),
+            Err(Error::TypeExpected("vector", "index".into()))
+        );
     }
 }

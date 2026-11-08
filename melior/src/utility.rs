@@ -4,15 +4,15 @@ use crate::{
     Error, context::Context, dialect::DialectRegistry, ir::Module, logical_result::LogicalResult,
     pass, string_ref::StringRef,
 };
+use core::{
+    ffi::c_void,
+    fmt::{self, Formatter},
+};
 use mlir_sys::{
     MlirStringRef, mlirLoadIRDLDialects, mlirParsePassPipeline, mlirRegisterAllDialects,
     mlirRegisterAllLLVMTranslations, mlirRegisterAllPasses,
 };
-use std::{
-    ffi::c_void,
-    fmt::{self, Formatter},
-    sync::Once,
-};
+use std::sync::Once;
 
 /// Registers all dialects to a dialect registry.
 pub fn register_all_dialects(registry: &DialectRegistry) {
@@ -107,7 +107,7 @@ pub(crate) unsafe extern "C" fn print_string_callback(string: MlirStringRef, dat
 
 pub(crate) unsafe extern "C" fn collect_bytes_callback(string: MlirStringRef, data: *mut c_void) {
     let bytes = unsafe { &mut *(data as *mut Vec<u8>) };
-    let slice = unsafe { std::slice::from_raw_parts(string.data as *const u8, string.length) };
+    let slice = unsafe { core::slice::from_raw_parts(string.data as *const u8, string.length) };
 
     bytes.extend_from_slice(slice);
 }

@@ -27,7 +27,7 @@ fn build_single_unnamed_result() {
     let context = create_context();
     let location = Location::unknown(&context);
     let r#type = IntegerType::new(&context, 32).into();
-    let block = Block::new(&[(r#type, location)]);
+    let block = Block::new(&[r#type], &[location]).unwrap();
 
     let operation = unnamed_results::SingleOperation::builder(&context, location)
         .input(block.argument(0).unwrap().into())
@@ -88,7 +88,7 @@ fn infer_unnamed_result_type() {
     let context = create_context();
     let location = Location::unknown(&context);
     let r#type = IntegerType::new(&context, 32).into();
-    let block = Block::new(&[(r#type, location)]);
+    let block = Block::new(&[r#type], &[location]).unwrap();
 
     let operation = unnamed_results::InferOperation::builder(&context, location)
         .input(block.argument(0).unwrap().into())

@@ -39,6 +39,8 @@ pub use self::{
 use mlir_sys::MlirPass;
 
 /// A pass.
+// TODO Destroy unused passes when the C API provides a function to do so.
+#[must_use = "add to a pass manager or resources will leak"]
 pub struct Pass {
     raw: MlirPass,
 }

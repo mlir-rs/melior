@@ -8,6 +8,7 @@ readme.workspace = true
 repository.workspace = true
 license.workspace = true
 keywords.workspace = true
+categories = ["development-tools::procedural-macro-helpers"]
 
 [lib]
 proc-macro = true
@@ -31,3 +32,6 @@ melior = { path = "../melior", features = ["ods-dialects"] }
 mlir-sys = "230.0.2"
 pretty_assertions = "1.4.1"
 trybuild = { version = "1.0.108", features = ["diff"] }
+
+[lints]
+workspace = true

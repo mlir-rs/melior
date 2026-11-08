@@ -1,4 +1,7 @@
-use std::{env, error::Error, path::Path, process::Command, str};
+//! A build script.
+
+use core::{error::Error, str};
+use std::{env, path::Path, process::Command};
 
 const LLVM_MAJOR_VERSION: usize = 23;
 
@@ -18,10 +21,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn llvm_config(
-    argument: &str,
-    version_variable: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
+fn llvm_config(argument: &str, version_variable: &str) -> Result<String, Box<dyn Error>> {
     let prefix = env::var(version_variable)
         .map(|path| Path::new(&path).join("bin"))
         .unwrap_or_default();

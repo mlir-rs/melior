@@ -6,7 +6,7 @@ on:
   pull_request:
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: $/.github/actions/setup
@@ -16,8 +16,8 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-24.04
-          - ubuntu-24.04-arm
+          - ubuntu-26.04
+          - ubuntu-26.04-arm
           - macos-26
           - windows-2025
     runs-on: ${{ matrix.os }}
@@ -28,26 +28,30 @@ jobs:
         if: runner.os == 'macOS'
       - run: cargo test --all-features
   sanitize:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-26.04
+          - ubuntu-26.04-arm
+    runs-on: ${{ matrix.os }}
+    # cspell: ignore rustdocflags rustflags zsanitizer
     env:
       RUSTFLAGS: -Zsanitizer=address
       RUSTDOCFLAGS: -Zsanitizer=address
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: $/.github/actions/setup
-      - run: sed -i s/stable/nightly/ rust-toolchain.toml
-      # TODO Make sanitized tests succeed.
-      - run: cargo test -Zbuild-std --target x86_64-unknown-linux-gnu
-        continue-on-error: true
+      - run: yq -i '.toolchain.channel = "nightly"' rust-toolchain.toml
+      - run: cargo test --target host-tuple -- --skip ui --exact
   bench:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: $/.github/actions/setup
       - run: cargo bench
   dialect_build:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: $/.github/actions/setup
@@ -60,10 +64,11 @@ jobs:
       - run: diff ~/main.rs ~/current.rs || true
   test:
     needs:
-      - dialect_build
-      - build
-      - unit_test
       - bench
+      - build
+      - dialect_build
+      - sanitize
+      - unit_test
     if: always()
     runs-on: ubuntu-latest
     steps:

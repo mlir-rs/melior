@@ -1,22 +1,23 @@
 mod attribute_accessor;
 mod element_accessor;
-mod operand_accessor;
 mod operation_builder;
+mod operation_enum;
 mod region_accessor;
-mod result_accessor;
 mod successor_accessor;
+mod type_state;
 
+pub use self::operation_enum::generate_operation_enum;
 use self::{
     attribute_accessor::generate_attribute_accessors,
-    operand_accessor::generate_operand_accessor,
+    element_accessor::generate_element_accessor,
     operation_builder::{
         generate_default_constructor, generate_operation_builder, generate_operation_builder_fn,
     },
     region_accessor::generate_region_accessor,
-    result_accessor::generate_result_accessor,
     successor_accessor::generate_successor_accessor,
+    type_state::TypeStateBuilder,
 };
-use super::operation::{Operation, OperationBuilder};
+use super::operation::Operation;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
@@ -28,28 +29,26 @@ pub fn generate_operation(operation: &Operation) -> TokenStream {
 
     let result_accessors = operation
         .results()
-        .map(|result| generate_result_accessor(result, operation.result_len()))
+        .map(|result| generate_element_accessor(result, operation.result_len()))
         .collect::<Vec<_>>();
     let operand_accessors = operation
         .operands()
-        .map(|operand| generate_operand_accessor(operand, operation.operand_len()))
+        .map(|operand| generate_element_accessor(operand, operation.operand_len()))
         .collect::<Vec<_>>();
     let region_accessors = operation
         .regions()
-        .enumerate()
-        .map(|(index, region)| generate_region_accessor(region, index))
+        .map(generate_region_accessor)
         .collect::<Vec<_>>();
     let successor_accessors = operation
         .successors()
-        .enumerate()
-        .map(|(index, region)| generate_successor_accessor(region, index))
+        .map(generate_successor_accessor)
         .collect::<Vec<_>>();
     let attribute_accessors = operation
         .all_attributes()
         .map(generate_attribute_accessors)
         .collect::<Vec<_>>();
 
-    let builder = OperationBuilder::new(operation);
+    let builder = TypeStateBuilder::new(operation);
     let builder_tokens = generate_operation_builder(&builder);
     let builder_fn = generate_operation_builder_fn(&builder);
     let default_constructor = generate_default_constructor(&builder);
@@ -88,22 +87,15 @@ pub fn generate_operation(operation: &Operation) -> TokenStream {
         #default_constructor
 
         impl<'c> TryFrom<::melior::ir::operation::Operation<'c>> for #identifier<'c> {
-            type Error = ::melior::Error;
+            type Error = ::melior::ir::operation::Operation<'c>;
 
             fn try_from(
                 operation: ::melior::ir::operation::Operation<'c>,
                 ) -> Result<Self, Self::Error> {
-                let expected = #operation_name;
-                let name = operation.name();
-
-                if name.as_string_ref().as_str() == Ok(expected) {
+                if operation.name().as_string_ref().as_str() == Ok(#operation_name) {
                     Ok(Self { operation })
                 } else {
-                    Err(::melior::Error::OperationExpected {
-                        expected,
-                        actual: name.as_string_ref().as_str()
-                            .unwrap_or("<non-utf8>").to_owned(),
-                    })
+                    Err(operation)
                 }
             }
         }

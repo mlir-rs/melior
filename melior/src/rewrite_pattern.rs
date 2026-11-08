@@ -2,13 +2,13 @@ use crate::{
     context::Context, ir::OperationRef, ir_rewriter::RewriterBase, logical_result::LogicalResult,
     string_ref::StringRef,
 };
+use core::{cell::Cell, ffi::c_void, marker::PhantomData, mem::forget};
 use mlir_sys::{
     MlirFrozenRewritePatternSet, MlirOperation, MlirPatternRewriter, MlirRewritePattern,
     MlirRewritePatternCallbacks, MlirRewritePatternSet, mlirFreezeRewritePattern,
     mlirFrozenRewritePatternSetDestroy, mlirOpRewritePatternCreate, mlirPatternRewriterAsBase,
     mlirRewritePatternSetAdd, mlirRewritePatternSetCreate, mlirRewritePatternSetDestroy,
 };
-use std::{ffi::c_void, marker::PhantomData, mem::forget};
 
 /// A set of rewrite patterns.
 pub struct RewritePatternSet<'c> {
@@ -32,11 +32,9 @@ impl<'c> RewritePatternSet<'c> {
 
     /// Freezes the pattern set into a frozen set. Consumes self.
     pub fn freeze(self) -> FrozenRewritePatternSet {
-        let raw = unsafe { mlirFreezeRewritePattern(self.raw) };
-
-        forget(self);
-
-        FrozenRewritePatternSet { raw }
+        FrozenRewritePatternSet {
+            raw: unsafe { mlirFreezeRewritePattern(self.raw) },
+        }
     }
 }
 
@@ -52,9 +50,14 @@ pub struct FrozenRewritePatternSet {
 }
 
 impl FrozenRewritePatternSet {
+    /// Converts the frozen pattern set into a raw object.
+    pub const fn to_raw(&self) -> MlirFrozenRewritePatternSet {
+        self.raw
+    }
+
     /// Converts the frozen pattern set into a raw object, transferring
     /// ownership.
-    pub fn into_raw(self) -> MlirFrozenRewritePatternSet {
+    pub const fn into_raw(self) -> MlirFrozenRewritePatternSet {
         let raw = self.raw;
 
         forget(self);
@@ -77,7 +80,7 @@ pub struct RewritePattern {
 
 impl RewritePattern {
     /// Converts the pattern into a raw object, transferring ownership.
-    pub fn into_raw(self) -> MlirRewritePattern {
+    pub const fn into_raw(self) -> MlirRewritePattern {
         self.raw
     }
 }
@@ -86,26 +89,28 @@ impl RewritePattern {
 ///
 /// This is a non-owning reference; it must not outlive the callback invocation.
 #[derive(Clone, Copy)]
-pub struct PatternRewriter<'a> {
+pub struct PatternRewriter<'c, 'a> {
     raw: MlirPatternRewriter,
+    _context: PhantomData<Cell<&'c Context>>,
     _reference: PhantomData<&'a MlirPatternRewriter>,
 }
 
-impl PatternRewriter<'_> {
+impl<'c> PatternRewriter<'c, '_> {
     /// Creates a pattern rewriter from a raw object.
     ///
     /// # Safety
     ///
     /// A raw object must be valid.
-    pub unsafe fn from_raw(raw: MlirPatternRewriter) -> Self {
+    pub const unsafe fn from_raw(raw: MlirPatternRewriter) -> Self {
         Self {
             raw,
+            _context: PhantomData,
             _reference: PhantomData,
         }
     }
 
     /// Returns the underlying rewriter base.
-    pub fn as_rewriter_base(&self) -> RewriterBase<'_, '_> {
+    pub fn as_rewriter_base(&self) -> RewriterBase<'c, '_> {
         unsafe { RewriterBase::from_raw(mlirPatternRewriterAsBase(self.raw)) }
     }
 }
@@ -125,7 +130,7 @@ pub fn create_op_rewrite_pattern<F>(
     generated_names: &[&str],
 ) -> RewritePattern
 where
-    F: FnMut(OperationRef, &PatternRewriter) -> bool + 'static,
+    F: for<'c> FnMut(OperationRef<'c, '_>, &PatternRewriter<'c, '_>) -> bool + 'static,
 {
     unsafe extern "C" fn destruct<F>(user_data: *mut c_void) {
         unsafe {
@@ -140,7 +145,7 @@ where
         user_data: *mut c_void,
     ) -> mlir_sys::MlirLogicalResult
     where
-        F: FnMut(OperationRef, &PatternRewriter) -> bool,
+        F: for<'c> FnMut(OperationRef<'c, '_>, &PatternRewriter<'c, '_>) -> bool,
     {
         LogicalResult::from(unsafe {
             (*(user_data as *mut F))(
@@ -208,12 +213,12 @@ mod tests {
     #[test]
     fn apply_frozen_patterns() {
         let context = create_test_context();
-        let module = Module::new(Location::unknown(&context));
+        let mut module = Module::new(Location::unknown(&context));
         let patterns = RewritePatternSet::new(&context);
         let frozen = patterns.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
     }
 
     #[test]
@@ -246,7 +251,7 @@ mod tests {
     #[test]
     fn apply_op_rewrite_pattern() {
         let context = create_test_context();
-        let module = Module::new(Location::unknown(&context));
+        let mut module = Module::new(Location::unknown(&context));
 
         let pattern =
             create_op_rewrite_pattern("arith.constant", 1, &context, |_op, _rewriter| false, &[]);
@@ -257,13 +262,13 @@ mod tests {
         let frozen = set.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
     }
 
     #[test]
     fn pattern_rewriter_as_rewriter_base() {
         let context = create_test_context();
-        let module = Module::parse(
+        let mut module = Module::parse(
             &context,
             indoc!(
                 "
@@ -296,14 +301,14 @@ mod tests {
         let frozen = set.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
         insta::assert_snapshot!(module.as_operation());
     }
 
     #[test]
     fn fall_back_to_next_pattern() {
         let context = create_test_context();
-        let module = Module::parse(
+        let mut module = Module::parse(
             &context,
             indoc!(
                 "
@@ -341,7 +346,7 @@ mod tests {
         let frozen = set.freeze();
         let config = GreedyRewriteDriverConfig::new();
 
-        assert!(apply_patterns_and_fold_greedily(&module, frozen, &config).is_ok());
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
         insta::assert_snapshot!(module.as_operation());
     }
 }

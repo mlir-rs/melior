@@ -226,7 +226,7 @@ pub fn func<'c>(
         .expect("valid operation")
 }
 
-// Creates a `llvm.return` operation.
+/// Creates a `llvm.return` operation.
 pub fn r#return<'c>(value: Option<Value<'c, '_>>, location: Location<'c>) -> Operation<'c> {
     let mut builder = OperationBuilder::new("llvm.return", location);
 
@@ -423,7 +423,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[struct_type], &[]).into()),
             {
-                let block = Block::new(&[(struct_type, location)]);
+                let block = Block::new(&[struct_type], &[location]).unwrap();
 
                 block.append_operation(extract_value(
                     &context,
@@ -463,7 +463,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[ptr_type], &[]).into()),
             {
-                let block = Block::new(&[(ptr_type, location)]);
+                let block = Block::new(&[ptr_type], &[location]).unwrap();
 
                 block.append_operation(get_element_ptr(
                     &context,
@@ -504,7 +504,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[ptr_type], &[]).into()),
             {
-                let block = Block::new(&[(ptr_type, location)]);
+                let block = Block::new(&[ptr_type], &[location]).unwrap();
 
                 let index = block
                     .append_operation(arith::constant(
@@ -555,7 +555,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[struct_type], &[]).into()),
             {
-                let block = Block::new(&[(struct_type, location)]);
+                let block = Block::new(&[struct_type], &[location]).unwrap();
                 let value = block
                     .append_operation(arith::constant(
                         &context,
@@ -603,7 +603,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[], &[integer_type]).into()),
             {
-                let block = Block::new(&[]);
+                let block = Block::new(&[], &[]).unwrap();
 
                 let operation = block.append_operation(zero(integer_type, location));
 
@@ -639,7 +639,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[], &[ptr_type]).into()),
             {
-                let block = Block::new(&[]);
+                let block = Block::new(&[], &[]).unwrap();
 
                 let operation = block.append_operation(zero(ptr_type, location));
 
@@ -676,7 +676,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[struct_type], &[]).into()),
             {
-                let block = Block::new(&[(struct_type, location)]);
+                let block = Block::new(&[struct_type], &[location]).unwrap();
 
                 block.append_operation(undef(struct_type, location));
 
@@ -710,7 +710,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[struct_type], &[]).into()),
             {
-                let block = Block::new(&[(struct_type, location)]);
+                let block = Block::new(&[struct_type], &[location]).unwrap();
 
                 block.append_operation(poison(struct_type, location));
 
@@ -744,7 +744,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[integer_type], &[]).into()),
             {
-                let block = Block::new(&[(integer_type, location)]);
+                let block = Block::new(&[integer_type], &[location]).unwrap();
 
                 block.append_operation(alloca(
                     &context,
@@ -784,7 +784,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[ptr_type, integer_type], &[]).into()),
             {
-                let block = Block::new(&[(ptr_type, location), (integer_type, location)]);
+                let block = Block::new(&[ptr_type, integer_type], &[location, location]).unwrap();
 
                 block.append_operation(store(
                     &context,
@@ -824,7 +824,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[ptr_type], &[]).into()),
             {
-                let block = Block::new(&[(ptr_type, location)]);
+                let block = Block::new(&[ptr_type], &[location]).unwrap();
 
                 block.append_operation(load(
                     &context,
@@ -864,7 +864,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[ptr_type, integer_type], &[]).into()),
             {
-                let block = Block::new(&[(ptr_type, location), (integer_type, location)]);
+                let block = Block::new(&[ptr_type, integer_type], &[location, location]).unwrap();
 
                 block.append_operation(store(
                     &context,
@@ -933,7 +933,7 @@ mod tests {
             StringAttribute::new(&context, "foo_none"),
             TypeAttribute::new(FunctionType::new(&context, &[], &[]).into()),
             {
-                let block = Block::new(&[]);
+                let block = Block::new(&[], &[]).unwrap();
 
                 block.append_operation(r#return(None, location));
 
@@ -950,7 +950,7 @@ mod tests {
             StringAttribute::new(&context, "foo"),
             TypeAttribute::new(FunctionType::new(&context, &[struct_type], &[struct_type]).into()),
             {
-                let block = Block::new(&[(struct_type, location)]);
+                let block = Block::new(&[struct_type], &[location]).unwrap();
 
                 block.append_operation(r#return(Some(block.argument(0).unwrap().into()), location));
 
@@ -983,7 +983,7 @@ mod tests {
                 FunctionType::new(&context, &[integer_type], &[integer_type]).into(),
             ),
             {
-                let block = Block::new(&[(integer_type, location)]);
+                let block = Block::new(&[integer_type], &[location]).unwrap();
 
                 let res = block
                     .append_operation(intr_ctlz(
@@ -1028,7 +1028,7 @@ mod tests {
                 FunctionType::new(&context, &[integer_type], &[integer_type]).into(),
             ),
             {
-                let block = Block::new(&[(integer_type, location)]);
+                let block = Block::new(&[integer_type], &[location]).unwrap();
 
                 let res = block
                     .append_operation(intr_cttz(
@@ -1073,7 +1073,7 @@ mod tests {
                 FunctionType::new(&context, &[integer_type], &[integer_type]).into(),
             ),
             {
-                let block = Block::new(&[(integer_type, location)]);
+                let block = Block::new(&[integer_type], &[location]).unwrap();
 
                 let res = block
                     .append_operation(intr_ctpop(
@@ -1116,7 +1116,7 @@ mod tests {
                 FunctionType::new(&context, &[integer_type], &[integer_type]).into(),
             ),
             {
-                let block = Block::new(&[(integer_type, location)]);
+                let block = Block::new(&[integer_type], &[location]).unwrap();
 
                 let res = block
                     .append_operation(intr_bswap(
@@ -1159,7 +1159,7 @@ mod tests {
                 FunctionType::new(&context, &[integer_type], &[integer_type]).into(),
             ),
             {
-                let block = Block::new(&[(integer_type, location)]);
+                let block = Block::new(&[integer_type], &[location]).unwrap();
 
                 let res = block
                     .append_operation(intr_bitreverse(
@@ -1202,7 +1202,7 @@ mod tests {
                 FunctionType::new(&context, &[integer_type], &[integer_type]).into(),
             ),
             {
-                let block = Block::new(&[(integer_type, location)]);
+                let block = Block::new(&[integer_type], &[location]).unwrap();
 
                 let res = block
                     .append_operation(intr_abs(
@@ -1248,7 +1248,7 @@ mod tests {
                 FunctionType::new(&context, &[integer_type], &[integer_double_type]).into(),
             ),
             {
-                let block = Block::new(&[(integer_type, location)]);
+                let block = Block::new(&[integer_type], &[location]).unwrap();
 
                 let res = block
                     .append_operation(zext(

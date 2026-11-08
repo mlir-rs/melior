@@ -3,7 +3,10 @@ use crate::{
     Error,
     context::Context,
     ir::{Attribute, AttributeLike, Block, Identifier, Location, Region, Type, Value},
-    string_ref::StringRef,
+};
+use core::{
+    marker::PhantomData,
+    mem::{ManuallyDrop, forget, transmute},
 };
 use mlir_sys::{
     MlirOperationState, mlirNamedAttributeGet, mlirOperationCreate,
@@ -11,10 +14,6 @@ use mlir_sys::{
     mlirOperationStateAddOwnedRegions, mlirOperationStateAddResults,
     mlirOperationStateAddSuccessors, mlirOperationStateEnableResultTypeInference,
     mlirOperationStateGet,
-};
-use std::{
-    marker::PhantomData,
-    mem::{ManuallyDrop, forget, transmute},
 };
 
 /// An operation builder.
@@ -27,7 +26,14 @@ impl<'c> OperationBuilder<'c> {
     /// Creates an operation builder.
     pub fn new(name: &str, location: Location<'c>) -> Self {
         Self {
-            raw: unsafe { mlirOperationStateGet(StringRef::new(name).to_raw(), location.to_raw()) },
+            raw: unsafe {
+                mlirOperationStateGet(
+                    Identifier::new(location.context().to_ref(), name)
+                        .as_string_ref()
+                        .to_raw(),
+                    location.to_raw(),
+                )
+            },
             _context: Default::default(),
         }
     }
@@ -90,9 +96,14 @@ impl<'c> OperationBuilder<'c> {
     }
 
     /// Adds successor blocks.
-    // TODO Fix this to ensure blocks are alive while they are referenced by the
-    // operation.
-    pub fn add_successors(mut self, successors: &[&Block<'c>]) -> Self {
+    ///
+    /// # Safety
+    ///
+    /// The successor blocks must not be destroyed while the operation refers to
+    /// them.
+    // TODO Provide a safe way to add successors, such as inserting operations
+    // into blocks in the same regions as their successors.
+    pub unsafe fn add_successors(mut self, successors: &[&Block<'c>]) -> Self {
         for block in successors {
             unsafe {
                 mlirOperationStateAddSuccessors(&mut self.raw, 1, &[block.to_raw()] as *const _)
@@ -153,13 +164,27 @@ mod tests {
     }
 
     #[test]
+    fn new_with_dropped_name() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+
+        let builder = OperationBuilder::new(&String::from("foo.bar"), Location::unknown(&context));
+        let _name = String::from("baz.qux");
+
+        assert_eq!(
+            builder.build().unwrap().name(),
+            Identifier::new(&context, "foo.bar")
+        );
+    }
+
+    #[test]
     fn add_operands() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
         let r#type = Type::index(&context);
-        let block = Block::new(&[(r#type, location)]);
+        let block = Block::new(&[r#type], &[location]).unwrap();
         let argument = block.argument(0).unwrap().into();
 
         OperationBuilder::new("foo", Location::unknown(&context))
@@ -194,11 +219,13 @@ mod tests {
     fn add_successors() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
+        let block = Block::new(&[], &[]).unwrap();
 
-        OperationBuilder::new("foo", Location::unknown(&context))
-            .add_successors(&[&Block::new(&[])])
-            .build()
-            .unwrap();
+        unsafe {
+            OperationBuilder::new("foo", Location::unknown(&context)).add_successors(&[&block])
+        }
+        .build()
+        .unwrap();
     }
 
     #[test]
@@ -222,7 +249,7 @@ mod tests {
 
         let location = Location::unknown(&context);
         let r#type = Type::index(&context);
-        let block = Block::new(&[(r#type, location)]);
+        let block = Block::new(&[r#type], &[location]).unwrap();
         let argument = block.argument(0).unwrap().into();
 
         assert_eq!(

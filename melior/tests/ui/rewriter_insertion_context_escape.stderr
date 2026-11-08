@@ -1,0 +1,13 @@
+error[E0597]: `other_context` does not live long enough
+  --> tests/ui/rewriter_insertion_context_escape.rs:12:40
+   |
+11 |         let other_context = Context::new();
+   |             ------------- binding `other_context` declared here
+12 |         let rewriter = IrRewriter::new(&other_context);
+   |                                        ^^^^^^^^^^^^^^ borrowed value does not live long enough
+...
+21 |     }
+   |     - `other_context` dropped here while still borrowed
+22 |
+23 |     let _ = module.as_operation().to_string();
+   |             ------ borrow later used here

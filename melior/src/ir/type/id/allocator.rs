@@ -11,12 +11,14 @@ pub struct Allocator {
 }
 
 impl Allocator {
+    /// Creates a type ID allocator.
     pub fn new() -> Self {
         Self {
             raw: unsafe { mlirTypeIDAllocatorCreate() },
         }
     }
 
+    /// Allocates a type ID.
     pub fn allocate_type_id(&mut self) -> TypeId<'_> {
         unsafe { TypeId::from_raw(mlirTypeIDAllocatorAllocateTypeID(self.raw)) }
     }

@@ -27,21 +27,37 @@ pub fn constant<'c>(
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 #[repr(i64)]
 pub enum CmpfPredicate {
+    /// Always false.
     False,
+    /// Ordered and equal.
     Oeq,
+    /// Ordered and greater than.
     Ogt,
+    /// Ordered and greater than or equal.
     Oge,
+    /// Ordered and less than.
     Olt,
+    /// Ordered and less than or equal.
     Ole,
+    /// Ordered and not equal.
     One,
+    /// Ordered.
     Ord,
+    /// Unordered or equal.
     Ueq,
+    /// Unordered or greater than.
     Ugt,
+    /// Unordered or greater than or equal.
     Uge,
+    /// Unordered or less than.
     Ult,
+    /// Unordered or less than or equal.
     Ule,
+    /// Unordered or not equal.
     Une,
+    /// Unordered.
     Uno,
+    /// Always true.
     True,
 }
 
@@ -60,15 +76,25 @@ pub fn cmpf<'c>(
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 #[repr(i64)]
 pub enum CmpiPredicate {
+    /// Equal.
     Eq,
+    /// Not equal.
     Ne,
+    /// Signed less than.
     Slt,
+    /// Signed less than or equal.
     Sle,
+    /// Signed greater than.
     Sgt,
+    /// Signed greater than or equal.
     Sge,
+    /// Unsigned less than.
     Ult,
+    /// Unsigned less than or equal.
     Ule,
+    /// Unsigned greater than.
     Ugt,
+    /// Unsigned greater than or equal.
     Uge,
 }
 
@@ -204,11 +230,10 @@ mod tests {
         let module = Module::new(location);
 
         let block = Block::new(
-            &block_argument_types
-                .iter()
-                .map(|&r#type| (r#type, location))
-                .collect::<Vec<_>>(),
-        );
+            block_argument_types,
+            &vec![location; block_argument_types.len()],
+        )
+        .unwrap();
 
         let operation = operation(&block);
         let name = operation.name();
@@ -605,7 +630,7 @@ mod tests {
         let integer_type = IntegerType::new(&context, 64).into();
 
         let function = {
-            let block = Block::new(&[(integer_type, location), (integer_type, location)]);
+            let block = Block::new(&[integer_type, integer_type], &[location, location]).unwrap();
 
             let sum = block.append_operation(addi(
                 block.argument(0).unwrap().into(),
@@ -649,11 +674,11 @@ mod tests {
         let bool_type = IntegerType::new(&context, 1).into();
 
         let function = {
-            let block = Block::new(&[
-                (bool_type, location),
-                (integer_type, location),
-                (integer_type, location),
-            ]);
+            let block = Block::new(
+                &[bool_type, integer_type, integer_type],
+                &[location, location, location],
+            )
+            .unwrap();
 
             let val = block.append_operation(select(
                 block.argument(0).unwrap().into(),

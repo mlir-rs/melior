@@ -1,0 +1,24 @@
+error[E0373]: closure may outlive the current function, but it borrows `counter`, which is owned by the current function
+  --> tests/ui/external_pass_borrow_escape.rs:19:9
+   |
+19 |         |_: OperationRef, _: ExternalPass| {
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ may outlive borrowed value `counter`
+20 |             counter.fetch_add(1, Ordering::Relaxed);
+   |             ------- `counter` is borrowed here
+   |
+note: function requires argument type to outlive `'static`
+  --> tests/ui/external_pass_borrow_escape.rs:18:22
+   |
+18 |       manager.add_pass(create_external(
+   |  ______________________^
+19 | |         |_: OperationRef, _: ExternalPass| {
+20 | |             counter.fetch_add(1, Ordering::Relaxed);
+21 | |         },
+...  |
+27 | |         &[],
+28 | |     ));
+   | |_____^
+help: to force the closure to take ownership of `counter` (and any other referenced variables), use the `move` keyword
+   |
+19 |         move |_: OperationRef, _: ExternalPass| {
+   |         ++++

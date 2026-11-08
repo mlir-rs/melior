@@ -5,6 +5,7 @@ use crate::{
     string_ref::StringRef,
     thread_pool::ThreadPool,
 };
+use core::{ffi::c_void, marker::PhantomData, mem::transmute};
 use mlir_sys::{
     MlirContext, MlirDiagnostic, MlirLogicalResult, mlirContextAppendDialectRegistry,
     mlirContextAttachDiagnosticHandler, mlirContextCreate, mlirContextCreateWithRegistry,
@@ -15,7 +16,6 @@ use mlir_sys::{
     mlirContextLoadAllAvailableDialects, mlirContextSetAllowUnregisteredDialects,
     mlirContextSetThreadPool,
 };
-use std::{ffi::c_void, marker::PhantomData, mem::transmute};
 
 /// A context of IR, dialects, and passes.
 ///
@@ -104,7 +104,7 @@ impl Context {
     }
 
     /// Attaches a diagnostic handler.
-    pub fn attach_diagnostic_handler<F: FnMut(Diagnostic) -> bool>(
+    pub fn attach_diagnostic_handler<F: FnMut(Diagnostic) -> bool + 'static>(
         &self,
         handler: F,
     ) -> DiagnosticHandlerId {

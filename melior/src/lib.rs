@@ -1,5 +1,8 @@
 #![doc = include_str!("../README.md")]
+// TODO Document safety of unsafe blocks.
+#![expect(clippy::undocumented_unsafe_blocks)]
 
+extern crate alloc;
 extern crate self as melior;
 
 #[macro_use]
@@ -89,7 +92,7 @@ mod tests {
         let integer_type = IntegerType::new(&context, 64).into();
 
         let function = {
-            let block = Block::new(&[(integer_type, location), (integer_type, location)]);
+            let block = Block::new(&[integer_type, integer_type], &[location, location]).unwrap();
 
             let sum = block.append_operation(arith::addi(
                 block.argument(0).unwrap().into(),
@@ -132,7 +135,8 @@ mod tests {
         let memref_type = Type::parse(&context, "memref<?xf32>").unwrap();
 
         let function = {
-            let function_block = Block::new(&[(memref_type, location), (memref_type, location)]);
+            let function_block =
+                Block::new(&[memref_type, memref_type], &[location, location]).unwrap();
             let index_type = Type::parse(&context, "index").unwrap();
 
             let zero = function_block.append_operation(arith::constant(
@@ -152,7 +156,7 @@ mod tests {
                     .unwrap(),
             );
 
-            let loop_block = Block::new(&[(index_type, location)]);
+            let loop_block = Block::new(&[index_type], &[location]).unwrap();
 
             let one = function_block.append_operation(arith::constant(
                 &context,
@@ -270,7 +274,8 @@ mod tests {
                 FunctionType::new(&context, &[integer_type, integer_type], &[integer_type]).into(),
             ),
             {
-                let block = Block::new(&[(integer_type, location), (integer_type, location)]);
+                let block =
+                    Block::new(&[integer_type, integer_type], &[location, location]).unwrap();
 
                 block.append_operation(func::r#return(
                     &[compile_add(

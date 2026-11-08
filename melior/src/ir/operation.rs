@@ -17,23 +17,24 @@ use crate::{
     utility::{collect_bytes_callback, print_callback, print_string_callback},
 };
 use core::{
+    cell::Cell,
+    ffi::c_void,
+    fmt::{Debug, Display, Formatter},
+    marker::PhantomData,
+    ops::Deref,
+};
+use core::{
     fmt,
     mem::{forget, transmute},
 };
 use mlir_sys::{
     MlirOperation, mlirOperationClone, mlirOperationDestroy, mlirOperationEqual, mlirOperationPrint,
 };
-use std::{
-    ffi::c_void,
-    fmt::{Debug, Display, Formatter},
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-};
 
 /// An operation.
 pub struct Operation<'c> {
     raw: MlirOperation,
-    _context: PhantomData<&'c Context>,
+    _context: PhantomData<Cell<&'c Context>>,
 }
 
 impl Operation<'_> {
@@ -63,6 +64,11 @@ impl Operation<'_> {
     }
 
     /// Converts an operation into a raw object.
+    pub const fn to_raw(&self) -> MlirOperation {
+        self.raw
+    }
+
+    /// Converts an operation into a raw object.
     pub const fn into_raw(self) -> MlirOperation {
         let operation = self.raw;
 
@@ -72,12 +78,17 @@ impl Operation<'_> {
     }
 }
 
-impl<'c: 'a, 'a> OperationLike<'c, 'a> for Operation<'c> {
+impl<'c: 'a, 'a> OperationLike<'c, 'a> for &'a Operation<'c> {
+    fn to_raw(self) -> MlirOperation {
+        self.raw
+    }
+}
+
+impl<'c: 'a, 'a> OperationMutLike<'c, 'a> for Operation<'c> {
     fn to_raw(&self) -> MlirOperation {
         self.raw
     }
 }
-impl<'c: 'a, 'a> OperationMutLike<'c, 'a> for Operation<'c> {}
 
 impl Clone for Operation<'_> {
     fn clone(&self) -> Self {
@@ -184,7 +195,7 @@ impl<'c, 'a> OperationRef<'c, 'a> {
 }
 
 impl<'c, 'a> OperationLike<'c, 'a> for OperationRef<'c, 'a> {
-    fn to_raw(&self) -> MlirOperation {
+    fn to_raw(self) -> MlirOperation {
         self.raw
     }
 }
@@ -207,18 +218,17 @@ impl Eq for OperationRef<'_, '_> {}
 
 impl Display for OperationRef<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        Display::fmt(self.deref(), formatter)
+        Display::fmt(&**self, formatter)
     }
 }
 
 impl Debug for OperationRef<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        Debug::fmt(self.deref(), formatter)
+        Debug::fmt(&**self, formatter)
     }
 }
 
 /// A mutable reference to an operation.
-#[derive(Clone, Copy)]
 pub struct OperationRefMut<'c, 'a> {
     raw: MlirOperation,
     _reference: PhantomData<&'a Operation<'c>>,
@@ -226,7 +236,7 @@ pub struct OperationRefMut<'c, 'a> {
 
 impl OperationRefMut<'_, '_> {
     /// Converts an operation reference into a raw object.
-    pub const fn to_raw(self) -> MlirOperation {
+    pub const fn to_raw(&self) -> MlirOperation {
         self.raw
     }
 
@@ -256,23 +266,16 @@ impl OperationRefMut<'_, '_> {
     }
 }
 
-impl<'c, 'a> OperationLike<'c, 'a> for OperationRefMut<'c, 'a> {
+impl<'c, 'a> OperationMutLike<'c, 'a> for OperationRefMut<'c, 'a> {
     fn to_raw(&self) -> MlirOperation {
         self.raw
     }
 }
-impl<'c, 'a> OperationMutLike<'c, 'a> for OperationRefMut<'c, 'a> {}
 
 impl<'c> Deref for OperationRefMut<'c, '_> {
     type Target = Operation<'c>;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { transmute(self) }
-    }
-}
-
-impl DerefMut for OperationRefMut<'_, '_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { transmute(self) }
     }
 }
@@ -287,13 +290,13 @@ impl Eq for OperationRefMut<'_, '_> {}
 
 impl Display for OperationRefMut<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        Display::fmt(self.deref(), formatter)
+        Display::fmt(&**self, formatter)
     }
 }
 
 impl Debug for OperationRefMut<'_, '_> {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        Debug::fmt(self.deref(), formatter)
+        Debug::fmt(&**self, formatter)
     }
 }
 
@@ -303,8 +306,8 @@ mod tests {
     use crate::{
         context::Context,
         ir::{
-            Block, BlockLike, Identifier, Location, Region, RegionLike, Type, Value,
-            attribute::StringAttribute,
+            Attribute, Block, BlockLike, Identifier, Location, Module, Region, RegionLike, Type,
+            Value, attribute::StringAttribute,
         },
         test::create_test_context,
     };
@@ -493,7 +496,7 @@ mod tests {
         let location = Location::unknown(&context);
         let index_type = Type::index(&context);
 
-        let block = Block::new(&[(index_type, location), (index_type, location)]);
+        let block = Block::new(&[index_type, index_type], &[location, location]).unwrap();
         let arg0: Value = block.argument(0).unwrap().into();
         let arg1: Value = block.argument(1).unwrap().into();
 
@@ -506,8 +509,47 @@ mod tests {
 
         // Use first_operation_mut to get a mutable reference.
         let mut op_ref = block.first_operation_mut().unwrap();
-        op_ref.set_operand(0, arg1);
+        op_ref.set_operand(0, arg1).unwrap();
         assert_eq!(op_ref.operand(0).unwrap(), arg1);
+    }
+
+    #[test]
+    fn fail_to_set_operand_out_of_bounds() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let location = Location::unknown(&context);
+        let block = Block::new(&[Type::index(&context)], &[location]).unwrap();
+        let mut operation = OperationBuilder::new("foo", location)
+            .add_operands(&[block.argument(0).unwrap().into()])
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            operation.set_operand(1, block.argument(0).unwrap().into()),
+            Err(Error::PositionOutOfBounds {
+                name: "operation operand",
+                value: operation.to_string(),
+                index: 1,
+            })
+        );
+    }
+
+    #[test]
+    fn fail_to_set_successor_out_of_bounds() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let mut operation = OperationBuilder::new("foo", Location::unknown(&context))
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            unsafe { operation.set_successor(0, &Block::new(&[], &[]).unwrap()) },
+            Err(Error::PositionOutOfBounds {
+                name: "successor",
+                value: operation.to_string(),
+                index: 0,
+            })
+        );
     }
 
     #[test]
@@ -517,7 +559,7 @@ mod tests {
         let location = Location::unknown(&context);
         let index_type = Type::index(&context);
 
-        let block = Block::new(&[(index_type, location), (index_type, location)]);
+        let block = Block::new(&[index_type, index_type], &[location, location]).unwrap();
         let arg0: Value = block.argument(0).unwrap().into();
         let arg1: Value = block.argument(1).unwrap().into();
 
@@ -564,7 +606,7 @@ mod tests {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         block.append_operation(OperationBuilder::new("first", location).build().unwrap());
         let second =
@@ -590,7 +632,7 @@ mod tests {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let first =
             block.append_operation(OperationBuilder::new("first", location).build().unwrap());
@@ -638,7 +680,7 @@ mod tests {
     fn block() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
         let operation = block.append_operation(
             OperationBuilder::new("foo", Location::unknown(&context))
                 .build()
@@ -703,7 +745,7 @@ mod tests {
 
         let location = Location::unknown(&context);
         let r#type = Type::index(&context);
-        let block = Block::new(&[(r#type, location)]);
+        let block = Block::new(&[r#type], &[location]).unwrap();
         let argument: Value = block.argument(0).unwrap().into();
 
         let operands = vec![argument, argument, argument];
@@ -848,26 +890,36 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
-        let first_operation = block.append_operation(
-            OperationBuilder::new("foo", location)
-                .add_results(&[Type::index(&context)])
-                .build()
-                .unwrap(),
-        );
-        block.append_operation(
-            OperationBuilder::new("bar", location)
-                .add_operands(&[first_operation.result(0).unwrap().into()])
-                .build()
-                .unwrap(),
-        );
-        block.first_operation_mut().unwrap().remove_from_parent();
+        block.append_operation(OperationBuilder::new("foo", location).build().unwrap());
+        block.append_operation(OperationBuilder::new("bar", location).build().unwrap());
 
+        let operation =
+            unsafe { block.first_operation_mut().unwrap().remove_from_parent() }.unwrap();
+
+        assert_eq!(operation.block(), None);
+        assert_eq!(operation.to_string(), "\"foo\"() : () -> ()\n");
         assert_eq!(block.first_operation().unwrap().next_in_block(), None);
         assert_eq!(
             block.first_operation().unwrap().to_string(),
-            "\"bar\"(<<UNKNOWN SSA VALUE>>) : (index) -> ()"
+            "\"bar\"() : () -> ()"
+        );
+    }
+
+    #[test]
+    fn remove_from_parent_detached() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+
+        assert!(
+            unsafe {
+                OperationBuilder::new("foo", Location::unknown(&context))
+                    .build()
+                    .unwrap()
+                    .remove_from_parent()
+            }
+            .is_none()
         );
     }
 
@@ -877,7 +929,7 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("foo", location)
@@ -885,7 +937,7 @@ mod tests {
                 .add_regions([{
                     let region = Region::new();
 
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
                     block.append_operation(OperationBuilder::new("bar", location).build().unwrap());
 
                     region.append_block(block);
@@ -916,14 +968,14 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
-        let mut operation = block.append_operation(
+        let operation = block.append_operation(
             OperationBuilder::new("foo", location)
                 .add_results(&[Type::index(&context)])
                 .add_regions([{
                     let region = Region::new();
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
                     block.append_operation(OperationBuilder::new("bar", location).build().unwrap());
                     region.append_block(block);
                     region
@@ -932,7 +984,10 @@ mod tests {
                 .unwrap(),
         );
 
-        assert_eq!(operation.parent_operation_mut(), None);
+        assert_eq!(
+            block.first_operation_mut().unwrap().parent_operation_mut(),
+            None
+        );
         let mut inner_op = operation
             .region(0)
             .unwrap()
@@ -941,10 +996,10 @@ mod tests {
             .first_operation_mut()
             .unwrap();
         let inner_op_parent = inner_op.parent_operation_mut().unwrap();
-        assert_eq!(inner_op_parent.deref(), operation.deref());
+        assert_eq!(&*inner_op_parent, &*operation);
 
         // Try a mutation to verify we have a mutable reference.
-        inner_op.remove_from_parent();
+        let mut inner_op = unsafe { inner_op.remove_from_parent() }.unwrap();
         assert_eq!(inner_op.parent_operation_mut(), None);
     }
 
@@ -954,7 +1009,7 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         // Keep the reference to an operation result even after drop of `OperationRef`.
         fn append<'c, 'a>(
@@ -983,7 +1038,7 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("parent", location)
@@ -991,7 +1046,7 @@ mod tests {
                 .add_regions([{
                     let region = Region::new();
 
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
                     block.append_operation(
                         OperationBuilder::new("child1", location).build().unwrap(),
                     );
@@ -1059,18 +1114,18 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("grandparent", location)
                 .add_regions([{
                     let region = Region::new();
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
                     block.append_operation(
                         OperationBuilder::new("parent", location)
                             .add_regions([{
                                 let region = Region::new();
-                                let block = Block::new(&[]);
+                                let block = Block::new(&[], &[]).unwrap();
                                 block.append_operation(
                                     OperationBuilder::new("child", location).build().unwrap(),
                                 );
@@ -1142,7 +1197,7 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("parent", location)
@@ -1150,7 +1205,7 @@ mod tests {
                 .add_regions([{
                     let region = Region::new();
 
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
                     block.append_operation(
                         OperationBuilder::new("child1", location).build().unwrap(),
                     );
@@ -1219,18 +1274,18 @@ mod tests {
         context.set_allow_unregistered_dialects(true);
 
         let location = Location::unknown(&context);
-        let block = Block::new(&[]);
+        let block = Block::new(&[], &[]).unwrap();
 
         let operation = block.append_operation(
             OperationBuilder::new("grandparent", location)
                 .add_regions([{
                     let region = Region::new();
-                    let block = Block::new(&[]);
+                    let block = Block::new(&[], &[]).unwrap();
                     block.append_operation(
                         OperationBuilder::new("parent", location)
                             .add_regions([{
                                 let region = Region::new();
-                                let block = Block::new(&[]);
+                                let block = Block::new(&[], &[]).unwrap();
                                 block.append_operation(
                                     OperationBuilder::new("child", location).build().unwrap(),
                                 );
@@ -1294,5 +1349,32 @@ mod tests {
             operation_like::WalkResult::Skip
         });
         assert_eq!(vec!["child", "parent", "grandparent"], result);
+    }
+
+    #[test]
+    fn walk_mut_with_context_attribute() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let location = Location::unknown(&context);
+        let mut module = Module::new(location);
+
+        module
+            .body()
+            .append_operation(OperationBuilder::new("foo", location).build().unwrap());
+
+        module
+            .as_operation_mut()
+            .walk_mut(operation_like::WalkOrder::PreOrder, |mut operation| {
+                operation.set_attribute("bar", Attribute::unit(&context));
+                operation_like::WalkResult::Advance
+            });
+
+        assert!(
+            module
+                .body()
+                .first_operation()
+                .unwrap()
+                .has_attribute("bar")
+        );
     }
 }
