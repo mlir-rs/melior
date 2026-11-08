@@ -91,8 +91,8 @@ impl RewritePattern {
 #[derive(Clone, Copy)]
 pub struct PatternRewriter<'c, 'a> {
     raw: MlirPatternRewriter,
+    modified: Option<&'a Cell<bool>>,
     _context: PhantomData<Cell<&'c Context>>,
-    _reference: PhantomData<&'a MlirPatternRewriter>,
 }
 
 impl<'c> PatternRewriter<'c, '_> {
@@ -104,14 +104,16 @@ impl<'c> PatternRewriter<'c, '_> {
     pub const unsafe fn from_raw(raw: MlirPatternRewriter) -> Self {
         Self {
             raw,
+            modified: None,
             _context: PhantomData,
-            _reference: PhantomData,
         }
     }
 
     /// Returns the underlying rewriter base.
     pub fn as_rewriter_base(&self) -> RewriterBase<'c, '_> {
-        unsafe { RewriterBase::from_raw(mlirPatternRewriterAsBase(self.raw)) }
+        unsafe {
+            RewriterBase::from_raw_with_flag(mlirPatternRewriterAsBase(self.raw), self.modified)
+        }
     }
 }
 
@@ -120,8 +122,10 @@ impl<'c> PatternRewriter<'c, '_> {
 ///
 /// The `callback` receives the matched operation and a pattern rewriter. It
 /// should rewrite the operation and return `true`, or return `false` without
-/// modifying the IR if the pattern does not match. Panics in the callback abort
-/// the process because they might leave the IR partially rewritten.
+/// modifying the IR if the pattern does not match. The pattern is reported as
+/// matched whenever the callback modifies the IR through the rewriter, even if
+/// it returns `false`. Panics in the callback abort the process because they
+/// might leave the IR partially rewritten.
 pub fn create_op_rewrite_pattern<F>(
     root_name: &str,
     benefit: u32,
@@ -147,12 +151,20 @@ where
     where
         F: for<'c> FnMut(OperationRef<'c, '_>, &PatternRewriter<'c, '_>) -> bool,
     {
-        LogicalResult::from(unsafe {
-            (*(user_data as *mut F))(
-                OperationRef::from_raw(op),
-                &PatternRewriter::from_raw(rewriter),
-            )
-        })
+        let modified = Cell::new(false);
+
+        LogicalResult::from(
+            unsafe {
+                (*(user_data as *mut F))(
+                    OperationRef::from_raw(op),
+                    &PatternRewriter {
+                        raw: rewriter,
+                        modified: Some(&modified),
+                        _context: PhantomData,
+                    },
+                )
+            } || modified.get(),
+        )
         .to_raw()
     }
 
@@ -193,6 +205,7 @@ mod tests {
         ir::{Location, Module},
         test::create_test_context,
     };
+    use alloc::rc::Rc;
     use indoc::indoc;
 
     #[test]
@@ -288,7 +301,7 @@ mod tests {
             1,
             &context,
             |op, rewriter| {
-                rewriter.as_rewriter_base().erase_op(op);
+                unsafe { rewriter.as_rewriter_base().erase_op(op) };
 
                 true
             },
@@ -336,7 +349,7 @@ mod tests {
             1,
             &context,
             |op, rewriter| {
-                rewriter.as_rewriter_base().erase_op(op);
+                unsafe { rewriter.as_rewriter_base().erase_op(op) };
 
                 true
             },
@@ -347,6 +360,61 @@ mod tests {
         let config = GreedyRewriteDriverConfig::new();
 
         assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn report_modification_as_match() {
+        let context = create_test_context();
+        let module = Module::parse(
+            &context,
+            indoc!(
+                "
+                func.func private @foo()
+
+                func.func @bar() {
+                    func.call @foo() : () -> ()
+                    return
+                }
+                "
+            ),
+        )
+        .unwrap();
+        let fallen_back = Rc::new(Cell::new(false));
+
+        let set = RewritePatternSet::new(&context);
+        set.add(create_op_rewrite_pattern(
+            "func.call",
+            2,
+            &context,
+            |op, rewriter| {
+                unsafe { rewriter.as_rewriter_base().erase_op(op) };
+
+                false
+            },
+            &[],
+        ));
+        set.add(create_op_rewrite_pattern(
+            "func.call",
+            1,
+            &context,
+            {
+                let fallen_back = fallen_back.clone();
+
+                move |_op, _rewriter| {
+                    fallen_back.set(true);
+
+                    false
+                }
+            },
+            &[],
+        ));
+
+        let frozen = set.freeze();
+        let config = GreedyRewriteDriverConfig::new();
+
+        assert!(apply_patterns_and_fold_greedily(&module, &frozen, &config).is_ok());
+        assert!(!fallen_back.get());
         insta::assert_snapshot!(module.as_operation());
     }
 }

@@ -62,11 +62,13 @@ impl Drop for IrRewriter<'_> {
 }
 
 /// A non-owning reference to a rewriter base.
+// TODO Provide safe methods to erase IR, such as ones consuming exclusive
+// handles.
 #[derive(Clone, Copy)]
 pub struct RewriterBase<'c, 'a> {
     raw: MlirRewriterBase,
+    modified: Option<&'a Cell<bool>>,
     _context: PhantomData<Cell<&'c Context>>,
-    _reference: PhantomData<&'a ()>,
 }
 
 impl<'c, 'a> RewriterBase<'c, 'a> {
@@ -76,10 +78,17 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
     ///
     /// A raw object must be valid.
     pub const unsafe fn from_raw(raw: MlirRewriterBase) -> Self {
+        unsafe { Self::from_raw_with_flag(raw, None) }
+    }
+
+    pub(crate) const unsafe fn from_raw_with_flag(
+        raw: MlirRewriterBase,
+        modified: Option<&'a Cell<bool>>,
+    ) -> Self {
         Self {
             raw,
+            modified,
             _context: PhantomData,
-            _reference: PhantomData,
         }
     }
 
@@ -126,16 +135,19 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
     /// Inserts the operation at the current insertion point and returns a
     /// reference to it.
     pub fn insert(&self, op: Operation<'c>) -> OperationRef<'c, '_> {
+        self.mark_modified();
         unsafe { OperationRef::from_raw(mlirRewriterBaseInsert(self.raw, op.into_raw())) }
     }
 
     /// Creates a deep copy of the operation.
     pub fn clone_op<'b>(&self, op: OperationRef<'c, 'b>) -> OperationRef<'c, 'b> {
+        self.mark_modified();
         unsafe { OperationRef::from_raw(mlirRewriterBaseClone(self.raw, op.to_raw())) }
     }
 
     /// Creates a deep copy of the operation without its regions.
     pub fn clone_op_without_regions<'b>(&self, op: OperationRef<'c, 'b>) -> OperationRef<'c, 'b> {
+        self.mark_modified();
         unsafe {
             OperationRef::from_raw(mlirRewriterBaseCloneWithoutRegions(self.raw, op.to_raw()))
         }
@@ -143,17 +155,29 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
 
     /// Clones the blocks of the region before the given block.
     pub fn clone_region_before(&self, region: RegionRef<'c, '_>, before: BlockRef<'c, '_>) {
+        self.mark_modified();
         unsafe { mlirRewriterBaseCloneRegionBefore(self.raw, region.to_raw(), before.to_raw()) }
     }
 
     /// Moves the blocks of the region before the given block.
     pub fn inline_region_before(&self, region: RegionRef<'c, '_>, before: BlockRef<'c, '_>) {
+        self.mark_modified();
         unsafe { mlirRewriterBaseInlineRegionBefore(self.raw, region.to_raw(), before.to_raw()) }
     }
 
     /// Replaces the results of the operation with the given values. Erases the
     /// op.
-    pub fn replace_op_with_values(&self, op: OperationRef<'c, '_>, values: &[Value<'c, '_>]) {
+    ///
+    /// # Safety
+    ///
+    /// The values must be as many as the operation results, and neither the
+    /// operation nor IR nested in it may be used after the replacement.
+    pub unsafe fn replace_op_with_values(
+        &self,
+        op: OperationRef<'c, '_>,
+        values: &[Value<'c, '_>],
+    ) {
+        self.mark_modified();
         unsafe {
             mlirRewriterBaseReplaceOpWithValues(
                 self.raw,
@@ -165,36 +189,59 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
     }
 
     /// Replaces the operation with another operation. Erases the original op.
-    pub fn replace_op_with_operation(
+    ///
+    /// # Safety
+    ///
+    /// The new operation must have as many results as the original one and
+    /// must not be the original one or nested in it, and neither the original
+    /// operation nor IR nested in it may be used after the replacement.
+    pub unsafe fn replace_op_with_operation(
         &self,
         op: OperationRef<'c, '_>,
         new_op: OperationRef<'c, '_>,
     ) {
+        self.mark_modified();
         unsafe { mlirRewriterBaseReplaceOpWithOperation(self.raw, op.to_raw(), new_op.to_raw()) }
     }
 
-    /// Erases the operation. The operation must have no uses.
-    pub fn erase_op(&self, op: OperationRef<'c, '_>) {
+    /// Erases the operation.
+    ///
+    /// # Safety
+    ///
+    /// The operation must have no uses, and neither the operation nor IR nested
+    /// in it may be used after the erasure.
+    pub unsafe fn erase_op(&self, op: OperationRef<'c, '_>) {
+        self.mark_modified();
         unsafe { mlirRewriterBaseEraseOp(self.raw, op.to_raw()) }
     }
 
     /// Erases the block along with all its operations.
-    pub fn erase_block(&self, block: BlockRef<'c, '_>) {
+    ///
+    /// # Safety
+    ///
+    /// The block must have no predecessors, values defined in it must have no
+    /// uses outside of it, and neither the block nor IR nested in it may be
+    /// used after the erasure.
+    pub unsafe fn erase_block(&self, block: BlockRef<'c, '_>) {
+        self.mark_modified();
         unsafe { mlirRewriterBaseEraseBlock(self.raw, block.to_raw()) }
     }
 
     /// Moves the operation immediately before the existing operation.
     pub fn move_op_before(&self, op: OperationRef<'c, '_>, existing_op: OperationRef<'c, '_>) {
+        self.mark_modified();
         unsafe { mlirRewriterBaseMoveOpBefore(self.raw, op.to_raw(), existing_op.to_raw()) }
     }
 
     /// Moves the operation immediately after the existing operation.
     pub fn move_op_after(&self, op: OperationRef<'c, '_>, existing_op: OperationRef<'c, '_>) {
+        self.mark_modified();
         unsafe { mlirRewriterBaseMoveOpAfter(self.raw, op.to_raw(), existing_op.to_raw()) }
     }
 
     /// Moves the block immediately before the existing block.
     pub fn move_block_before(&self, block: BlockRef<'c, '_>, existing_block: BlockRef<'c, '_>) {
+        self.mark_modified();
         unsafe {
             mlirRewriterBaseMoveBlockBefore(self.raw, block.to_raw(), existing_block.to_raw())
         }
@@ -207,6 +254,7 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
 
     /// Signals the end of an in-place modification of the operation.
     pub fn finalize_op_modification(&self, op: OperationRef<'c, '_>) {
+        self.mark_modified();
         unsafe { mlirRewriterBaseFinalizeOpModification(self.raw, op.to_raw()) }
     }
 
@@ -217,6 +265,7 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
 
     /// Replaces all uses of `from` with `to`.
     pub fn replace_all_uses_with(&self, from: Value<'c, '_>, to: Value<'c, '_>) {
+        self.mark_modified();
         unsafe { mlirRewriterBaseReplaceAllUsesWith(self.raw, from.to_raw(), to.to_raw()) }
     }
 
@@ -246,6 +295,8 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
             });
         }
 
+        self.mark_modified();
+
         Ok(unsafe {
             BlockRef::from_raw(mlirRewriterBaseCreateBlockBefore(
                 self.raw,
@@ -259,12 +310,19 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
 
     /// Inlines the source block before the given operation and erases it,
     /// replacing its arguments with the given values.
-    pub fn inline_block_before(
+    ///
+    /// # Safety
+    ///
+    /// The values must be as many as the source block arguments, the source
+    /// block must have no predecessors and must not contain the operation, and
+    /// the source block must not be used after the inlining.
+    pub unsafe fn inline_block_before(
         &self,
         source: BlockRef<'c, '_>,
         op: OperationRef<'c, '_>,
         values: &[Value<'c, '_>],
     ) {
+        self.mark_modified();
         unsafe {
             mlirRewriterBaseInlineBlockBefore(
                 self.raw,
@@ -278,12 +336,19 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
 
     /// Inlines the source block at the end of the destination block and erases
     /// it, replacing its arguments with the given values.
-    pub fn merge_blocks(
+    ///
+    /// # Safety
+    ///
+    /// The values must be as many as the source block arguments, the source
+    /// block must have no predecessors and must differ from the destination
+    /// block, and the source block must not be used after the merge.
+    pub unsafe fn merge_blocks(
         &self,
         source: BlockRef<'c, '_>,
         destination: BlockRef<'c, '_>,
         values: &[Value<'c, '_>],
     ) {
+        self.mark_modified();
         unsafe {
             mlirRewriterBaseMergeBlocks(
                 self.raw,
@@ -309,6 +374,8 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
             });
         }
 
+        self.mark_modified();
+
         unsafe {
             mlirRewriterBaseReplaceAllValueRangeUsesWith(
                 self.raw,
@@ -327,6 +394,7 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
         from: OperationRef<'c, '_>,
         to: &[Value<'c, '_>],
     ) {
+        self.mark_modified();
         unsafe {
             mlirRewriterBaseReplaceAllOpUsesWithValueRange(
                 self.raw,
@@ -344,6 +412,7 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
         from: OperationRef<'c, '_>,
         to: OperationRef<'c, '_>,
     ) {
+        self.mark_modified();
         unsafe {
             mlirRewriterBaseReplaceAllOpUsesWithOperation(self.raw, from.to_raw(), to.to_raw())
         }
@@ -357,6 +426,7 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
         values: &[Value<'c, '_>],
         block: BlockRef<'c, '_>,
     ) {
+        self.mark_modified();
         unsafe {
             mlirRewriterBaseReplaceOpUsesWithinBlock(
                 self.raw,
@@ -376,6 +446,7 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
         to: Value<'c, '_>,
         excepted_user: OperationRef<'c, '_>,
     ) {
+        self.mark_modified();
         unsafe {
             mlirRewriterBaseReplaceAllUsesExcept(
                 self.raw,
@@ -383,6 +454,12 @@ impl<'c, 'a> RewriterBase<'c, 'a> {
                 to.to_raw(),
                 excepted_user.to_raw(),
             )
+        }
+    }
+
+    fn mark_modified(&self) {
+        if let Some(modified) = self.modified {
+            modified.set(true);
         }
     }
 }
@@ -437,7 +514,7 @@ mod tests {
 
         let op_ref = base.insert(op);
 
-        base.erase_op(op_ref);
+        unsafe { base.erase_op(op_ref) };
     }
 
     #[test]
@@ -627,6 +704,6 @@ mod tests {
 
         base.insert(op);
 
-        base.merge_blocks(block, body, &[]);
+        unsafe { base.merge_blocks(block, body, &[]) };
     }
 }

@@ -1,0 +1,9 @@
+error[E0133]: call to unsafe function `RewriterBase::<'c, 'a>::erase_op` is unsafe and requires unsafe block
+  --> tests/ui/erase_operation_without_unsafe.rs:15:5
+   |
+15 | /     IrRewriter::new(&context)
+16 | |         .as_rewriter_base()
+17 | |         .erase_op(operation);
+   | |____________________________^ call to unsafe function
+   |
+   = note: consult the function's documentation for information on how to avoid undefined behavior

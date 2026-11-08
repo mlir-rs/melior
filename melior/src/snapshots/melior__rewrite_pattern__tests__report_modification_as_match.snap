@@ -1,0 +1,10 @@
+---
+source: melior/src/rewrite_pattern.rs
+expression: module.as_operation()
+---
+module {
+  func.func private @foo()
+  func.func @bar() {
+    return
+  }
+}
