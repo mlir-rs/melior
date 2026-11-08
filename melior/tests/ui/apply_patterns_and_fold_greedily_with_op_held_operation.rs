@@ -22,11 +22,13 @@ fn main() {
         .first_operation()
         .unwrap();
 
-    apply_patterns_and_fold_greedily_with_op(
-        &mut module.as_operation_mut(),
-        &RewritePatternSet::new(&context).freeze(),
-        &GreedyRewriteDriverConfig::new(),
-    )
+    unsafe {
+        apply_patterns_and_fold_greedily_with_op(
+            &mut module.as_operation_mut(),
+            &RewritePatternSet::new(&context).freeze(),
+            &GreedyRewriteDriverConfig::new(),
+        )
+    }
     .unwrap();
 
     println!("{operation}");

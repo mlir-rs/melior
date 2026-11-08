@@ -1,0 +1,10 @@
+error[E0133]: call to unsafe function `walk_and_apply_patterns` is unsafe and requires unsafe block
+  --> tests/ui/walk_and_apply_patterns_without_unsafe.rs:25:5
+   |
+25 | /     walk_and_apply_patterns(
+26 | |         &mut body.first_operation_mut().unwrap(),
+27 | |         &RewritePatternSet::new(&context).freeze(),
+28 | |     );
+   | |_____^ call to unsafe function
+   |
+   = note: consult the function's documentation for information on how to avoid undefined behavior
