@@ -468,3 +468,60 @@ fn empty_same_size_with_singles() {
     assert_eq!(operation.last().unwrap(), block.argument(2).unwrap().into());
     assert_eq!(operation.as_operation().operand_count(), 3);
 }
+
+#[test]
+fn unnamed() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let r#type = Type::parse(&context, "i32").unwrap();
+    let block = Block::new(&[r#type, r#type], &[location, location]).unwrap();
+    let operation = operand_test::unnamed(
+        &context,
+        r#type,
+        block.argument(0).unwrap().into(),
+        block.argument(1).unwrap().into(),
+        location,
+    );
+
+    assert_eq!(
+        operation.operand_0().unwrap(),
+        block.argument(0).unwrap().into()
+    );
+    assert_eq!(
+        operation.named().unwrap(),
+        block.argument(1).unwrap().into()
+    );
+    assert_eq!(operation.as_operation().operand_count(), 2);
+}
+
+#[test]
+fn unnamed_variadic_before_single() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+
+    let r#type = Type::parse(&context, "i32").unwrap();
+    let block = Block::new(&[r#type, r#type, r#type], &[location, location, location]).unwrap();
+    let operation = operand_test::UnnamedVariadicOperation::builder(&context, location)
+        .res(r#type)
+        .operand_0(&[
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        ])
+        .last(block.argument(2).unwrap().into())
+        .build();
+
+    assert_eq!(
+        operation.operand_0().collect::<Vec<_>>(),
+        [
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        ]
+    );
+    assert_eq!(operation.last().unwrap(), block.argument(2).unwrap().into());
+    assert_eq!(operation.as_operation().operand_count(), 3);
+}
