@@ -58,3 +58,13 @@ def OperandTest_SameSizeWithSinglesOp :
     );
     let results = (outs I32:$res);
 }
+
+def OperandTest_UnnamedOp : OperandTest_Op<"unnamed"> {
+    let arguments = (ins I32, I32:$named);
+    let results = (outs I32:$res);
+}
+
+def OperandTest_UnnamedVariadicOp : OperandTest_Op<"unnamed_variadic"> {
+    let arguments = (ins Variadic<I32>, I32:$last);
+    let results = (outs I32:$res);
+}

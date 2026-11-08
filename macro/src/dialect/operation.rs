@@ -368,23 +368,12 @@ impl<'a> Operation<'a> {
         same_size: bool,
         attribute_sized: bool,
     ) -> Result<Vec<OperationElement>, Error> {
-        let results = Self::dag_constraints(definition, "results")?
-            .into_iter()
-            .enumerate()
-            .map(|(index, (name, constraint))| {
-                (
-                    name.map_or_else(|| format!("result_{index}"), Into::into),
-                    Type::new(constraint),
-                )
-            })
-            .collect::<Vec<_>>();
-
         Self::collect_elements(
             definition,
             ElementKind::Result,
-            &results
-                .iter()
-                .map(|(name, r#type)| (name.as_str(), *r#type))
+            &Self::dag_constraints(definition, "results")?
+                .into_iter()
+                .map(|(name, constraint)| (name, Type::new(constraint)))
                 .collect::<Vec<_>>(),
             same_size,
             attribute_sized,
@@ -402,9 +391,8 @@ impl<'a> Operation<'a> {
             ElementKind::Operand,
             &arguments
                 .iter()
-                .filter_map(|(name, definition)| Some(((*name)?, *definition)))
                 .filter(|(_, definition)| definition.subclass_of("TypeConstraint"))
-                .map(|(name, definition)| (name, Type::new(definition)))
+                .map(|(name, definition)| (*name, Type::new(*definition)))
                 .collect::<Vec<_>>(),
             same_size,
             attribute_sized,
@@ -414,7 +402,7 @@ impl<'a> Operation<'a> {
     fn collect_elements(
         definition: Record<'a>,
         kind: ElementKind,
-        elements: &[(&str, Type)],
+        elements: &[(Option<&str>, Type)],
         same_size: bool,
         attribute_sized: bool,
     ) -> Result<Vec<OperationElement>, Error> {
@@ -437,7 +425,10 @@ impl<'a> Operation<'a> {
             .enumerate()
             .map(|(index, (name, r#type))| {
                 OperationElement::new(
-                    (*name).into(),
+                    name.map_or_else(
+                        || format!("{}_{index}", FieldKind::from(kind).singular_name()),
+                        Into::into,
+                    ),
                     kind,
                     *r#type,
                     ElementPosition::new(
@@ -451,7 +442,7 @@ impl<'a> Operation<'a> {
             .collect()
     }
 
-    fn count_unfixed_elements(elements: &[(&str, Type)]) -> usize {
+    fn count_unfixed_elements(elements: &[(Option<&str>, Type)]) -> usize {
         elements
             .iter()
             .filter(|(_, r#type)| r#type.is_unfixed())
@@ -570,6 +561,38 @@ mod tests {
                 .map(OperationField::name)
                 .collect::<Vec<_>>(),
             ["result_0", "result_1"]
+        );
+    }
+
+    #[test]
+    fn preserve_unnamed_operands() {
+        let keeper = TableGenParser::new()
+            .add_include_directory(LLVM_INCLUDE_DIRECTORY)
+            .add_source(&unindent::unindent(
+                r#"
+                include "mlir/IR/OpBase.td"
+
+                def Test_Dialect : Dialect {
+                    let name = "test";
+                }
+
+                def Test_FooOp : Op<Test_Dialect, "foo"> {
+                    let arguments = (ins I32, I32Attr:$attribute, I32:$input, I64);
+                }
+                "#,
+            ))
+            .unwrap()
+            .parse()
+            .unwrap();
+
+        let operation = Operation::new(keeper.def("Test_FooOp").unwrap()).unwrap();
+
+        assert_eq!(
+            operation
+                .operands()
+                .map(OperationField::name)
+                .collect::<Vec<_>>(),
+            ["operand_0", "input", "operand_2"]
         );
     }
 }
