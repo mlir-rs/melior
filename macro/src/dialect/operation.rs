@@ -480,7 +480,7 @@ impl<'a> Operation<'a> {
             .enumerate()
             .map(|(index, (name, r#type))| {
                 OperationElement::new(
-                    name,
+                    (*name).into(),
                     kind,
                     *r#type,
                     ElementPosition::new(

@@ -19,15 +19,15 @@ pub struct OperationElement {
 
 impl OperationElement {
     pub fn new(
-        name: &str,
+        name: String,
         kind: ElementKind,
         r#type: ElementType,
         position: ElementPosition,
     ) -> Result<Self, Error> {
         Ok(Self {
-            name: name.into(),
+            singular_identifier: sanitize_snake_case_identifier(&name)?,
+            name,
             kind,
-            singular_identifier: sanitize_snake_case_identifier(name)?,
             r#type,
             position,
         })
