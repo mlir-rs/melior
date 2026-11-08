@@ -104,7 +104,7 @@ impl Context {
     }
 
     /// Attaches a diagnostic handler.
-    pub fn attach_diagnostic_handler<F: FnMut(Diagnostic) -> bool>(
+    pub fn attach_diagnostic_handler<F: FnMut(Diagnostic) -> bool + 'static>(
         &self,
         handler: F,
     ) -> DiagnosticHandlerId {

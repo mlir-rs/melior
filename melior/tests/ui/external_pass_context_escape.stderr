@@ -1,0 +1,15 @@
+error: implementation of `RunExternalPass` is not general enough
+  --> tests/ui/external_pass_context_escape.rs:21:22
+   |
+21 |       manager.add_pass(create_external(
+   |  ______________________^
+22 | |         |operation: OperationRef<'static, '_>, _: ExternalPass| {
+23 | |             LOCATION.with(|location| *location.borrow_mut() = Some(operation.location()));
+24 | |         },
+...  |
+30 | |         &[],
+31 | |     ));
+   | |_____^ implementation of `RunExternalPass` is not general enough
+   |
+   = note: `{closure@$DIR/tests/ui/external_pass_context_escape.rs:22:9: 22:64}` must implement `RunExternalPass<'0>`, for any lifetime `'0`...
+   = note: ...but it actually implements `RunExternalPass<'1>`, for some specific lifetime `'1`
