@@ -1,0 +1,54 @@
+error[E0415]: identifier `result_0` is bound more than once in this parameter list
+ --> tests/ui/unnamed_result_conflicting_with_region.rs:1:1
+  |
+1 | / melior_macro::dialect! {
+2 | |     name: "region_conflict",
+3 | |     files: ["unnamed_result_conflict.td"],
+4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+5 | | }
+  | |_^ used as parameter more than once
+
+error[E0592]: duplicate definitions with name `result_0`
+ --> tests/ui/unnamed_result_conflicting_with_region.rs:1:1
+  |
+1 | / melior_macro::dialect! {
+2 | |     name: "region_conflict",
+3 | |     files: ["unnamed_result_conflict.td"],
+4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+5 | | }
+  | | ^
+  | | |
+  | |_duplicate definitions for `result_0`
+  |   other definition for `result_0`
+  |
+  = note: this error originates in the macro `melior_macro::dialect` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0034]: multiple applicable items in scope
+ --> tests/ui/unnamed_result_conflicting_with_region.rs:1:1
+  |
+1 | / melior_macro::dialect! {
+2 | |     name: "region_conflict",
+3 | |     files: ["unnamed_result_conflict.td"],
+4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+5 | | }
+  | |_^ multiple `result_0` found
+  |
+note: candidate #1 is defined in an impl for the type `FooOperationBuilder<'c, T0, melior::dialect::ods::__private::Unset>`
+ --> tests/ui/unnamed_result_conflicting_with_region.rs:1:1
+  |
+1 | / melior_macro::dialect! {
+2 | |     name: "region_conflict",
+3 | |     files: ["unnamed_result_conflict.td"],
+4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+5 | | }
+  | |_^
+note: candidate #2 is defined in an impl for the type `FooOperationBuilder<'c, melior::dialect::ods::__private::Unset, R0>`
+ --> tests/ui/unnamed_result_conflicting_with_region.rs:1:1
+  |
+1 | / melior_macro::dialect! {
+2 | |     name: "region_conflict",
+3 | |     files: ["unnamed_result_conflict.td"],
+4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+5 | | }
+  | |_^
+  = note: this error originates in the macro `melior_macro::dialect` (in Nightly builds, run with -Z macro-backtrace for more info)
