@@ -22,10 +22,12 @@ fn main() {
         .first_operation()
         .unwrap();
 
-    walk_and_apply_patterns(
-        &mut module.as_operation_mut(),
-        &RewritePatternSet::new(&context).freeze(),
-    );
+    unsafe {
+        walk_and_apply_patterns(
+            &mut module.as_operation_mut(),
+            &RewritePatternSet::new(&context).freeze(),
+        )
+    };
 
     println!("{operation}");
 }

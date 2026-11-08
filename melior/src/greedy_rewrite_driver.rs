@@ -224,7 +224,13 @@ pub fn apply_patterns_and_fold_greedily(
 }
 
 /// Applies patterns and folds greedily to the given operation.
-pub fn apply_patterns_and_fold_greedily_with_op<'c: 'a, 'a>(
+///
+/// # Safety
+///
+/// References into IR nested in the operation must not be used after the call,
+/// including ones held by walks in progress, since the IR might be erased.
+// TODO Make this safe when mutable operation references are exclusive.
+pub unsafe fn apply_patterns_and_fold_greedily_with_op<'c: 'a, 'a>(
     op: &mut impl OperationMutLike<'c, 'a>,
     patterns: &FrozenRewritePatternSet,
     config: &GreedyRewriteDriverConfig,
@@ -241,7 +247,13 @@ pub fn apply_patterns_and_fold_greedily_with_op<'c: 'a, 'a>(
 }
 
 /// Walks the operation and applies patterns using a fast walk-based driver.
-pub fn walk_and_apply_patterns<'c: 'a, 'a>(
+///
+/// # Safety
+///
+/// References into IR nested in the operation must not be used after the call,
+/// including ones held by walks in progress, since the IR might be erased.
+// TODO Make this safe when mutable operation references are exclusive.
+pub unsafe fn walk_and_apply_patterns<'c: 'a, 'a>(
     op: &mut impl OperationMutLike<'c, 'a>,
     patterns: &FrozenRewritePatternSet,
 ) {
@@ -365,11 +377,13 @@ mod tests {
         let config = GreedyRewriteDriverConfig::new();
 
         assert!(
-            apply_patterns_and_fold_greedily_with_op(
-                &mut module.as_operation_mut(),
-                &frozen,
-                &config
-            )
+            unsafe {
+                apply_patterns_and_fold_greedily_with_op(
+                    &mut module.as_operation_mut(),
+                    &frozen,
+                    &config,
+                )
+            }
             .is_ok()
         );
     }
@@ -390,9 +404,11 @@ mod tests {
         let context = create_test_context();
         let mut module = Module::new(Location::unknown(&context));
 
-        walk_and_apply_patterns(
-            &mut module.as_operation_mut(),
-            &RewritePatternSet::new(&context).freeze(),
-        );
+        unsafe {
+            walk_and_apply_patterns(
+                &mut module.as_operation_mut(),
+                &RewritePatternSet::new(&context).freeze(),
+            )
+        };
     }
 }
