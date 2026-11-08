@@ -197,7 +197,7 @@ fn absent_optional_before_single() {
 }
 
 #[test]
-fn maybe_optional_before_single() {
+fn optional_option_before_single() {
     let context = create_test_context();
     context.set_allow_unregistered_dialects(true);
 
@@ -207,7 +207,7 @@ fn maybe_optional_before_single() {
     let block = Block::new(&[r#type, r#type], &[location, location]).unwrap();
     let operation = operand_test::OptionalBeforeSingleOperation::builder(&context, location)
         .res(r#type)
-        .maybe_optional(Some(block.argument(0).unwrap().into()))
+        .optional_option(Some(block.argument(0).unwrap().into()))
         .last(block.argument(1).unwrap().into())
         .build();
 
@@ -220,7 +220,7 @@ fn maybe_optional_before_single() {
 }
 
 #[test]
-fn absent_maybe_optional_before_single() {
+fn absent_optional_option_before_single() {
     let context = create_test_context();
     context.set_allow_unregistered_dialects(true);
 
@@ -230,7 +230,7 @@ fn absent_maybe_optional_before_single() {
     let block = Block::new(&[r#type], &[location]).unwrap();
     let operation = operand_test::OptionalBeforeSingleOperation::builder(&context, location)
         .res(r#type)
-        .maybe_optional(None)
+        .optional_option(None)
         .last(block.argument(0).unwrap().into())
         .build();
 
@@ -357,7 +357,7 @@ fn attribute_sized_without_optional() {
 }
 
 #[test]
-fn attribute_sized_with_maybe_optional() {
+fn attribute_sized_with_optional_option() {
     let context = create_test_context();
     context.set_allow_unregistered_dialects(true);
 
@@ -372,7 +372,7 @@ fn attribute_sized_with_maybe_optional() {
     let operation = operand_test::AttributeSizedOptionalOperation::builder(&context, location)
         .res(r#type)
         .first(block.argument(0).unwrap().into())
-        .maybe_optional(Some(block.argument(1).unwrap().into()))
+        .optional_option(Some(block.argument(1).unwrap().into()))
         .others(&[
             block.argument(2).unwrap().into(),
             block.argument(3).unwrap().into(),
@@ -398,7 +398,7 @@ fn attribute_sized_with_maybe_optional() {
 }
 
 #[test]
-fn attribute_sized_without_maybe_optional() {
+fn attribute_sized_without_optional_option() {
     let context = create_test_context();
     context.set_allow_unregistered_dialects(true);
 
@@ -409,7 +409,7 @@ fn attribute_sized_without_maybe_optional() {
     let operation = operand_test::AttributeSizedOptionalOperation::builder(&context, location)
         .res(r#type)
         .first(block.argument(0).unwrap().into())
-        .maybe_optional(None)
+        .optional_option(None)
         .others(&[
             block.argument(1).unwrap().into(),
             block.argument(2).unwrap().into(),

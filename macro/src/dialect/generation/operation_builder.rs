@@ -165,8 +165,8 @@ fn generate_setter(
             .iter()
             .filter_map(|argument| argument.parameter());
         let segment_size_fields = generate_segment_size_fields(builder.operation(), field);
-        let maybe_setter = field.is_optional().then(|| {
-            let maybe_identifier = format_ident!("maybe_{}", identifier.unraw());
+        let option_setter = field.is_optional().then(|| {
+            let option_identifier = format_ident!("{}_option", identifier.unraw());
             let doc = format!("Sets `{}` if it is present.", field.name());
             let segment_size_fields = builder.operation().segment_arrays().map(|(kind, _)| {
                 let identifier = kind.segment_size_field_identifier();
@@ -176,7 +176,7 @@ fn generate_setter(
 
             quote! {
                 #[doc = #doc]
-                pub fn #maybe_identifier(self, #identifier: Option<#parameter_type>) -> #builder_identifier<'c, #(#arguments_set),*> {
+                pub fn #option_identifier(self, #identifier: Option<#parameter_type>) -> #builder_identifier<'c, #(#arguments_set),*> {
                     if let Some(#identifier) = #identifier {
                         self.#identifier(#identifier)
                     } else {
@@ -206,7 +206,7 @@ fn generate_setter(
                     }
                 }
 
-                #maybe_setter
+                #option_setter
             }
         }
     } else {

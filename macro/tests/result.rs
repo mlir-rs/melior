@@ -70,7 +70,7 @@ fn attribute_sized_without_optional() {
 }
 
 #[test]
-fn attribute_sized_with_maybe_optional() {
+fn attribute_sized_with_optional_option() {
     let context = create_test_context();
     context.set_allow_unregistered_dialects(true);
 
@@ -84,7 +84,7 @@ fn attribute_sized_with_maybe_optional() {
     ];
     let operation = result_test::AttributeSizedOperation::builder(&context, location)
         .first(first_type)
-        .maybe_optional(Some(optional_type))
+        .optional_option(Some(optional_type))
         .others(&other_types)
         .build();
 
@@ -102,7 +102,7 @@ fn attribute_sized_with_maybe_optional() {
 }
 
 #[test]
-fn attribute_sized_without_maybe_optional() {
+fn attribute_sized_without_optional_option() {
     let context = create_test_context();
     context.set_allow_unregistered_dialects(true);
 
@@ -115,7 +115,7 @@ fn attribute_sized_without_maybe_optional() {
     ];
     let operation = result_test::AttributeSizedOperation::builder(&context, location)
         .first(first_type)
-        .maybe_optional(None)
+        .optional_option(None)
         .others(&other_types)
         .build();
 
