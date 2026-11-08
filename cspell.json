@@ -72,6 +72,7 @@
     "tosa",
     "trunci",
     "uninlined",
+    "unraw",
     "xindex",
     "xori"
   ]
