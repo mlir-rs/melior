@@ -18,22 +18,26 @@ impl ExecutionEngine {
         shared_library_paths: &[&str],
         enable_object_dump: bool,
         enable_pic: bool,
-    ) -> Self {
-        Self {
-            raw: unsafe {
-                mlirExecutionEngineCreate(
-                    module.to_raw(),
-                    optimization_level as i32,
-                    shared_library_paths.len() as i32,
-                    shared_library_paths
-                        .iter()
-                        .map(|&string| StringRef::new(string).to_raw())
-                        .collect::<Vec<_>>()
-                        .as_ptr(),
-                    enable_object_dump,
-                    enable_pic,
-                )
-            },
+    ) -> Result<Self, Error> {
+        let raw = unsafe {
+            mlirExecutionEngineCreate(
+                module.to_raw(),
+                optimization_level as i32,
+                shared_library_paths.len() as i32,
+                shared_library_paths
+                    .iter()
+                    .map(|&string| StringRef::new(string).to_raw())
+                    .collect::<Vec<_>>()
+                    .as_ptr(),
+                enable_object_dump,
+                enable_pic,
+            )
+        };
+
+        if raw.ptr.is_null() {
+            Err(Error::ExecutionEngineCreation)
+        } else {
+            Ok(Self { raw })
         }
     }
 
@@ -118,7 +122,7 @@ mod tests {
 
         assert_eq!(pass_manager.run(&mut module), Ok(()));
 
-        let engine = ExecutionEngine::new(&module, 2, &[], false, false);
+        let engine = ExecutionEngine::new(&module, 2, &[], false, false).unwrap();
 
         let mut argument = 42;
         let mut result = -1;
@@ -164,6 +168,18 @@ mod tests {
 
         // TODO: use `tempfile` crate
         ExecutionEngine::new(&module, 2, &[], true, false)
+            .unwrap()
             .dump_to_object_file("/tmp/melior/test.o");
+    }
+
+    #[test]
+    fn reject_untranslatable_module() {
+        let context = create_test_context();
+        let module = Module::parse(&context, "func.func @foo() { return }").unwrap();
+
+        assert!(matches!(
+            ExecutionEngine::new(&module, 2, &[], false, false),
+            Err(Error::ExecutionEngineCreation)
+        ));
     }
 }
