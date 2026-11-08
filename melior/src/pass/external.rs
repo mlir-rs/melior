@@ -174,7 +174,7 @@ impl<'c, F: FnMut(OperationRef<'c, '_>, ExternalPass<'_>) + Clone> RunExternalPa
 /// ));
 /// ```
 #[allow(clippy::too_many_arguments)]
-pub fn create_external<'c, T: RunExternalPass<'c>>(
+pub fn create_external<T: for<'c> RunExternalPass<'c> + Send + 'static>(
     pass: T,
     pass_id: TypeId,
     name: &str,
@@ -224,7 +224,7 @@ mod tests {
         Context,
         dialect::func,
         ir::{
-            Block, Identifier, Location, Module, Region, RegionLike,
+            Block, Location, Module, Region, RegionLike,
             attribute::{StringAttribute, TypeAttribute},
             block::BlockLike,
             operation::OperationLike,
@@ -264,12 +264,11 @@ mod tests {
         static TEST_PASS: PassId = PassId;
 
         #[derive(Clone, Debug)]
-        struct TestPass<'c> {
-            context: &'c Context,
+        struct TestPass {
             value: i32,
         }
 
-        impl<'c> RunExternalPass<'c> for TestPass<'c> {
+        impl<'c> RunExternalPass<'c> for TestPass {
             fn construct(&mut self) {
                 assert_eq!(self.value, 10);
             }
@@ -287,7 +286,7 @@ mod tests {
                 assert_eq!(self.value, 20);
                 self.value = 30;
                 assert!(operation.verify());
-                assert!(
+                assert_eq!(
                     operation
                         .region(0)
                         .expect("module has a body")
@@ -296,12 +295,14 @@ mod tests {
                         .first_operation()
                         .expect("body has a function")
                         .name()
-                        == Identifier::new(self.context, "func.func")
+                        .as_string_ref()
+                        .as_str(),
+                    Ok("func.func")
                 );
             }
         }
 
-        impl TestPass<'_> {
+        impl TestPass {
             fn into_pass(self) -> Pass {
                 create_external(
                     self,
@@ -320,11 +321,7 @@ mod tests {
         let mut module = create_module(&context);
         let pass_manager = PassManager::new(&context);
 
-        let test_pass = TestPass {
-            context: &context,
-            value: 10,
-        };
-        pass_manager.add_pass(test_pass.into_pass());
+        pass_manager.add_pass(TestPass { value: 10 }.into_pass());
         pass_manager.run(&mut module).unwrap();
     }
 
@@ -340,7 +337,7 @@ mod tests {
         pass_manager.add_pass(create_external(
             |operation: OperationRef, pass: ExternalPass| {
                 assert!(operation.verify());
-                assert!(
+                assert_eq!(
                     operation
                         .region(0)
                         .expect("module has a body")
@@ -349,7 +346,9 @@ mod tests {
                         .first_operation()
                         .expect("body has a function")
                         .name()
-                        == Identifier::new(&context, "func.func")
+                        .as_string_ref()
+                        .as_str(),
+                    Ok("func.func")
                 );
                 pass.signal_failure();
             },

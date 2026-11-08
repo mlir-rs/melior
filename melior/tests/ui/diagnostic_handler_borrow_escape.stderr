@@ -1,0 +1,20 @@
+error[E0373]: closure may outlive the current function, but it borrows `messages`, which is owned by the current function
+  --> tests/ui/diagnostic_handler_borrow_escape.rs:9:43
+   |
+ 9 |         context.attach_diagnostic_handler(|diagnostic| {
+   |                                           ^^^^^^^^^^^^ may outlive borrowed value `messages`
+10 |             messages.push(diagnostic.to_string());
+   |             -------- `messages` is borrowed here
+   |
+note: function requires argument type to outlive `'static`
+  --> tests/ui/diagnostic_handler_borrow_escape.rs:9:9
+   |
+ 9 | /         context.attach_diagnostic_handler(|diagnostic| {
+10 | |             messages.push(diagnostic.to_string());
+11 | |             true
+12 | |         });
+   | |__________^
+help: to force the closure to take ownership of `messages` (and any other referenced variables), use the `move` keyword
+   |
+ 9 |         context.attach_diagnostic_handler(move |diagnostic| {
+   |                                           ++++

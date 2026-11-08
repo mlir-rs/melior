@@ -84,22 +84,28 @@ impl Display for Diagnostic<'_> {
 #[cfg(test)]
 mod tests {
     use crate::{Context, ir::Module};
+    use alloc::rc::Rc;
+    use core::cell::RefCell;
 
     #[test]
     fn handle_diagnostic() {
-        let mut message = None;
+        let message = Rc::new(RefCell::new(None));
         let context = Context::new();
 
-        context.attach_diagnostic_handler(|diagnostic| {
-            message = Some(diagnostic.to_string());
-            true
+        context.attach_diagnostic_handler({
+            let message = message.clone();
+
+            move |diagnostic| {
+                *message.borrow_mut() = Some(diagnostic.to_string());
+                true
+            }
         });
 
         Module::parse(&context, "foo");
 
         assert_eq!(
-            message.unwrap(),
-            "custom op 'foo' is unknown (tried 'builtin.foo' as well)"
+            message.borrow().as_deref(),
+            Some("custom op 'foo' is unknown (tried 'builtin.foo' as well)")
         );
     }
 }
