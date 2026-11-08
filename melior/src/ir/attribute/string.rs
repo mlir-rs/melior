@@ -56,6 +56,20 @@ mod tests {
     }
 
     #[test]
+    fn empty_value() {
+        let context = create_test_context();
+
+        assert_eq!(StringAttribute::new(&context, "").value(), "");
+    }
+
+    #[test]
+    fn value_with_trailing_nul() {
+        let context = create_test_context();
+
+        assert_eq!(StringAttribute::new(&context, "foo\0").value(), "foo\0");
+    }
+
+    #[test]
     fn typed() {
         let context = create_test_context();
         let r#type = Type::from(IntegerType::new(&context, 32));
