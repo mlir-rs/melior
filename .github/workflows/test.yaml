@@ -35,7 +35,7 @@ jobs:
           - ubuntu-26.04
           - ubuntu-26.04-arm
     runs-on: ${{ matrix.os }}
-    # cspell: ignore rustdocflags rustflags zbuild zsanitizer
+    # cspell: ignore rustdocflags rustflags zsanitizer
     env:
       RUSTFLAGS: -Zsanitizer=address
       RUSTDOCFLAGS: -Zsanitizer=address
@@ -43,7 +43,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: $/.github/actions/setup
       - run: yq -i '.toolchain.channel = "nightly"' rust-toolchain.toml
-      - run: cargo test -Zbuild-std --target host-tuple -- --skip ui --exact
+      - run: cargo test --target host-tuple -- --skip ui --exact
   bench:
     runs-on: ubuntu-26.04-arm
     steps:
