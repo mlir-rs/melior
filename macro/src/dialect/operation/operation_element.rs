@@ -10,7 +10,6 @@ use syn::{Type, parse_quote};
 
 #[derive(Debug)]
 pub struct OperationElement {
-    // Owned, as names for unnamed ODS results are generated.
     name: String,
     kind: ElementKind,
     singular_identifier: Ident,
