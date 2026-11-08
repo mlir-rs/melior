@@ -107,12 +107,13 @@ Although Melior aims to be completely type safe, some part of the current API is
   the worst case.
   - Fix plan: Load all dialects by default on creation of contexts, and
     provide unsafe constructors of contexts for advanced users.
-- IR object references returned from functions that move ownership of
-  arguments might get invalidated later.
-  - This is because we need to borrow `&self` rather than `&mut self` to
-    return such references.
-  - e.g. `Region::append_block()`
-  - Fix plan: Use dynamic check, such as `RefCell`, for the objects.
+- Some functions do not check the kinds of their arguments, such as locations, types, attributes, and affine expressions, or whether operations are in blocks.
+  - e.g. `Location::call_site_callee()` on an unknown location, `Type::float_width()` on an index type, and `OperationMutLike::move_after()` on a detached operation
+- Erasing or replacing IR objects with rewriters leaves other references to them dangling.
+  - e.g. `RewriterBase::erase_op()`, and a rewrite pattern that erases its matched operation but returns `false`
+- Iterators over operations in blocks or blocks in regions and walks over operations fetch the next elements in advance. Erasing or moving those elements during iteration leads to use-after-free.
+- Diagnostic handlers and rewrite pattern callbacks can be re-entered or freed while they are running.
+  - e.g. emitting a diagnostic in a diagnostic handler, applying the same patterns in a pattern callback, and detaching a diagnostic handler in itself
 
 ## References
 
