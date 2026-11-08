@@ -9,23 +9,24 @@ use quote::quote;
 use syn::{Type, parse_quote};
 
 #[derive(Debug)]
-pub struct OperationElement<'a> {
-    name: &'a str,
+pub struct OperationElement {
+    // Owned, as names for unnamed ODS results are generated.
+    name: String,
     kind: ElementKind,
     singular_identifier: Ident,
     r#type: ElementType,
     position: ElementPosition,
 }
 
-impl<'a> OperationElement<'a> {
+impl OperationElement {
     pub fn new(
-        name: &'a str,
+        name: &str,
         kind: ElementKind,
         r#type: ElementType,
         position: ElementPosition,
     ) -> Result<Self, Error> {
         Ok(Self {
-            name,
+            name: name.into(),
             kind,
             singular_identifier: sanitize_snake_case_identifier(name)?,
             r#type,
@@ -46,9 +47,9 @@ impl<'a> OperationElement<'a> {
     }
 }
 
-impl OperationField for OperationElement<'_> {
+impl OperationField for OperationElement {
     fn name(&self) -> &str {
-        self.name
+        &self.name
     }
 
     fn kind(&self) -> FieldKind {
