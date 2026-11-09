@@ -4,8 +4,8 @@ error[E0599]: no method named `copy` found for struct `AllocTensorOperationBuild
 13 | /     bufferization::AllocTensorOperation::builder(&context, location)
 14 | |         .result(r#type)
 15 | |         .dynamic_sizes(&[])
-16 | |         .size_hint(block.argument(0).unwrap().into())
-17 | |         .copy(block.argument(0).unwrap().into())
+16 | |         .size_hint(Some(block.argument(0).unwrap().into()))
+17 | |         .copy(Some(block.argument(0).unwrap().into()))
    | |         -^^^^ method not found in `AllocTensorOperationBuilder<'_, melior::dialect::ods::__private::Set, melior::dialect::ods::__private::Set, melior::dialect::ods::__private::Unset, melior::dialect::ods::__private::Set>`
    | |_________|
    |

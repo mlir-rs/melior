@@ -13,7 +13,7 @@ fn main() {
     bufferization::AllocTensorOperation::builder(&context, location)
         .result(r#type)
         .dynamic_sizes(&[])
-        .size_hint(block.argument(0).unwrap().into())
-        .copy(block.argument(0).unwrap().into())
+        .size_hint(Some(block.argument(0).unwrap().into()))
+        .copy(Some(block.argument(0).unwrap().into()))
         .build();
 }

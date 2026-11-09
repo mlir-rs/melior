@@ -5,7 +5,7 @@ use crate::dialect::operation::{
 use core::iter::repeat_n;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
-use syn::{Type, ext::IdentExt};
+use syn::Type;
 
 pub fn generate_operation_builder(builder: &TypeStateBuilder) -> TokenStream {
     let result_fns = builder
@@ -108,10 +108,11 @@ fn generate_segment_size_fields(
                 && field.kind() == kind
             {
                 let sizes = Ident::new("sizes", Span::mixed_site());
+                let name = field.singular_identifier();
                 let size = if matches!(field.parameter_type(), Type::Reference(_)) {
-                    let identifier = field.singular_identifier();
-
-                    quote! { #identifier.len() as i32 }
+                    quote! { #name.len() as i32 }
+                } else if field.is_optional() {
+                    quote! { i32::from(#name.is_some()) }
                 } else {
                     quote! { 1 }
                 };
@@ -153,10 +154,7 @@ fn generate_setter(
     };
 
     if builder.type_state().has_parameter(kind, index) {
-        let arguments_set = builder
-            .type_state()
-            .arguments_with(kind, index, true)
-            .collect::<Vec<_>>();
+        let arguments_set = builder.type_state().arguments_with(kind, index, true);
         let arguments_unset = builder
             .type_state()
             .arguments_with(kind, index, false)
@@ -165,31 +163,6 @@ fn generate_setter(
             .iter()
             .filter_map(|argument| argument.parameter());
         let segment_size_fields = generate_segment_size_fields(builder.operation(), field);
-        let option_setter = field.is_optional().then(|| {
-            let option_identifier = format_ident!("{}_option", identifier.unraw());
-            let doc = format!("Sets `{}` if it is present.", field.name());
-            let segment_size_fields = builder.operation().segment_arrays().map(|(kind, _)| {
-                let identifier = kind.segment_size_field_identifier();
-
-                quote! { #identifier: self.#identifier }
-            });
-
-            quote! {
-                #[doc = #doc]
-                pub fn #option_identifier(self, #identifier: Option<#parameter_type>) -> #builder_identifier<'c, #(#arguments_set),*> {
-                    if let Some(#identifier) = #identifier {
-                        self.#identifier(#identifier)
-                    } else {
-                        #builder_identifier {
-                            context: self.context,
-                            #(#segment_size_fields,)*
-                            builder: self.builder,
-                            _state: Default::default(),
-                        }
-                    }
-                }
-            }
-        });
 
         quote! {
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#arguments_unset),*> {
@@ -205,8 +178,6 @@ fn generate_setter(
                         _state: Default::default(),
                     }
                 }
-
-                #option_setter
             }
         }
     } else {

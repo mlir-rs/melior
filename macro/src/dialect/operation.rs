@@ -71,6 +71,12 @@ impl<'a> Operation<'a> {
             trait_names.contains("::mlir::OpTrait::SameVariadicResultSize"),
             trait_names.contains("::mlir::OpTrait::AttrSizedResultSegments"),
         )?;
+        let operands = Self::collect_operands(
+            definition,
+            &arguments,
+            trait_names.contains("::mlir::OpTrait::SameVariadicOperandSize"),
+            trait_names.contains("::mlir::OpTrait::AttrSizedOperandSegments"),
+        )?;
         let short_name = Self::build_name(definition)?;
 
         Ok(Self {
@@ -86,6 +92,9 @@ impl<'a> Operation<'a> {
                 let has_interface = regions.is_empty()
                     && trait_names.contains("::mlir::InferTypeOpInterface::Trait");
                 let has_same_operands = !has_unfixed_results
+                    && operands
+                        .first()
+                        .is_some_and(|operand| !operand.is_optional())
                     && trait_names.contains("::mlir::OpTrait::SameOperandsAndResultType");
                 let has_first_attr_derived = !has_unfixed_results
                     && trait_names.contains("::mlir::OpTrait::FirstAttrDerivedResultType");
@@ -100,12 +109,7 @@ impl<'a> Operation<'a> {
                 }
             },
             results,
-            operands: Self::collect_operands(
-                definition,
-                &arguments,
-                trait_names.contains("::mlir::OpTrait::SameVariadicOperandSize"),
-                trait_names.contains("::mlir::OpTrait::AttrSizedOperandSegments"),
-            )?,
+            operands,
             regions,
             successors: Self::collect_successors(definition)?,
             attributes: Self::collect_attributes(&arguments)?,

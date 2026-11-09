@@ -71,6 +71,8 @@ impl OperationField for OperationElement {
 
         if self.is_variadic() {
             parse_quote! { &[#r#type] }
+        } else if self.is_optional() {
+            parse_quote! { Option<#r#type> }
         } else {
             r#type
         }
@@ -102,6 +104,8 @@ impl OperationField for OperationElement {
 
         if self.is_variadic() {
             quote! { #name }
+        } else if self.is_optional() {
+            quote! { #name.as_slice() }
         } else {
             quote! { &[#name] }
         }

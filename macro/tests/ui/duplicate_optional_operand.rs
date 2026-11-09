@@ -14,7 +14,7 @@ fn main() {
         .value(r#type)
         .memref(block.argument(0).unwrap().into())
         .indices(&[block.argument(0).unwrap().into()])
-        .sgpr_offset(block.argument(0).unwrap().into())
-        .sgpr_offset(block.argument(0).unwrap().into())
+        .sgpr_offset(Some(block.argument(0).unwrap().into()))
+        .sgpr_offset(Some(block.argument(0).unwrap().into()))
         .build();
 }
