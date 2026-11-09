@@ -5,8 +5,8 @@ error[E0599]: no method named `sgpr_offset` found for struct `RawBufferLoadOpera
 14 | |         .value(r#type)
 15 | |         .memref(block.argument(0).unwrap().into())
 16 | |         .indices(&[block.argument(0).unwrap().into()])
-17 | |         .sgpr_offset(block.argument(0).unwrap().into())
-18 | |         .sgpr_offset(block.argument(0).unwrap().into())
+17 | |         .sgpr_offset(Some(block.argument(0).unwrap().into()))
+18 | |         .sgpr_offset(Some(block.argument(0).unwrap().into()))
    | |         -^^^^^^^^^^^ method not found in `RawBufferLoadOperationBuilder<'_, melior::dialect::ods::__private::Set, melior::dialect::ods::__private::Set, melior::dialect::ods::__private::Set, melior::dialect::ods::__private::Set>`
    | |_________|
    |

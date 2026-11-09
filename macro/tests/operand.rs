@@ -163,7 +163,7 @@ fn optional_before_single() {
     let block = Block::new(&[r#type, r#type], &[location, location]).unwrap();
     let operation = operand_test::OptionalBeforeSingleOperation::builder(&context, location)
         .res(r#type)
-        .optional(block.argument(0).unwrap().into())
+        .optional(Some(block.argument(0).unwrap().into()))
         .last(block.argument(1).unwrap().into())
         .build();
 
@@ -197,30 +197,7 @@ fn absent_optional_before_single() {
 }
 
 #[test]
-fn optional_option_before_single() {
-    let context = create_test_context();
-    context.set_allow_unregistered_dialects(true);
-
-    let location = Location::unknown(&context);
-
-    let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(&[r#type, r#type], &[location, location]).unwrap();
-    let operation = operand_test::OptionalBeforeSingleOperation::builder(&context, location)
-        .res(r#type)
-        .optional_option(Some(block.argument(0).unwrap().into()))
-        .last(block.argument(1).unwrap().into())
-        .build();
-
-    assert_eq!(
-        operation.optional().unwrap(),
-        block.argument(0).unwrap().into()
-    );
-    assert_eq!(operation.last().unwrap(), block.argument(1).unwrap().into());
-    assert_eq!(operation.as_operation().operand_count(), 2);
-}
-
-#[test]
-fn absent_optional_option_before_single() {
+fn none_optional_before_single() {
     let context = create_test_context();
     context.set_allow_unregistered_dialects(true);
 
@@ -230,7 +207,7 @@ fn absent_optional_option_before_single() {
     let block = Block::new(&[r#type], &[location]).unwrap();
     let operation = operand_test::OptionalBeforeSingleOperation::builder(&context, location)
         .res(r#type)
-        .optional_option(None)
+        .optional(None)
         .last(block.argument(0).unwrap().into())
         .build();
 
@@ -292,7 +269,7 @@ fn attribute_sized_with_optional() {
     let operation = operand_test::AttributeSizedOptionalOperation::builder(&context, location)
         .res(r#type)
         .first(block.argument(0).unwrap().into())
-        .optional(block.argument(1).unwrap().into())
+        .optional(Some(block.argument(1).unwrap().into()))
         .others(&[
             block.argument(2).unwrap().into(),
             block.argument(3).unwrap().into(),
@@ -357,48 +334,7 @@ fn attribute_sized_without_optional() {
 }
 
 #[test]
-fn attribute_sized_with_optional_option() {
-    let context = create_test_context();
-    context.set_allow_unregistered_dialects(true);
-
-    let location = Location::unknown(&context);
-
-    let r#type = Type::parse(&context, "i32").unwrap();
-    let block = Block::new(
-        &[r#type, r#type, r#type, r#type],
-        &[location, location, location, location],
-    )
-    .unwrap();
-    let operation = operand_test::AttributeSizedOptionalOperation::builder(&context, location)
-        .res(r#type)
-        .first(block.argument(0).unwrap().into())
-        .optional_option(Some(block.argument(1).unwrap().into()))
-        .others(&[
-            block.argument(2).unwrap().into(),
-            block.argument(3).unwrap().into(),
-        ])
-        .build();
-
-    assert_eq!(
-        operation.first().unwrap(),
-        block.argument(0).unwrap().into()
-    );
-    assert_eq!(
-        operation.optional().unwrap(),
-        block.argument(1).unwrap().into()
-    );
-    assert_eq!(
-        operation.others().unwrap().collect::<Vec<_>>(),
-        [
-            block.argument(2).unwrap().into(),
-            block.argument(3).unwrap().into(),
-        ]
-    );
-    assert_eq!(operation.as_operation().operand_count(), 4);
-}
-
-#[test]
-fn attribute_sized_without_optional_option() {
+fn attribute_sized_with_none_optional() {
     let context = create_test_context();
     context.set_allow_unregistered_dialects(true);
 
@@ -409,7 +345,7 @@ fn attribute_sized_without_optional_option() {
     let operation = operand_test::AttributeSizedOptionalOperation::builder(&context, location)
         .res(r#type)
         .first(block.argument(0).unwrap().into())
-        .optional_option(None)
+        .optional(None)
         .others(&[
             block.argument(1).unwrap().into(),
             block.argument(2).unwrap().into(),

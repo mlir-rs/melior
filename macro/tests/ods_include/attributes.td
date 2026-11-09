@@ -49,6 +49,10 @@ def AttributeTest_IntegerOp : AttributeTest_Op<"integer"> {
     let arguments = (ins I64Attr:$value);
 }
 
+def AttributeTest_OptionalOp : AttributeTest_Op<"optional"> {
+    let arguments = (ins OptionalAttr<I64Attr>:$value);
+}
+
 def AttributeTest_StringOp : AttributeTest_Op<"string"> {
     let arguments = (ins StrAttr:$value);
 }

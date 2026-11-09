@@ -368,7 +368,7 @@ mod tests {
 
             block.append_operation(
                 llvm::AllocaOperationBuilder::new(&context, location)
-                    .alignment(IntegerAttribute::new(integer_type, 8))
+                    .alignment(Some(IntegerAttribute::new(integer_type, 8)))
                     .elem_type(TypeAttribute::new(integer_type))
                     .array_size(alloca_size)
                     .res(ptr_type)
@@ -782,7 +782,7 @@ mod tests {
         .unwrap();
         let operation = gpu::SpMMBufferSizeOperation::builder(&context, location)
             .buffer_szs(&[index_type])
-            .async_token(token_type)
+            .async_token(Some(token_type))
             .async_dependencies(&[block.argument(0).unwrap().into()])
             .spmat_a(block.argument(1).unwrap().into())
             .dnmat_b(block.argument(2).unwrap().into())

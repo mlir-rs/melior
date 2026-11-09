@@ -21,3 +21,8 @@ def FirstAttrTest_FromAttrOp : FirstAttrTest_Op<"from_attr", [FirstAttrDerivedRe
     let arguments = (ins AnyAttr:$value_attr);
     let results = (outs AnyType:$result);
 }
+
+def FirstAttrTest_OptionalOp : FirstAttrTest_Op<"optional", [FirstAttrDerivedResultType]> {
+    let arguments = (ins OptionalAttr<TypeAttr>:$type_attr);
+    let results = (outs AnyType:$result);
+}
