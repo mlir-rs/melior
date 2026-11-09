@@ -368,7 +368,7 @@ mod tests {
 
             block.append_operation(
                 llvm::AllocaOperationBuilder::new(&context, location)
-                    .alignment(IntegerAttribute::new(integer_type, 8))
+                    .alignment(Some(IntegerAttribute::new(integer_type, 8)))
                     .elem_type(TypeAttribute::new(integer_type))
                     .array_size(alloca_size)
                     .res(ptr_type)

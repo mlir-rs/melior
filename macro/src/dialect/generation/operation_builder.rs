@@ -187,9 +187,12 @@ fn generate_setter(
             impl<'c, #(#parameters),*> #builder_identifier<'c, #(#parameters),*> {
                 #[doc = #doc]
                 #safety_doc
-                pub #unsafety fn #identifier(mut self, #argument) -> #builder_identifier<'c, #(#parameters),*> {
-                    #statements
-                    self.builder = #calls;
+                pub #unsafety fn #identifier(mut self, #identifier: Option<#parameter_type>) -> #builder_identifier<'c, #(#parameters),*> {
+                    if let Some(#identifier) = #identifier {
+                        #statements
+                        self.builder = #calls;
+                    }
+
                     self
                 }
             }

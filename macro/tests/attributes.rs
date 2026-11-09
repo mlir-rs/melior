@@ -158,6 +158,33 @@ fn integer_attr() {
 }
 
 #[test]
+fn optional_attr() {
+    let context = context();
+    let location = Location::unknown(&context);
+    let i64 = IntegerType::new(&context, 64).into();
+    let attribute = IntegerAttribute::new(i64, 42);
+
+    let operation = attribute_test::OptionalOperation::builder(&context, location)
+        .value(Some(attribute))
+        .build();
+
+    let value: IntegerAttribute = operation.value().unwrap();
+    assert_eq!(value.value(), 42);
+}
+
+#[test]
+fn none_optional_attr() {
+    let context = context();
+    let location = Location::unknown(&context);
+
+    let operation = attribute_test::OptionalOperation::builder(&context, location)
+        .value(None)
+        .build();
+
+    assert!(operation.value().is_err());
+}
+
+#[test]
 fn string_attr() {
     let context = context();
     let location = Location::unknown(&context);

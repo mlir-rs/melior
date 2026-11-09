@@ -44,3 +44,22 @@ fn non_type_attr_derives_result_type_from_attr_type() {
     assert_eq!(op.as_operation().result_count(), 1);
     assert_eq!(op.result().unwrap().r#type(), i32_type);
 }
+
+#[test]
+fn optional_attr_takes_result_type() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let location = Location::unknown(&context);
+    let i32_type = Type::parse(&context, "i32").unwrap();
+    let i64_type = Type::parse(&context, "i64").unwrap();
+
+    let op = first_attr_test::OptionalOperation::builder(&context, location)
+        .result(i32_type)
+        .type_attr(Some(TypeAttribute::new(i64_type)))
+        .build();
+
+    assert_eq!(op.as_operation().result_count(), 1);
+    assert_eq!(op.result().unwrap().r#type(), i32_type);
+    assert_eq!(op.type_attr().unwrap().value(), i64_type);
+}
