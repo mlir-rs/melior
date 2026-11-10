@@ -2,7 +2,7 @@
 
 use clap::{Parser, ValueEnum};
 use melior::ir::Module;
-use melior_kaleidoscope::{Action, create_context, generate, parser::parse, process, run_jit};
+use melior_kaleidoscope::{Action, create_context, generate, parse::parse, process, run_jit};
 use std::{error::Error, fs::read_to_string, path::PathBuf, process::exit};
 
 #[derive(Parser)]

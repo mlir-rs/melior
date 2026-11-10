@@ -316,7 +316,7 @@ fn value_id(value: Value) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{compile::create_context, mlir_gen::generate, parser::parse};
+    use crate::{compile::create_context, mlir_gen::generate, parse::parse};
     use indoc::indoc;
 
     fn canonicalize_source(source: &str) -> String {

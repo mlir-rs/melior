@@ -163,7 +163,7 @@ fn inline_call<'c>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{compile::create_context, mlir_gen::generate, parser::parse};
+    use crate::{compile::create_context, mlir_gen::generate, parse::parse};
     use indoc::indoc;
 
     fn inline_source(source: &str) -> Result<String, Error> {

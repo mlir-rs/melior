@@ -10,7 +10,7 @@ mod location;
 mod lower_to_affine;
 mod lower_to_llvm;
 mod mlir_gen;
-pub mod parser;
+pub mod parse;
 mod shape_inference;
 mod utility;
 

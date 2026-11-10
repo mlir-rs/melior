@@ -641,7 +641,7 @@ fn collect_literal_data(literal: &Literal, data: &mut Vec<f64>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{compile::create_context, parser::parse};
+    use crate::{compile::create_context, parse::parse};
     use indoc::indoc;
 
     fn generate_source(source: &str) -> Result<String, Error> {

@@ -96,7 +96,7 @@ pub fn run_jit(module: &Module, optimize: bool) -> Result<(), Error> {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::{mlir_gen::generate, parser::parse};
+    use crate::{mlir_gen::generate, parse::parse};
 
     pub fn compile<'c>(
         context: &'c Context,

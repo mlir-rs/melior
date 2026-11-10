@@ -101,7 +101,7 @@ mod tests {
     use super::*;
     use crate::{
         canonicalize::canonicalize, compile::create_context, inliner::inline_functions,
-        mlir_gen::generate, parser::parse,
+        mlir_gen::generate, parse::parse,
     };
     use indoc::indoc;
 

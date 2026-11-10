@@ -788,7 +788,7 @@ fn format_number(number: f64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::parse;
+    use crate::parse::parse;
     use pretty_assertions::assert_eq;
 
     #[test]
