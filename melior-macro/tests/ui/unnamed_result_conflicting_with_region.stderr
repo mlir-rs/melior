@@ -4,7 +4,7 @@ error[E0415]: identifier `result_0` is bound more than once in this parameter li
 1 | / melior_macro::dialect! {
 2 | |     name: "region_conflict",
 3 | |     files: ["unnamed_result_conflict.td"],
-4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+4 | |     include_directories: ["../../../../melior-macro/tests/ods_include"],
 5 | | }
   | |_^ used as parameter more than once
 
@@ -14,7 +14,7 @@ error[E0592]: duplicate definitions with name `result_0`
 1 | / melior_macro::dialect! {
 2 | |     name: "region_conflict",
 3 | |     files: ["unnamed_result_conflict.td"],
-4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+4 | |     include_directories: ["../../../../melior-macro/tests/ods_include"],
 5 | | }
   | | ^
   | | |
@@ -29,7 +29,7 @@ error[E0034]: multiple applicable items in scope
 1 | / melior_macro::dialect! {
 2 | |     name: "region_conflict",
 3 | |     files: ["unnamed_result_conflict.td"],
-4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+4 | |     include_directories: ["../../../../melior-macro/tests/ods_include"],
 5 | | }
   | |_^ multiple `result_0` found
   |
@@ -39,7 +39,7 @@ note: candidate #1 is defined in an impl for the type `FooOperationBuilder<'c, T
 1 | / melior_macro::dialect! {
 2 | |     name: "region_conflict",
 3 | |     files: ["unnamed_result_conflict.td"],
-4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+4 | |     include_directories: ["../../../../melior-macro/tests/ods_include"],
 5 | | }
   | |_^
 note: candidate #2 is defined in an impl for the type `FooOperationBuilder<'c, melior::dialect::ods::__private::Unset, R0>`
@@ -48,7 +48,7 @@ note: candidate #2 is defined in an impl for the type `FooOperationBuilder<'c, m
 1 | / melior_macro::dialect! {
 2 | |     name: "region_conflict",
 3 | |     files: ["unnamed_result_conflict.td"],
-4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+4 | |     include_directories: ["../../../../melior-macro/tests/ods_include"],
 5 | | }
   | |_^
   = note: this error originates in the macro `melior_macro::dialect` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -7,7 +7,7 @@ use utility::*;
 
 melior_macro::dialect! {
     name: "region_test",
-    files: ["macro/tests/ods_include/region.td"],
+    files: ["melior-macro/tests/ods_include/region.td"],
 }
 
 #[test]

@@ -18,7 +18,7 @@ use utility::*;
 
 melior_macro::dialect! {
     name: "attribute_test",
-    files: ["macro/tests/ods_include/attributes.td"],
+    files: ["melior-macro/tests/ods_include/attributes.td"],
 }
 
 fn context() -> Context {
