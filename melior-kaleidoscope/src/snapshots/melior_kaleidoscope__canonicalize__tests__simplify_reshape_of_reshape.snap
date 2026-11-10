@@ -1,0 +1,11 @@
+---
+source: kaleidoscope/src/canonicalize.rs
+expression: "canonicalize_source(indoc!(\"\n            def reshape(x) {\n              var a<2, 3> = x;\n              var b<3, 2> = a;\n              return b;\n            }\n            \"))"
+---
+module {
+  "toy.func"() ({
+  ^bb0(%arg0: tensor<*xf64>):
+    %0 = "toy.reshape"(%arg0) : (tensor<*xf64>) -> tensor<3x2xf64>
+    "toy.return"(%0) : (tensor<3x2xf64>) -> ()
+  }) {function_type = (tensor<*xf64>) -> tensor<3x2xf64>, sym_name = "reshape", sym_visibility = "private"} : () -> ()
+}

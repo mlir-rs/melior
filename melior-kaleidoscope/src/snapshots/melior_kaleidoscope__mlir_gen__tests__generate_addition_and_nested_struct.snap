@@ -1,0 +1,15 @@
+---
+source: kaleidoscope/src/mlir_gen.rs
+expression: "generate_source(indoc!(\"\n                struct Inner {\n                  var a;\n                }\n\n                struct Outer {\n                  Inner inner;\n                  var b;\n                }\n\n                def main() {\n                  Outer x = {{[1, 2]}, [3, 4]};\n                  print(x.inner.a + x.b);\n                  return;\n                }\n                \")).unwrap()"
+---
+module {
+  "toy.func"() ({
+    %0 = "toy.struct_constant"() {value = [[dense<[1.000000e+00, 2.000000e+00]> : tensor<2xf64>], dense<[3.000000e+00, 4.000000e+00]> : tensor<2xf64>]} : () -> tuple<tuple<tensor<*xf64>>, tensor<*xf64>>
+    %1 = "toy.struct_access"(%0) {index = 0 : i64} : (tuple<tuple<tensor<*xf64>>, tensor<*xf64>>) -> tuple<tensor<*xf64>>
+    %2 = "toy.struct_access"(%1) {index = 0 : i64} : (tuple<tensor<*xf64>>) -> tensor<*xf64>
+    %3 = "toy.struct_access"(%0) {index = 1 : i64} : (tuple<tuple<tensor<*xf64>>, tensor<*xf64>>) -> tensor<*xf64>
+    %4 = "toy.add"(%2, %3) : (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>
+    "toy.print"(%4) : (tensor<*xf64>) -> ()
+    "toy.return"() : () -> ()
+  }) {function_type = () -> (), sym_name = "main"} : () -> ()
+}

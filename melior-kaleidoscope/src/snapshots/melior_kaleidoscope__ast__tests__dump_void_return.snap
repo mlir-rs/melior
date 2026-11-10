@@ -1,0 +1,12 @@
+---
+source: kaleidoscope/src/ast.rs
+expression: "parse(\"def main() { return; }\", \"test.toy\").unwrap().to_string()"
+---
+  Module:
+    Function 
+      Proto 'main' @test.toy:1:1
+      Params: []
+      Block {
+        Return
+          (void)
+      } // Block

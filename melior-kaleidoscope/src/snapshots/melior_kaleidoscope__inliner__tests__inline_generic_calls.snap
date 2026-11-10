@@ -1,0 +1,24 @@
+---
+source: kaleidoscope/src/inliner.rs
+expression: "inline_source(include_str!(\"../examples/codegen.toy\")).unwrap()"
+---
+module {
+  "toy.func"() ({
+    %0 = "toy.constant"() {value = dense<[[1.000000e+00, 2.000000e+00, 3.000000e+00], [4.000000e+00, 5.000000e+00, 6.000000e+00]]> : tensor<2x3xf64>} : () -> tensor<2x3xf64>
+    %1 = "toy.reshape"(%0) : (tensor<2x3xf64>) -> tensor<2x3xf64>
+    %2 = "toy.constant"() {value = dense<[1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00]> : tensor<6xf64>} : () -> tensor<6xf64>
+    %3 = "toy.reshape"(%2) : (tensor<6xf64>) -> tensor<2x3xf64>
+    %4 = "toy.cast"(%1) : (tensor<2x3xf64>) -> tensor<*xf64>
+    %5 = "toy.cast"(%3) : (tensor<2x3xf64>) -> tensor<*xf64>
+    %6 = "toy.transpose"(%4) : (tensor<*xf64>) -> tensor<*xf64>
+    %7 = "toy.transpose"(%5) : (tensor<*xf64>) -> tensor<*xf64>
+    %8 = "toy.mul"(%6, %7) : (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>
+    %9 = "toy.cast"(%3) : (tensor<2x3xf64>) -> tensor<*xf64>
+    %10 = "toy.cast"(%1) : (tensor<2x3xf64>) -> tensor<*xf64>
+    %11 = "toy.transpose"(%9) : (tensor<*xf64>) -> tensor<*xf64>
+    %12 = "toy.transpose"(%10) : (tensor<*xf64>) -> tensor<*xf64>
+    %13 = "toy.mul"(%11, %12) : (tensor<*xf64>, tensor<*xf64>) -> tensor<*xf64>
+    "toy.print"(%13) : (tensor<*xf64>) -> ()
+    "toy.return"() : () -> ()
+  }) {function_type = () -> (), sym_name = "main"} : () -> ()
+}

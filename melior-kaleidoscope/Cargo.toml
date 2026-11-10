@@ -1,0 +1,23 @@
+[package]
+name = "melior-kaleidoscope"
+version.workspace = true
+edition.workspace = true
+description = "The Toy language compiler from the MLIR tutorial built with Melior"
+readme = "README.md"
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories = ["compilers"]
+publish = false
+
+[dependencies]
+clap = { version = "4.6.7", features = ["derive"] }
+melior = { path = "../melior", version = "0.29.1", features = ["ods-dialects"] }
+
+[dev-dependencies]
+indoc = "2.0.7"
+insta = "1.47.2"
+pretty_assertions = "1.4.1"
+
+[lints]
+workspace = true

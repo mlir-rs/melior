@@ -1,0 +1,11 @@
+---
+source: kaleidoscope/tests/command.rs
+expression: "run_successfully(&[\"trivial_reshape.toy\", \"--emit\", \"mlir\", \"--opt\"])"
+---
+module {
+  "toy.func"() ({
+    %0 = "toy.constant"() {value = dense<[[1.000000e+00], [2.000000e+00]]> : tensor<2x1xf64>} : () -> tensor<2x1xf64>
+    "toy.print"(%0) : (tensor<2x1xf64>) -> ()
+    "toy.return"() : () -> ()
+  }) {function_type = () -> (), sym_name = "main"} : () -> ()
+}

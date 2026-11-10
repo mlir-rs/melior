@@ -1,0 +1,47 @@
+---
+source: kaleidoscope/src/ast.rs
+expression: "parse(include_str!(\"../examples/ast.toy\"), \"ast.toy\").unwrap().to_string()"
+---
+  Module:
+    Function 
+      Proto 'multiply_transpose' @ast.toy:2:1
+      Params: [a, b]
+      Block {
+        Return
+          BinOp: * @ast.toy:3:25
+            Call 'transpose' [ @ast.toy:3:10
+              var: a @ast.toy:3:20
+            ]
+            Call 'transpose' [ @ast.toy:3:25
+              var: b @ast.toy:3:35
+            ]
+      } // Block
+    Function 
+      Proto 'main' @ast.toy:6:1
+      Params: []
+      Block {
+        VarDecl a<> @ast.toy:9:3
+          Literal: <2, 3>[ <3>[ 1.000000e+00, 2.000000e+00, 3.000000e+00 ], <3>[ 4.000000e+00, 5.000000e+00, 6.000000e+00 ] ] @ast.toy:9:11
+        VarDecl b<2, 3> @ast.toy:13:3
+          Literal: <6>[ 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00 ] @ast.toy:13:17
+        VarDecl c<> @ast.toy:17:3
+          Call 'multiply_transpose' [ @ast.toy:17:11
+            var: a @ast.toy:17:30
+            var: b @ast.toy:17:33
+          ]
+        VarDecl d<> @ast.toy:20:3
+          Call 'multiply_transpose' [ @ast.toy:20:11
+            var: b @ast.toy:20:30
+            var: a @ast.toy:20:33
+          ]
+        VarDecl e<> @ast.toy:23:3
+          Call 'multiply_transpose' [ @ast.toy:23:11
+            var: c @ast.toy:23:30
+            var: d @ast.toy:23:33
+          ]
+        VarDecl f<> @ast.toy:26:3
+          Call 'multiply_transpose' [ @ast.toy:26:11
+            var: a @ast.toy:26:30
+            var: c @ast.toy:26:33
+          ]
+      } // Block

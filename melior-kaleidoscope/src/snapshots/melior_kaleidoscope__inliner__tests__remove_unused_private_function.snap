@@ -1,0 +1,11 @@
+---
+source: kaleidoscope/src/inliner.rs
+expression: "inline_source(indoc!(\"\n                def unused(x) {\n                  return x;\n                }\n\n                def main() {\n                  print([1]);\n                }\n                \")).unwrap()"
+---
+module {
+  "toy.func"() ({
+    %0 = "toy.constant"() {value = dense<1.000000e+00> : tensor<1xf64>} : () -> tensor<1xf64>
+    "toy.print"(%0) : (tensor<1xf64>) -> ()
+    "toy.return"() : () -> ()
+  }) {function_type = () -> (), sym_name = "main"} : () -> ()
+}
