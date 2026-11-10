@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/lower_to_llvm.rs
+source: melior-kaleidoscope/src/lower_to_llvm.rs
 expression: "lower_source(indoc!(\"\n                    def main() {\n                      print(1);\n                    }\n                    \"),\nfalse).unwrap()"
 ---
 module {

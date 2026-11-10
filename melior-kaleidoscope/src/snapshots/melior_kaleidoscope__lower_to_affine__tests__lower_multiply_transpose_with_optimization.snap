@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/lower_to_affine.rs
+source: melior-kaleidoscope/src/lower_to_affine.rs
 expression: "lower_source(include_str!(\"../examples/codegen.toy\"), true).unwrap()"
 ---
 module {

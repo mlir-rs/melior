@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/ast.rs
+source: melior-kaleidoscope/src/ast.rs
 expression: "parse(\"def main() { return; }\", \"test.toy\").unwrap().to_string()"
 ---
   Module:

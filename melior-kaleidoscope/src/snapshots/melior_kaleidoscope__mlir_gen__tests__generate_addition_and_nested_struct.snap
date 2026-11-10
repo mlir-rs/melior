@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/mlir_gen.rs
+source: melior-kaleidoscope/src/mlir_gen.rs
 expression: "generate_source(indoc!(\"\n                struct Inner {\n                  var a;\n                }\n\n                struct Outer {\n                  Inner inner;\n                  var b;\n                }\n\n                def main() {\n                  Outer x = {{[1, 2]}, [3, 4]};\n                  print(x.inner.a + x.b);\n                  return;\n                }\n                \")).unwrap()"
 ---
 module {

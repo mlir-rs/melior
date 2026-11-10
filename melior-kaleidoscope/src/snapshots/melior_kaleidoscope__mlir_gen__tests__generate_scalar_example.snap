@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/mlir_gen.rs
+source: melior-kaleidoscope/src/mlir_gen.rs
 expression: "generate_source(include_str!(\"../examples/scalar.toy\")).unwrap()"
 ---
 module {

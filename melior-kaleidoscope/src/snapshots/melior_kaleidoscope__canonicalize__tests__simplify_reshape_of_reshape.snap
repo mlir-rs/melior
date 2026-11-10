@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/canonicalize.rs
+source: melior-kaleidoscope/src/canonicalize.rs
 expression: "canonicalize_source(indoc!(\"\n            def reshape(x) {\n              var a<2, 3> = x;\n              var b<3, 2> = a;\n              return b;\n            }\n            \"))"
 ---
 module {

@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/canonicalize.rs
+source: melior-kaleidoscope/src/canonicalize.rs
 expression: "canonicalize_source(indoc!(\"\n            struct Struct {\n              var a;\n              var b;\n            }\n\n            def main() {\n              Struct value = {[[1, 2, 3], [4, 5, 6]], [1, 2]};\n              print(value.a);\n              print(value.b);\n            }\n            \"))"
 ---
 module {

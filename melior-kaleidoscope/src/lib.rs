@@ -5,7 +5,6 @@ mod canonicalize;
 mod compile;
 mod error;
 mod inliner;
-pub mod lexer;
 mod location;
 mod lower_to_affine;
 mod lower_to_llvm;

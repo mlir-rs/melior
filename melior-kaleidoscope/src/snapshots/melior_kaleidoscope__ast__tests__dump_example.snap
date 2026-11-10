@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/ast.rs
+source: melior-kaleidoscope/src/ast.rs
 expression: "parse(include_str!(\"../examples/ast.toy\"), \"ast.toy\").unwrap().to_string()"
 ---
   Module:

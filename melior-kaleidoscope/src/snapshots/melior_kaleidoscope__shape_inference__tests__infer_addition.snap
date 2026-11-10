@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/shape_inference.rs
+source: melior-kaleidoscope/src/shape_inference.rs
 expression: "infer_source(indoc!(\"\n                def main() {\n                  var a<2, 3> = [1, 2, 3, 4, 5, 6];\n                  print(a + a);\n                }\n                \")).unwrap()"
 ---
 module {

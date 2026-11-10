@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/inliner.rs
+source: melior-kaleidoscope/src/inliner.rs
 expression: "inline_source(include_str!(\"../examples/codegen.toy\")).unwrap()"
 ---
 module {

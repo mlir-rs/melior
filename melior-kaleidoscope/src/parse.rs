@@ -1,4 +1,4 @@
-//! A recursive descent parser of the Toy language.
+//! A parser of the Toy language.
 
 use crate::{
     ast::{
@@ -6,542 +6,437 @@ use crate::{
         Prototype, Record, Return, Statement, Struct, StructLiteral, Variable, VariableDeclaration,
         VariableType,
     },
-    error::Error,
-    lexer::{Lexer, Token},
+    error,
     location::Location,
 };
+use winnow::{
+    ModalResult, Parser,
+    ascii::{dec_uint, digit1, till_line_ending},
+    combinator::{
+        self, Infix, alt, cut_err, delimited, dispatch, empty, eof, fail, opt, preceded, repeat,
+        separated, terminated,
+    },
+    error::{AddContext, ContextError, ErrMode, StrContext, StrContextValue},
+    stream::{LocatingSlice, Location as _, Stateful, Stream},
+    token::{any, one_of, take_while},
+};
+
+const KEYWORDS: &[&str] = &["def", "print", "return", "struct", "var"];
+
+// The state is the byte offsets of line starts to compute locations.
+type Input<'a> = Stateful<LocatingSlice<&'a str>, &'a [usize]>;
 
 /// Parses a module.
-pub fn parse(source: &str, file_name: &str) -> Result<Module, Error> {
-    Parser::new(source)?.parse_module(file_name)
-}
+pub fn parse(source: &str, file_name: &str) -> Result<Module, error::Error> {
+    let line_starts = [0]
+        .into_iter()
+        .chain(source.match_indices('\n').map(|(index, _)| index + 1))
+        .collect::<Vec<_>>();
 
-struct Parser<'a> {
-    lexer: Lexer<'a>,
-    token: Token,
-    location: Location,
-}
-
-impl<'a> Parser<'a> {
-    fn new(source: &'a str) -> Result<Self, Error> {
-        let mut lexer = Lexer::new(source);
-        let (token, location) = lexer.next_token()?;
-
-        Ok(Self {
-            lexer,
-            token,
-            location,
+    module
+        .parse(Stateful {
+            input: LocatingSlice::new(source),
+            state: &line_starts,
         })
-    }
-
-    fn parse_module(&mut self, file_name: &str) -> Result<Module, Error> {
-        let mut records = vec![];
-
-        loop {
-            records.push(match self.token {
-                Token::End => break,
-                Token::Def => Record::Function(self.parse_definition()?),
-                Token::Struct => Record::Struct(self.parse_struct()?),
-                _ => {
-                    return self.fail("'def' or 'struct'", "when parsing top level module records");
-                }
-            });
-        }
-
-        Ok(Module::new(file_name.into(), records))
-    }
-
-    fn parse_definition(&mut self) -> Result<Function, Error> {
-        Ok(Function::new(self.parse_prototype()?, self.parse_block()?))
-    }
-
-    fn parse_prototype(&mut self) -> Result<Prototype, Error> {
-        let location = self.location;
-
-        self.expect(Token::Def, "in prototype")?;
-
-        let name = self.parse_identifier("function name", "in prototype")?;
-
-        self.expect(Token::ParenthesisOpen, "in prototype")?;
-
-        let mut parameters = vec![];
-
-        if self.token != Token::ParenthesisClose {
-            loop {
-                let location = self.location;
-                let name_or_type = self.parse_identifier("identifier", "in parameter list")?;
-
-                parameters.push(if matches!(self.token, Token::Identifier(_)) {
-                    VariableDeclaration::new(
-                        self.parse_identifier("name", "in parameter list")?,
-                        VariableType::Struct(name_or_type),
-                        None,
-                        location,
-                    )
-                } else {
-                    VariableDeclaration::new(
-                        name_or_type,
-                        VariableType::Tensor(vec![]),
-                        None,
-                        location,
-                    )
-                });
-
-                if self.token != Token::Comma {
-                    break;
-                }
-
-                self.advance()?;
-
-                if !matches!(self.token, Token::Identifier(_)) {
-                    return self.fail("identifier", "after ',' in function parameter list");
-                }
-            }
-        }
-
-        self.expect(Token::ParenthesisClose, "to end function prototype")?;
-
-        Ok(Prototype::new(name, parameters, location))
-    }
-
-    fn parse_block(&mut self) -> Result<Vec<Statement>, Error> {
-        self.expect(Token::BraceOpen, "to begin block")?;
-
-        let mut statements = vec![];
-
-        self.skip_semicolons()?;
-
-        while !matches!(self.token, Token::BraceClose | Token::End) {
-            statements.push(match self.token {
-                Token::Identifier(_) => self.parse_declaration_or_call()?,
-                Token::Var => Statement::VariableDeclaration(self.parse_var_declaration(true)?),
-                Token::Return => Statement::Return(self.parse_return()?),
-                _ => Statement::Expression(self.parse_expression()?),
-            });
-
-            if self.token != Token::Semicolon {
-                return self.fail("';'", "after expression");
-            }
-
-            self.skip_semicolons()?;
-        }
-
-        self.expect(Token::BraceClose, "to close block")?;
-
-        Ok(statements)
-    }
-
-    fn skip_semicolons(&mut self) -> Result<(), Error> {
-        while self.token == Token::Semicolon {
-            self.advance()?;
-        }
-
-        Ok(())
-    }
-
-    fn parse_return(&mut self) -> Result<Return, Error> {
-        let location = self.location;
-
-        self.expect(Token::Return, "in return statement")?;
-
-        Ok(Return::new(
-            if self.token == Token::Semicolon {
-                None
-            } else {
-                Some(self.parse_expression()?)
+        .map(|records| Module::new(file_name.into(), records))
+        .map_err(|error| error::Error::Syntax {
+            location: location_at(&line_starts, error.offset()),
+            message: match error.inner().to_string() {
+                message if message.is_empty() => "invalid syntax".into(),
+                message => message,
             },
-            location,
-        ))
-    }
+        })
+}
 
-    fn parse_declaration_or_call(&mut self) -> Result<Statement, Error> {
-        let location = self.location;
-        let name = self.parse_identifier("identifier", "in statement")?;
+fn location_at(line_starts: &[usize], offset: usize) -> Location {
+    let line = line_starts.partition_point(|&start| start <= offset);
 
-        if self.token != Token::ParenthesisOpen {
-            return Ok(Statement::VariableDeclaration(
-                self.parse_typed_declaration(name, true, location)?,
-            ));
-        }
+    Location::new(line, offset - line_starts[line - 1] + 1)
+}
 
-        let mut arguments = self.parse_arguments()?;
+fn module(input: &mut Input<'_>) -> ModalResult<Vec<Record>> {
+    terminated(
+        repeat(0.., record),
+        token(eof).context(StrContext::Expected(StrContextValue::Description(
+            "function or struct definition",
+        ))),
+    )
+    .parse_next(input)
+}
 
-        if name == "print" {
-            if arguments.len() != 1 {
-                return self.fail("<single arg>", "as argument to print()");
+fn record(input: &mut Input<'_>) -> ModalResult<Record> {
+    token(alt((
+        function.map(Record::Function),
+        r#struct.map(Record::Struct),
+    )))
+    .parse_next(input)
+}
+
+fn function(input: &mut Input<'_>) -> ModalResult<Function> {
+    (prototype, cut_err(block))
+        .map(|(prototype, body)| Function::new(prototype, body))
+        .parse_next(input)
+}
+
+fn prototype(input: &mut Input<'_>) -> ModalResult<Prototype> {
+    (
+        located(keyword("def")),
+        cut_err((
+            identifier,
+            delimited(
+                symbol('('),
+                separated(0.., parameter, symbol(',')),
+                symbol(')'),
+            ),
+        )),
+    )
+        .map(|((location, _), (name, parameters))| Prototype::new(name, parameters, location))
+        .parse_next(input)
+}
+
+// A parameter is an optional struct type name followed by a name.
+fn parameter(input: &mut Input<'_>) -> ModalResult<VariableDeclaration> {
+    (located(identifier), opt(identifier))
+        .map(|((location, name_or_type), name)| match name {
+            Some(name) => {
+                VariableDeclaration::new(name, VariableType::Struct(name_or_type), None, location)
             }
-
-            Ok(Statement::Print(Print::new(arguments.remove(0), location)))
-        } else {
-            Ok(Statement::Expression(Expression::Call(Call::new(
-                name, arguments, location,
-            ))))
-        }
-    }
-
-    // Parses a variable declaration with a struct type.
-    fn parse_typed_declaration(
-        &mut self,
-        type_name: String,
-        requires_initializer: bool,
-        location: Location,
-    ) -> Result<VariableDeclaration, Error> {
-        let name = self.parse_identifier("name", "in variable declaration")?;
-
-        let initializer = if requires_initializer {
-            if self.token != Token::Equal {
-                return self.fail("initializer", "in variable declaration");
+            None => {
+                VariableDeclaration::new(name_or_type, VariableType::Tensor(vec![]), None, location)
             }
+        })
+        .parse_next(input)
+}
 
-            self.advance()?;
+fn r#struct(input: &mut Input<'_>) -> ModalResult<Struct> {
+    (
+        located(keyword("struct")),
+        cut_err((
+            identifier,
+            delimited(
+                symbol('{'),
+                repeat(1.., terminated(variable_declaration(false), symbol(';'))),
+                symbol('}'),
+            ),
+        )),
+    )
+        .map(|((location, _), (name, variables))| Struct::new(name, variables, location))
+        .parse_next(input)
+}
 
-            Some(self.parse_expression()?)
+fn block(input: &mut Input<'_>) -> ModalResult<Vec<Statement>> {
+    delimited(
+        symbol('{'),
+        preceded(
+            semicolons,
+            repeat(
+                0..,
+                terminated(statement, (cut_err(symbol(';')), semicolons)),
+            ),
+        ),
+        cut_err(symbol('}')),
+    )
+    .parse_next(input)
+}
+
+fn semicolons(input: &mut Input<'_>) -> ModalResult<()> {
+    repeat(0.., symbol(';')).parse_next(input)
+}
+
+fn statement(input: &mut Input<'_>) -> ModalResult<Statement> {
+    token(alt((
+        print_statement.map(Statement::Print),
+        return_statement.map(Statement::Return),
+        variable_declaration(true).map(Statement::VariableDeclaration),
+        expression.map(Statement::Expression),
+    )))
+    .parse_next(input)
+}
+
+fn print_statement(input: &mut Input<'_>) -> ModalResult<Print> {
+    (
+        located(keyword("print")),
+        cut_err(delimited(symbol('('), expression, symbol(')'))),
+    )
+        .map(|((location, _), argument)| Print::new(argument, location))
+        .parse_next(input)
+}
+
+fn return_statement(input: &mut Input<'_>) -> ModalResult<Return> {
+    (located(keyword("return")), opt(expression))
+        .map(|((location, _), value)| Return::new(value, location))
+        .parse_next(input)
+}
+
+// A variable declaration is either a `var` declaration with an optional shape
+// or a declaration with a struct type name.
+fn variable_declaration<'a>(
+    requires_initializer: bool,
+) -> impl Parser<Input<'a>, VariableDeclaration, ErrMode<ContextError>> {
+    alt((
+        (
+            located(keyword("var")),
+            cut_err((identifier, opt(shape), initializer(requires_initializer))),
+        )
+            .map(|((location, _), (name, shape, initializer))| {
+                VariableDeclaration::new(
+                    name,
+                    VariableType::Tensor(shape.unwrap_or_default()),
+                    initializer,
+                    location,
+                )
+            }),
+        (
+            located(identifier),
+            identifier,
+            initializer(requires_initializer),
+        )
+            .map(|((location, type_name), name, initializer)| {
+                VariableDeclaration::new(
+                    name,
+                    VariableType::Struct(type_name),
+                    initializer,
+                    location,
+                )
+            }),
+    ))
+}
+
+fn initializer<'a>(
+    required: bool,
+) -> impl Parser<Input<'a>, Option<Expression>, ErrMode<ContextError>> {
+    move |input: &mut Input<'a>| {
+        if required {
+            cut_err(preceded(symbol('='), expression))
+                .map(Some)
+                .parse_next(input)
         } else {
-            None
-        };
-
-        Ok(VariableDeclaration::new(
-            name,
-            VariableType::Struct(type_name),
-            initializer,
-            location,
-        ))
-    }
-
-    fn parse_declaration(
-        &mut self,
-        requires_initializer: bool,
-    ) -> Result<VariableDeclaration, Error> {
-        if self.token == Token::Var {
-            return self.parse_var_declaration(requires_initializer);
-        }
-
-        let location = self.location;
-        let type_name = self.parse_identifier("type name", "in variable declaration")?;
-
-        self.parse_typed_declaration(type_name, requires_initializer, location)
-    }
-
-    fn parse_var_declaration(
-        &mut self,
-        requires_initializer: bool,
-    ) -> Result<VariableDeclaration, Error> {
-        let location = self.location;
-
-        self.expect(Token::Var, "to begin declaration")?;
-
-        let name = self.parse_identifier("identifier", "after 'var' declaration")?;
-
-        let shape = if self.token == Token::AngleBracketOpen {
-            self.parse_type()?
-        } else {
-            vec![]
-        };
-
-        let initializer = if requires_initializer {
-            self.expect(Token::Equal, "in variable declaration")?;
-
-            Some(self.parse_expression()?)
-        } else {
-            None
-        };
-
-        Ok(VariableDeclaration::new(
-            name,
-            VariableType::Tensor(shape),
-            initializer,
-            location,
-        ))
-    }
-
-    fn parse_type(&mut self) -> Result<Vec<u64>, Error> {
-        self.expect(Token::AngleBracketOpen, "to begin type")?;
-
-        let mut shape = vec![];
-
-        while let Token::Number(number) = self.token {
-            shape.push(number as u64);
-            self.advance()?;
-
-            if self.token == Token::Comma {
-                self.advance()?;
-            }
-        }
-
-        self.expect(Token::AngleBracketClose, "to end type")?;
-
-        Ok(shape)
-    }
-
-    fn parse_expression(&mut self) -> Result<Expression, Error> {
-        let lhs = self.parse_primary()?;
-
-        self.parse_binary_rhs(0, lhs)
-    }
-
-    fn parse_binary_rhs(
-        &mut self,
-        precedence: usize,
-        mut lhs: Expression,
-    ) -> Result<Expression, Error> {
-        loop {
-            let Some((operator, token_precedence)) = self
-                .binary_operator()
-                .filter(|(_, token_precedence)| *token_precedence >= precedence)
-            else {
-                return Ok(lhs);
-            };
-
-            self.advance()?;
-
-            // The tutorial attaches the location of the right-hand side to a binary operation.
-            let location = self.location;
-            let mut rhs = self.parse_primary()?;
-
-            if self
-                .binary_operator()
-                .is_some_and(|(_, next_precedence)| token_precedence < next_precedence)
-            {
-                rhs = self.parse_binary_rhs(token_precedence + 1, rhs)?;
-            }
-
-            lhs = Expression::Binary(Binary::new(operator, lhs, rhs, location));
+            empty.map(|()| None).parse_next(input)
         }
     }
+}
 
-    const fn binary_operator(&self) -> Option<(BinaryOperator, usize)> {
-        match self.token {
-            Token::Minus => Some((BinaryOperator::Subtract, 20)),
-            Token::Plus => Some((BinaryOperator::Add, 20)),
-            Token::Star => Some((BinaryOperator::Multiply, 40)),
-            Token::Dot => Some((BinaryOperator::Access, 60)),
-            _ => None,
+fn shape(input: &mut Input<'_>) -> ModalResult<Vec<u64>> {
+    delimited(
+        symbol('<'),
+        cut_err(separated(0.., token(dec_uint::<_, u64, _>), symbol(','))),
+        cut_err(symbol('>')),
+    )
+    .parse_next(input)
+}
+
+fn expression(input: &mut Input<'_>) -> ModalResult<Expression> {
+    label(
+        token(combinator::expression(primary).infix(token(dispatch! {any;
+            '+' => empty.map(|()| Infix::Left(20, |_, lhs, rhs| Ok(binary(BinaryOperator::Add, lhs, rhs)))),
+            '-' => empty.map(|()| Infix::Left(20, |_, lhs, rhs| Ok(binary(BinaryOperator::Subtract, lhs, rhs)))),
+            '*' => empty.map(|()| Infix::Left(40, |_, lhs, rhs| Ok(binary(BinaryOperator::Multiply, lhs, rhs)))),
+            '.' => empty.map(|()| Infix::Left(60, |_, lhs, rhs| Ok(binary(BinaryOperator::Access, lhs, rhs)))),
+            _ => fail,
+        }))),
+        "expression",
+    )
+    .parse_next(input)
+}
+
+// The tutorial attaches the location of the first token of a right-hand side
+// to a binary operation.
+fn binary(operator: BinaryOperator, lhs: Expression, rhs: Expression) -> Expression {
+    let location = first_location(&rhs);
+
+    Expression::Binary(Binary::new(operator, lhs, rhs, location))
+}
+
+fn first_location(expression: &Expression) -> Location {
+    match expression {
+        Expression::Binary(binary) => first_location(binary.lhs()),
+        _ => expression.location(),
+    }
+}
+
+fn primary(input: &mut Input<'_>) -> ModalResult<Expression> {
+    alt((
+        call_or_variable,
+        number.map(Expression::Number),
+        delimited(symbol('('), expression, cut_err(symbol(')'))),
+        tensor_literal.map(Expression::Literal),
+        struct_literal.map(Expression::StructLiteral),
+    ))
+    .parse_next(input)
+}
+
+fn call_or_variable(input: &mut Input<'_>) -> ModalResult<Expression> {
+    let (location, name) = located(identifier).parse_next(input)?;
+
+    Ok(match opt(arguments).parse_next(input)? {
+        Some(arguments) => Expression::Call(Call::new(name, arguments, location)),
+        None => Expression::Variable(Variable::new(name, location)),
+    })
+}
+
+fn arguments(input: &mut Input<'_>) -> ModalResult<Vec<Expression>> {
+    delimited(
+        symbol('('),
+        cut_err(separated(0.., expression, symbol(','))),
+        cut_err(symbol(')')),
+    )
+    .parse_next(input)
+}
+
+fn tensor_literal(input: &mut Input<'_>) -> ModalResult<Literal> {
+    let (location, values): (_, Vec<_>) = located(delimited(
+        symbol('['),
+        cut_err(separated(
+            1..,
+            alt((
+                tensor_literal.map(Expression::Literal),
+                number.map(Expression::Number),
+            )),
+            symbol(','),
+        )),
+        cut_err(symbol(']')),
+    ))
+    .parse_next(input)?;
+    let mut dimensions = vec![values.len() as u64];
+
+    // Dimensions of nested literals must be uniform.
+    if let Some(first) = values.iter().find_map(|value| match value {
+        Expression::Literal(literal) => Some(literal.dimensions()),
+        _ => None,
+    }) {
+        if !values.iter().all(
+            |value| matches!(value, Expression::Literal(literal) if literal.dimensions() == first),
+        ) {
+            return cut_err(
+                fail.context(StrContext::Expected(StrContextValue::Description(
+                    "uniform well-nested dimensions",
+                ))),
+            )
+            .parse_next(input);
         }
+
+        dimensions.extend(first);
     }
 
-    fn parse_primary(&mut self) -> Result<Expression, Error> {
-        match self.token {
-            Token::Identifier(_) => self.parse_identifier_expression(),
-            Token::Number(_) => Ok(Expression::Number(self.parse_number()?)),
-            Token::ParenthesisOpen => self.parse_parenthesis_expression(),
-            Token::BracketOpen => Ok(Expression::Literal(self.parse_tensor_literal()?)),
-            Token::BraceOpen => Ok(Expression::StructLiteral(self.parse_struct_literal()?)),
-            _ => self.fail("expression", "in primary expression"),
-        }
-    }
+    Ok(Literal::new(values, dimensions, location))
+}
 
-    fn parse_identifier_expression(&mut self) -> Result<Expression, Error> {
-        let location = self.location;
-        let name = self.parse_identifier("identifier", "in expression")?;
+fn struct_literal(input: &mut Input<'_>) -> ModalResult<StructLiteral> {
+    located(delimited(
+        symbol('{'),
+        cut_err(separated(
+            1..,
+            alt((
+                tensor_literal.map(Expression::Literal),
+                number.map(Expression::Number),
+                struct_literal.map(Expression::StructLiteral),
+            )),
+            symbol(','),
+        )),
+        cut_err(symbol('}')),
+    ))
+    .map(|(location, values)| StructLiteral::new(values, location))
+    .parse_next(input)
+}
 
-        if self.token != Token::ParenthesisOpen {
-            return Ok(Expression::Variable(Variable::new(name, location)));
-        } else if name == "print" {
-            return Err(Error::Syntax {
-                location,
-                message: "print() is allowed only as a statement".into(),
-            });
-        }
+fn number(input: &mut Input<'_>) -> ModalResult<Number> {
+    located(
+        (
+            digit1,
+            take_while(0.., |character: char| {
+                character.is_ascii_digit() || character == '.'
+            }),
+        )
+            .take()
+            .try_map(str::parse),
+    )
+    .map(|(location, value)| Number::new(value, location))
+    .parse_next(input)
+}
 
-        Ok(Expression::Call(Call::new(
-            name,
-            self.parse_arguments()?,
-            location,
+fn identifier(input: &mut Input<'_>) -> ModalResult<String> {
+    token(word.verify(|word: &str| !KEYWORDS.contains(&word)))
+        .map(String::from)
+        .context(StrContext::Expected(StrContextValue::Description(
+            "identifier",
         )))
-    }
+        .parse_next(input)
+}
 
-    fn parse_arguments(&mut self) -> Result<Vec<Expression>, Error> {
-        self.expect(Token::ParenthesisOpen, "in call expression")?;
+fn keyword<'a>(keyword: &'static str) -> impl Parser<Input<'a>, &'a str, ErrMode<ContextError>> {
+    token(word.verify(move |word: &str| word == keyword)).context(StrContext::Expected(
+        StrContextValue::StringLiteral(keyword),
+    ))
+}
 
-        let mut arguments = vec![];
+fn word<'a>(input: &mut Input<'a>) -> ModalResult<&'a str> {
+    (
+        one_of(|character: char| character.is_ascii_alphabetic()),
+        take_while(0.., |character: char| {
+            character.is_ascii_alphanumeric() || character == '_'
+        }),
+    )
+        .take()
+        .parse_next(input)
+}
 
-        if self.token != Token::ParenthesisClose {
-            loop {
-                arguments.push(self.parse_expression()?);
+fn symbol<'a>(symbol: char) -> impl Parser<Input<'a>, char, ErrMode<ContextError>> {
+    token(symbol).context(StrContext::Expected(StrContextValue::CharLiteral(symbol)))
+}
 
-                if self.token == Token::ParenthesisClose {
-                    break;
-                } else if self.token != Token::Comma {
-                    return self.fail("',' or ')'", "in argument list");
-                }
+// Attaches a location of a first character of a token to its output.
+fn located<'a, O>(
+    parser: impl Parser<Input<'a>, O, ErrMode<ContextError>>,
+) -> impl Parser<Input<'a>, (Location, O), ErrMode<ContextError>> {
+    token((location, parser))
+}
 
-                self.advance()?;
-            }
-        }
+fn location(input: &mut Input<'_>) -> ModalResult<Location> {
+    Ok(location_at(input.state, input.current_token_start()))
+}
 
-        self.expect(Token::ParenthesisClose, "in call expression")?;
+fn token<'a, O>(
+    parser: impl Parser<Input<'a>, O, ErrMode<ContextError>>,
+) -> impl Parser<Input<'a>, O, ErrMode<ContextError>> {
+    preceded(whitespace, parser)
+}
 
-        Ok(arguments)
-    }
+// Describes what is expected on a backtracking error. Committed errors keep
+// their own descriptions.
+fn label<'a, O>(
+    mut parser: impl Parser<Input<'a>, O, ErrMode<ContextError>>,
+    description: &'static str,
+) -> impl Parser<Input<'a>, O, ErrMode<ContextError>> {
+    move |input: &mut Input<'a>| {
+        let start = input.checkpoint();
 
-    fn parse_parenthesis_expression(&mut self) -> Result<Expression, Error> {
-        self.expect(Token::ParenthesisOpen, "in parenthesized expression")?;
-
-        let expression = self.parse_expression()?;
-
-        self.expect(
-            Token::ParenthesisClose,
-            "to close expression with parentheses",
-        )?;
-
-        Ok(expression)
-    }
-
-    fn parse_number(&mut self) -> Result<Number, Error> {
-        let Token::Number(value) = self.token else {
-            return self.fail("number", "in expression");
-        };
-        let number = Number::new(value, self.location);
-
-        self.advance()?;
-
-        Ok(number)
-    }
-
-    fn parse_tensor_literal(&mut self) -> Result<Literal, Error> {
-        let location = self.location;
-
-        self.expect(Token::BracketOpen, "in literal expression")?;
-
-        let mut values = vec![];
-
-        loop {
-            values.push(match self.token {
-                Token::BracketOpen => Expression::Literal(self.parse_tensor_literal()?),
-                Token::Number(_) => Expression::Number(self.parse_number()?),
-                _ => return self.fail("<num> or [", "in literal expression"),
-            });
-
-            if self.token == Token::BracketClose {
-                break;
-            } else if self.token != Token::Comma {
-                return self.fail("] or ,", "in literal expression");
-            }
-
-            self.advance()?;
-        }
-
-        self.expect(Token::BracketClose, "in literal expression")?;
-
-        let mut dimensions = vec![values.len() as u64];
-
-        if values
-            .iter()
-            .any(|value| matches!(value, Expression::Literal(_)))
-        {
-            let Some(Expression::Literal(first)) = values.first() else {
-                return self.fail(
-                    "uniform well-nested dimensions",
-                    "inside literal expression",
-                );
-            };
-
-            if !values.iter().all(|value| {
-                matches!(value, Expression::Literal(literal) if literal.dimensions() == first.dimensions())
-            }) {
-                return self.fail(
-                    "uniform well-nested dimensions",
-                    "inside literal expression",
-                );
-            }
-
-            dimensions.extend(first.dimensions());
-        }
-
-        Ok(Literal::new(values, dimensions, location))
-    }
-
-    fn parse_struct_literal(&mut self) -> Result<StructLiteral, Error> {
-        let location = self.location;
-
-        self.expect(Token::BraceOpen, "in struct literal expression")?;
-
-        let mut values = vec![];
-
-        loop {
-            values.push(match self.token {
-                Token::BracketOpen => Expression::Literal(self.parse_tensor_literal()?),
-                Token::Number(_) => Expression::Number(self.parse_number()?),
-                Token::BraceOpen => Expression::StructLiteral(self.parse_struct_literal()?),
-                _ => return self.fail("{, [, or number", "in struct literal expression"),
-            });
-
-            if self.token == Token::BraceClose {
-                break;
-            } else if self.token != Token::Comma {
-                return self.fail("} or ,", "in struct literal expression");
-            }
-
-            self.advance()?;
-        }
-
-        self.expect(Token::BraceClose, "in struct literal expression")?;
-
-        Ok(StructLiteral::new(values, location))
-    }
-
-    fn parse_struct(&mut self) -> Result<Struct, Error> {
-        let location = self.location;
-
-        self.expect(Token::Struct, "in struct definition")?;
-
-        let name = self.parse_identifier("name", "in struct definition")?;
-
-        self.expect(Token::BraceOpen, "in struct definition")?;
-
-        let mut variables = vec![];
-
-        loop {
-            variables.push(self.parse_declaration(false)?);
-
-            self.expect(Token::Semicolon, "after variable in struct definition")?;
-
-            if self.token == Token::BraceClose {
-                break;
-            }
-        }
-
-        self.expect(Token::BraceClose, "in struct definition")?;
-
-        Ok(Struct::new(name, variables, location))
-    }
-
-    fn parse_identifier(&mut self, expected: &str, context: &str) -> Result<String, Error> {
-        let Token::Identifier(name) = &self.token else {
-            return self.fail(expected, context);
-        };
-        let name = name.clone();
-
-        self.advance()?;
-
-        Ok(name)
-    }
-
-    fn expect(&mut self, token: Token, context: &str) -> Result<(), Error> {
-        if self.token != token {
-            return self.fail(&token.to_string(), context);
-        }
-
-        self.advance()
-    }
-
-    fn advance(&mut self) -> Result<(), Error> {
-        (self.token, self.location) = self.lexer.next_token()?;
-
-        Ok(())
-    }
-
-    fn fail<T>(&self, expected: &str, context: &str) -> Result<T, Error> {
-        Err(Error::Syntax {
-            location: self.location,
-            message: format!("expected {expected} {context} but found {}", self.token),
+        parser.parse_next(input).map_err(|error| match error {
+            ErrMode::Backtrack(error) => ErrMode::Backtrack(error.add_context(
+                input,
+                &start,
+                StrContext::Expected(StrContextValue::Description(description)),
+            )),
+            error => error,
         })
     }
+}
+
+// Comments start with `#` and last until the ends of lines.
+fn whitespace(input: &mut Input<'_>) -> ModalResult<()> {
+    repeat(
+        0..,
+        alt((
+            take_while(1.., char::is_whitespace).void(),
+            ('#', till_line_ending).void(),
+        )),
+    )
+    .parse_next(input)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::error::Error;
     use indoc::indoc;
     use pretty_assertions::assert_eq;
 
@@ -551,7 +446,10 @@ mod tests {
 
     #[test]
     fn parse_empty_module() {
-        assert_eq!(parse_source(""), Module::new("test.toy".into(), vec![]));
+        assert_eq!(
+            parse_source("# comment only\n"),
+            Module::new("test.toy".into(), vec![])
+        );
     }
 
     #[test]
@@ -654,7 +552,6 @@ mod tests {
 
     #[test]
     fn parse_binary_operator_precedence() {
-        // The location of a binary operation is the one of its right-hand side.
         assert_eq!(
             parse_source("def main() { return a + b * c; }"),
             Module::new(
@@ -825,7 +722,7 @@ mod tests {
         assert!(matches!(
             parse("def main() { var a = [[1, 2], [3]]; }", "test.toy"),
             Err(Error::Syntax { message, .. })
-                if message.starts_with("expected uniform well-nested dimensions")
+                if message == "expected uniform well-nested dimensions"
         ));
     }
 
@@ -834,7 +731,7 @@ mod tests {
         assert!(matches!(
             parse("def main() { var a = 1 }", "test.toy"),
             Err(Error::Syntax { location, message })
-                if location == Location::new(1, 24) && message == "expected ';' after expression but found '}'"
+                if location == Location::new(1, 24) && message == "expected `;`"
         ));
     }
 
@@ -851,6 +748,14 @@ mod tests {
         assert!(matches!(
             parse("foo", "test.toy"),
             Err(Error::Syntax { location, .. }) if location == Location::new(1, 1)
+        ));
+    }
+
+    #[test]
+    fn fail_to_parse_invalid_number() {
+        assert!(matches!(
+            parse("def main() { var a = 1.2.3; }", "test.toy"),
+            Err(Error::Syntax { location, .. }) if location == Location::new(1, 22)
         ));
     }
 }

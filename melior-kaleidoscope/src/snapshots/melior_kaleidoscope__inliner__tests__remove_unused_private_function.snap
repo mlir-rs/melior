@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/inliner.rs
+source: melior-kaleidoscope/src/inliner.rs
 expression: "inline_source(indoc!(\"\n                def unused(x) {\n                  return x;\n                }\n\n                def main() {\n                  print([1]);\n                }\n                \")).unwrap()"
 ---
 module {

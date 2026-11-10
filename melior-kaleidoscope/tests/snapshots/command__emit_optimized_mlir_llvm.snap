@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/tests/command.rs
+source: melior-kaleidoscope/tests/command.rs
 expression: "run_successfully(&[\"codegen.toy\", \"--emit\", \"mlir-llvm\", \"--opt\"])"
 ---
 module {

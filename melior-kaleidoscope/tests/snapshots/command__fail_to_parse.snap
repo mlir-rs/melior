@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/tests/command.rs
+source: melior-kaleidoscope/tests/command.rs
 expression: "String::from_utf8(output.stderr).unwrap()"
 ---
-invalid.toy: 3:1: expected ] or , in literal expression but found '}'
+invalid.toy: 3:1: expected `]`

@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/canonicalize.rs
+source: melior-kaleidoscope/src/canonicalize.rs
 expression: "canonicalize_source(indoc!(\"\n            def main() {\n              var a<2, 3> = [1, 2, 3, 4, 5, 6];\n              var b<2, 3> = [[1, 2, 3], [4, 5, 6]];\n              var c<3, 2> = [1, 2, 3, 4, 5, 6];\n              print(a);\n              print(b);\n              print(c);\n            }\n            \"))"
 ---
 module {

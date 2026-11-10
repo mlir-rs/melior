@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/shape_inference.rs
+source: melior-kaleidoscope/src/shape_inference.rs
 expression: "infer_source(include_str!(\"../examples/codegen.toy\")).unwrap()"
 ---
 module {

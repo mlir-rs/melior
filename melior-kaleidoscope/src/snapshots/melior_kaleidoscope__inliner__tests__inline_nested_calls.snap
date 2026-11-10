@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/inliner.rs
+source: melior-kaleidoscope/src/inliner.rs
 expression: "inline_source(indoc!(\"\n                def identity(x) {\n                  return x;\n                }\n\n                def double_transpose(x) {\n                  return transpose(identity(transpose(x)));\n                }\n\n                def main() {\n                  print(double_transpose([[1, 2], [3, 4]]));\n                }\n                \")).unwrap()"
 ---
 module {

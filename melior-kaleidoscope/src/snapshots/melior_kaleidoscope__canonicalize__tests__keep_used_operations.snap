@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/src/canonicalize.rs
+source: melior-kaleidoscope/src/canonicalize.rs
 expression: "canonicalize_source(include_str!(\"../examples/codegen.toy\"))"
 ---
 module {

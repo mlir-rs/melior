@@ -1,5 +1,5 @@
 ---
-source: kaleidoscope/tests/command.rs
+source: melior-kaleidoscope/tests/command.rs
 expression: "run_successfully(&[\"struct_codegen.toy\", \"--emit\", \"ast\"])"
 ---
   Module:
