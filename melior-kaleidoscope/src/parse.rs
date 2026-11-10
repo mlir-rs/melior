@@ -1,4 +1,4 @@
-//! A parser of the Toy language.
+//! A parser.
 
 use crate::{
     ast::{
