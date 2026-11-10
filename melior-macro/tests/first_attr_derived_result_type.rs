@@ -11,7 +11,7 @@ use utility::*;
 
 melior_macro::dialect! {
     name: "first_attr_test",
-    files: ["macro/tests/ods_include/first_attr_derived_result_type.td"],
+    files: ["melior-macro/tests/ods_include/first_attr_derived_result_type.td"],
 }
 
 #[test]

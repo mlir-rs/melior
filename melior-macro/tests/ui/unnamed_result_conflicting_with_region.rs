@@ -1,7 +1,7 @@
 melior_macro::dialect! {
     name: "region_conflict",
     files: ["unnamed_result_conflict.td"],
-    include_directories: ["../../../../macro/tests/ods_include"],
+    include_directories: ["../../../../melior-macro/tests/ods_include"],
 }
 
 fn main() {}

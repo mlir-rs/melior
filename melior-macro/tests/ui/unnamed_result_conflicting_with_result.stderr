@@ -4,7 +4,7 @@ error[E0415]: identifier `result_1` is bound more than once in this parameter li
 1 | / melior_macro::dialect! {
 2 | |     name: "result_conflict",
 3 | |     files: ["unnamed_result_conflict.td"],
-4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+4 | |     include_directories: ["../../../../melior-macro/tests/ods_include"],
 5 | | }
   | |_^ used as parameter more than once
 
@@ -14,7 +14,7 @@ error[E0592]: duplicate definitions with name `result_1`
 1 | / melior_macro::dialect! {
 2 | |     name: "result_conflict",
 3 | |     files: ["unnamed_result_conflict.td"],
-4 | |     include_directories: ["../../../../macro/tests/ods_include"],
+4 | |     include_directories: ["../../../../melior-macro/tests/ods_include"],
 5 | | }
   | | ^
   | | |
