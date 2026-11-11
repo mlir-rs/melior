@@ -1,6 +1,6 @@
 ---
 source: melior-kaleidoscope/tests/command.rs
-expression: "run_successfully(&[\"codegen.toy\", \"--emit\", \"mlir-llvm\", \"--opt\"])"
+expression: "run_successfully(&[\"codegen.toy\", \"--emit\", \"mlir-llvm\", \"--optimize\"])"
 ---
 module {
   llvm.func @free(!llvm.ptr)

@@ -14,7 +14,7 @@ struct Arguments {
     #[arg(long, value_enum)]
     emit: Emit,
     /// Enables optimizations.
-    #[arg(long = "opt")]
+    #[arg(long)]
     optimize: bool,
 }
 

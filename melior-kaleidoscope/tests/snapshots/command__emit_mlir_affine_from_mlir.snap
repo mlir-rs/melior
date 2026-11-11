@@ -1,6 +1,6 @@
 ---
 source: melior-kaleidoscope/tests/command.rs
-expression: "run_successfully(&[\"affine_lowering.mlir\", \"--emit\", \"mlir-affine\", \"--opt\"])"
+expression: "run_successfully(&[\"affine_lowering.mlir\", \"--emit\", \"mlir-affine\", \"--optimize\"])"
 ---
 module {
   func.func @main() {

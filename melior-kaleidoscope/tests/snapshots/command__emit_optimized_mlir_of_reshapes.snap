@@ -1,6 +1,6 @@
 ---
 source: melior-kaleidoscope/tests/command.rs
-expression: "run_successfully(&[\"trivial_reshape.toy\", \"--emit\", \"mlir\", \"--opt\"])"
+expression: "run_successfully(&[\"trivial_reshape.toy\", \"--emit\", \"mlir\", \"--optimize\"])"
 ---
 module {
   "toy.func"() ({

@@ -46,7 +46,7 @@ fn emit_optimized_mlir() {
         "struct_codegen.toy",
         "--emit",
         "mlir",
-        "--opt"
+        "--optimize"
     ]));
 }
 
@@ -56,7 +56,7 @@ fn emit_optimized_mlir_of_transposes() {
         "transpose_transpose.toy",
         "--emit",
         "mlir",
-        "--opt"
+        "--optimize"
     ]));
 }
 
@@ -66,7 +66,7 @@ fn emit_optimized_mlir_of_reshapes() {
         "trivial_reshape.toy",
         "--emit",
         "mlir",
-        "--opt"
+        "--optimize"
     ]));
 }
 
@@ -81,7 +81,7 @@ fn emit_optimized_mlir_affine() {
         "codegen.toy",
         "--emit",
         "mlir-affine",
-        "--opt"
+        "--optimize"
     ]));
 }
 
@@ -91,7 +91,7 @@ fn emit_optimized_mlir_llvm() {
         "codegen.toy",
         "--emit",
         "mlir-llvm",
-        "--opt"
+        "--optimize"
     ]));
 }
 
@@ -101,7 +101,7 @@ fn emit_mlir_affine_from_mlir() {
         "affine_lowering.mlir",
         "--emit",
         "mlir-affine",
-        "--opt"
+        "--optimize"
     ]));
 }
 
@@ -115,7 +115,7 @@ fn fail_to_parse() {
 
 #[test]
 fn fail_to_infer_shapes() {
-    let output = run(&["shape_mismatch.toy", "--emit", "mlir", "--opt"]);
+    let output = run(&["shape_mismatch.toy", "--emit", "mlir", "--optimize"]);
 
     assert!(!output.status.success());
     insta::assert_snapshot!(String::from_utf8(output.stderr).unwrap());
@@ -138,7 +138,7 @@ mod jit {
     #[test]
     fn run_optimized_jit() {
         assert_eq!(
-            run_successfully(&["codegen.toy", "--emit", "jit", "--opt"]),
+            run_successfully(&["codegen.toy", "--emit", "jit", "--optimize"]),
             "1.000000 16.000000 \n4.000000 25.000000 \n9.000000 36.000000 \n"
         );
     }
