@@ -2,6 +2,7 @@ use crate::location::Location;
 use core::{
     error,
     fmt::{self, Display, Formatter},
+    str::Utf8Error,
 };
 
 /// A compilation error.
@@ -84,5 +85,11 @@ impl error::Error for Error {}
 impl From<melior::Error> for Error {
     fn from(error: melior::Error) -> Self {
         Self::Melior(error)
+    }
+}
+
+impl From<Utf8Error> for Error {
+    fn from(error: Utf8Error) -> Self {
+        Self::Melior(error.into())
     }
 }

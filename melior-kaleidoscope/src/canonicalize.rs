@@ -3,7 +3,7 @@
 use crate::{
     error::Error,
     toy,
-    utility::{block_operations, body_block, defining_operation, is_operation, operation_name},
+    utility::{block_operations, body_block, defining_operation, is_operation},
 };
 use melior::{
     Context, GreedyRewriteDriverConfig, IrRewriter, PatternRewriter, RewritePatternSet,
@@ -91,17 +91,14 @@ fn eliminate_common_subexpressions<'c>(rewriter: &RewriterBase<'c, '_>, block: B
             continue;
         }
 
-        // Attributes and types are unique within a context.
+        // Identifiers, attributes and types are unique within a context.
         let key = (
-            operation_name(operation),
+            operation.name().to_raw().ptr as usize,
             operation.operands().map(value_id).collect::<Vec<_>>(),
             operation
                 .attributes()
                 .map(|(name, attribute)| {
-                    (
-                        name.as_string_ref().as_str().unwrap_or_default().to_owned(),
-                        attribute.to_raw().ptr as usize,
-                    )
+                    (name.to_raw().ptr as usize, attribute.to_raw().ptr as usize)
                 })
                 .collect::<Vec<_>>(),
             operation

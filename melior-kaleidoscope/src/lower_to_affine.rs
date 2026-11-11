@@ -575,4 +575,26 @@ mod tests {
             Err(Error::Lowering(message)) if message.starts_with("'toy.func'")
         ));
     }
+
+    #[test]
+    fn fail_to_lower_non_utf8_operation_name() {
+        let context = create_context();
+        let mut module = melior::ir::Module::parse(
+            &context,
+            indoc!(
+                r#"
+                "toy.func"() ({
+                  "toy.\FF"() : () -> ()
+                  "toy.return"() : () -> ()
+                }) {sym_name = "main", function_type = () -> ()} : () -> ()
+                "#
+            ),
+        )
+        .unwrap();
+
+        assert!(matches!(
+            lower_to_affine(&context, &mut module),
+            Err(Error::Melior(melior::Error::Utf8(_)))
+        ));
+    }
 }

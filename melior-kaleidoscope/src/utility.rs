@@ -11,25 +11,30 @@ pub fn check_lowering<'c>(
     module: &Module<'c>,
     is_legal: impl Fn(OperationRef<'c, '_>) -> bool,
 ) -> Result<(), Error> {
-    let mut error = None;
+    let mut result = Ok(());
 
     module
         .as_operation()
         .walk(WalkOrder::PreOrder, |operation| {
-            if operation_name(operation).starts_with("toy.") && !is_legal(operation) {
-                error = Some(Error::Lowering(format!(
-                    "'{}' at {}",
-                    operation_name(operation),
-                    operation.location()
-                )));
+            result = operation_name(operation).and_then(|name| {
+                if name.starts_with("toy.") && !is_legal(operation) {
+                    Err(Error::Lowering(format!(
+                        "'{name}' at {}",
+                        operation.location()
+                    )))
+                } else {
+                    Ok(())
+                }
+            });
 
-                WalkResult::Interrupt
-            } else {
+            if result.is_ok() {
                 WalkResult::Advance
+            } else {
+                WalkResult::Interrupt
             }
         });
 
-    error.map_or(Ok(()), Err)
+    result
 }
 
 pub fn block_operations<'c: 'a, 'a>(
@@ -60,13 +65,8 @@ pub fn is_operation<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>, name: &st
     operation.name().as_string_ref().as_str() == Ok(name)
 }
 
-pub fn operation_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> String {
-    operation
-        .name()
-        .as_string_ref()
-        .as_str()
-        .unwrap_or_default()
-        .into()
+pub fn operation_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Result<String, Error> {
+    Ok(operation.name().as_string_ref().as_str()?.into())
 }
 
 pub fn symbol_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Option<&'c str> {

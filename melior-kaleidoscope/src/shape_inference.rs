@@ -54,7 +54,7 @@ fn infer_shape(operation: OperationRef) -> Result<(), Error> {
     let result = operation.result(0)?;
     let operand_type = |index| Ok::<_, melior::Error>(operation.operand(index)?.r#type());
 
-    result.set_type(match operation_name(operation).as_str() {
+    result.set_type(match operation_name(operation)?.as_str() {
         "toy.constant" => DenseElementsAttribute::try_from(operation.attribute("value")?)?.r#type(),
         "toy.add" | "toy.mul" => {
             let (lhs, rhs) = (operand_type(0)?, operand_type(1)?);
@@ -186,6 +186,28 @@ mod tests {
             infer_shapes(&module),
             Err(Error::ShapeInference(message))
                 if message == "unable to infer shape of operation 'toy.unknown'"
+        ));
+    }
+
+    #[test]
+    fn fail_to_infer_non_utf8_operation_name() {
+        let context = create_context();
+        let module = melior::ir::Module::parse(
+            &context,
+            indoc!(
+                r#"
+                "toy.func"() ({
+                  %0 = "toy.\FF"() : () -> tensor<*xf64>
+                  "toy.return"() : () -> ()
+                }) {sym_name = "main", function_type = () -> ()} : () -> ()
+                "#
+            ),
+        )
+        .unwrap();
+
+        assert!(matches!(
+            infer_shapes(&module),
+            Err(Error::Melior(melior::Error::Utf8(_)))
         ));
     }
 }
