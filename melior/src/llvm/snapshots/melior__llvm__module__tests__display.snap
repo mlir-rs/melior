@@ -1,5 +1,5 @@
 ---
-source: melior/src/llvm_ir/module.rs
+source: melior/src/llvm/module.rs
 expression: module
 ---
 ; ModuleID = 'foo'

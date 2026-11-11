@@ -1,7 +1,7 @@
 //! Utility functions.
 
 use crate::{
-    Error, context::Context, dialect::DialectRegistry, ir::Module, llvm_ir,
+    Error, context::Context, dialect::DialectRegistry, ir::Module, llvm,
     logical_result::LogicalResult, pass, string_ref::StringRef,
 };
 use core::{
@@ -64,10 +64,10 @@ pub fn load_irdl_dialects(module: &Module) -> bool {
 /// module must be registered in its context beforehand.
 pub fn translate_module_to_llvm_ir<'c>(
     module: &Module,
-    context: &'c llvm_ir::Context,
-) -> Result<llvm_ir::Module<'c>, Error> {
+    context: &'c llvm::Context,
+) -> Result<llvm::Module<'c>, Error> {
     unsafe {
-        llvm_ir::Module::from_option_raw(mlirTranslateModuleToLLVMIR(
+        llvm::Module::from_option_raw(mlirTranslateModuleToLLVMIR(
             module.as_operation().to_raw(),
             context.to_raw(),
         ))
@@ -197,7 +197,7 @@ mod tests {
             "llvm.func @main() -> i32 { %0 = llvm.mlir.constant(42 : i32) : i32 llvm.return %0 : i32 }",
         )
         .unwrap();
-        let llvm_context = llvm_ir::Context::new();
+        let llvm_context = llvm::Context::new();
 
         insta::assert_snapshot!(translate_module_to_llvm_ir(&module, &llvm_context).unwrap());
     }
@@ -208,7 +208,7 @@ mod tests {
         let module = Module::parse(&context, "func.func @main() { return }").unwrap();
 
         assert_eq!(
-            translate_module_to_llvm_ir(&module, &llvm_ir::Context::new()).unwrap_err(),
+            translate_module_to_llvm_ir(&module, &llvm::Context::new()).unwrap_err(),
             Error::TranslateToLlvmIr
         );
     }
