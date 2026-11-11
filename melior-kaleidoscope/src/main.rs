@@ -49,7 +49,7 @@ fn run(arguments: &Arguments) -> Result<(), Box<dyn Error>> {
 
     let action = match arguments.emit {
         Emit::Ast => {
-            print!("{}", parse(&source, &file_name)?);
+            println!("{:#?}", parse(&source, &file_name)?);
             return Ok(());
         }
         Emit::Mlir => Action::Mlir,

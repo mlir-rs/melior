@@ -3,7 +3,6 @@
 mod binary;
 mod binary_operator;
 mod call;
-mod dumper;
 mod expression;
 mod function;
 mod literal;
