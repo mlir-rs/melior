@@ -1,4 +1,4 @@
-//! An abstract syntax tree of the Toy language.
+//! An AST.
 
 use crate::location::Location;
 use core::fmt::{self, Display, Formatter};
