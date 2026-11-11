@@ -1,6 +1,6 @@
 ---
-source: melior-kaleidoscope/src/ast.rs
-expression: "parse(include_str!(\"../examples/struct_codegen.toy\"),\n\"struct_codegen.toy\").unwrap().to_string()"
+source: melior-kaleidoscope/src/ast/dumper.rs
+expression: "parse(include_str!(\"../../examples/struct_codegen.toy\"),\n\"struct_codegen.toy\").unwrap().to_string()"
 ---
   Module:
     Struct: Struct @struct_codegen.toy:1:1
