@@ -129,7 +129,7 @@ fn flat_symbol_ref_attr() {
     let operation = attribute_test::flat_symbol_ref(&context, attribute, location);
 
     let value: FlatSymbolRefAttribute = operation.value().unwrap();
-    assert_eq!(value.value(), "callee");
+    assert_eq!(value.value(), Ok("callee"));
 }
 
 #[test]
@@ -193,7 +193,7 @@ fn string_attr() {
     let operation = attribute_test::string(&context, attribute, location);
 
     let value: StringAttribute = operation.value().unwrap();
-    assert_eq!(value.value(), "text");
+    assert_eq!(value.value(), Ok("text"));
 }
 
 #[test]

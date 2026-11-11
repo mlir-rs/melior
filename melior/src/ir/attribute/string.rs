@@ -3,6 +3,7 @@ use crate::{
     Context, Error, StringRef,
     ir::{Type, TypeLike},
 };
+use core::str::Utf8Error;
 use mlir_sys::{MlirAttribute, mlirStringAttrGet, mlirStringAttrGetValue, mlirStringAttrTypedGet};
 
 /// A string attribute.
@@ -33,10 +34,8 @@ impl<'c> StringAttribute<'c> {
     }
 
     /// Returns a value.
-    pub fn value(&self) -> &'c str {
-        unsafe { StringRef::from_raw(mlirStringAttrGetValue(self.to_raw())) }
-            .as_str()
-            .unwrap()
+    pub fn value(&self) -> Result<&'c str, Utf8Error> {
+        unsafe { StringRef::from_raw(mlirStringAttrGetValue(self.to_raw())) }.as_str()
     }
 }
 
@@ -52,21 +51,30 @@ mod tests {
         let context = create_test_context();
         let value = StringAttribute::new(&context, "foo").value();
 
-        assert_eq!(value, "foo");
+        assert_eq!(value, Ok("foo"));
     }
 
     #[test]
     fn empty_value() {
         let context = create_test_context();
 
-        assert_eq!(StringAttribute::new(&context, "").value(), "");
+        assert_eq!(StringAttribute::new(&context, "").value(), Ok(""));
     }
 
     #[test]
     fn value_with_trailing_nul() {
         let context = create_test_context();
 
-        assert_eq!(StringAttribute::new(&context, "foo\0").value(), "foo\0");
+        assert_eq!(StringAttribute::new(&context, "foo\0").value(), Ok("foo\0"));
+    }
+
+    #[test]
+    fn fail_to_get_non_utf8_value() {
+        let context = create_test_context();
+        let attribute =
+            StringAttribute::try_from(Attribute::parse(&context, r#""\FF""#).unwrap()).unwrap();
+
+        assert!(attribute.value().is_err());
     }
 
     #[test]
@@ -75,7 +83,7 @@ mod tests {
         let r#type = Type::from(IntegerType::new(&context, 32));
         let attr = StringAttribute::typed(r#type, "hello");
 
-        assert_eq!(attr.value(), "hello");
+        assert_eq!(attr.value(), Ok("hello"));
     }
 
     #[test]

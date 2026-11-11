@@ -1,5 +1,6 @@
 use super::{Attribute, AttributeLike};
 use crate::{Context, Error, StringRef};
+use core::str::Utf8Error;
 use mlir_sys::{MlirAttribute, mlirFlatSymbolRefAttrGet, mlirFlatSymbolRefAttrGetValue};
 
 /// A flat symbol ref attribute.
@@ -20,10 +21,8 @@ impl<'c> FlatSymbolRefAttribute<'c> {
     }
 
     /// Returns a value.
-    pub fn value(&self) -> &'c str {
-        unsafe { StringRef::from_raw(mlirFlatSymbolRefAttrGetValue(self.to_raw())) }
-            .as_str()
-            .unwrap()
+    pub fn value(&self) -> Result<&'c str, Utf8Error> {
+        unsafe { StringRef::from_raw(mlirFlatSymbolRefAttrGetValue(self.to_raw())) }.as_str()
     }
 }
 
@@ -50,7 +49,17 @@ mod tests {
         let context = create_test_context();
         let value = FlatSymbolRefAttribute::new(&context, "foo").value();
 
-        assert_eq!(value, "foo");
+        assert_eq!(value, Ok("foo"));
+    }
+
+    #[test]
+    fn fail_to_get_non_utf8_value() {
+        let context = create_test_context();
+        let attribute =
+            FlatSymbolRefAttribute::try_from(Attribute::parse(&context, r#"@"\FF""#).unwrap())
+                .unwrap();
+
+        assert!(attribute.value().is_err());
     }
 
     #[test]
