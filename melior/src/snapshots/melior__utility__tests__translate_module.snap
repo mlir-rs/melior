@@ -1,6 +1,6 @@
 ---
 source: melior/src/utility.rs
-expression: translate_module_to_llvm_ir(&module).unwrap()
+expression: translate_module_to_llvm_ir(&module, &llvm_context).unwrap()
 ---
 ; ModuleID = 'LLVMDialectModule'
 source_filename = "LLVMDialectModule"

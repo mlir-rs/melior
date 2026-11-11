@@ -1,18 +1,16 @@
 //! Utility functions.
 
 use crate::{
-    Error, context::Context, dialect::DialectRegistry, ir::Module, logical_result::LogicalResult,
-    pass, string_ref::StringRef,
+    Error, context::Context, dialect::DialectRegistry, ir::Module, llvm_ir,
+    logical_result::LogicalResult, pass, string_ref::StringRef,
 };
 use core::{
-    ffi::{CStr, c_void},
+    ffi::c_void,
     fmt::{self, Formatter},
 };
 use mlir_sys::{
-    LLVMContextCreate, LLVMContextDispose, LLVMDisposeMessage, LLVMDisposeModule,
-    LLVMPrintModuleToString, MlirStringRef, mlirLoadIRDLDialects, mlirParsePassPipeline,
-    mlirRegisterAllDialects, mlirRegisterAllLLVMTranslations, mlirRegisterAllPasses,
-    mlirTranslateModuleToLLVMIR,
+    MlirStringRef, mlirLoadIRDLDialects, mlirParsePassPipeline, mlirRegisterAllDialects,
+    mlirRegisterAllLLVMTranslations, mlirRegisterAllPasses, mlirTranslateModuleToLLVMIR,
 };
 use std::sync::Once;
 
@@ -62,27 +60,19 @@ pub fn load_irdl_dialects(module: &Module) -> bool {
     unsafe { mlirLoadIRDLDialects(module.to_raw()).value == 1 }
 }
 
-/// Translates a module into LLVM IR in its textual form. Translations of the
-/// dialects used in the module must be registered in its context beforehand.
-pub fn translate_module_to_llvm_ir(module: &Module) -> Result<String, Error> {
+/// Translates a module into LLVM IR. Translations of the dialects used in the
+/// module must be registered in its context beforehand.
+pub fn translate_module_to_llvm_ir<'c>(
+    module: &Module,
+    context: &'c llvm_ir::Context,
+) -> Result<llvm_ir::Module<'c>, Error> {
     unsafe {
-        let context = LLVMContextCreate();
-        let llvm_module = mlirTranslateModuleToLLVMIR(module.as_operation().to_raw(), context);
-
-        if llvm_module.is_null() {
-            LLVMContextDispose(context);
-            return Err(Error::TranslateToLlvmIr);
-        }
-
-        let string = LLVMPrintModuleToString(llvm_module);
-        let result = CStr::from_ptr(string).to_str().map(String::from);
-
-        LLVMDisposeMessage(string);
-        LLVMDisposeModule(llvm_module);
-        LLVMContextDispose(context);
-
-        Ok(result?)
+        llvm_ir::Module::from_option_raw(mlirTranslateModuleToLLVMIR(
+            module.as_operation().to_raw(),
+            context.to_raw(),
+        ))
     }
+    .ok_or(Error::TranslateToLlvmIr)
 }
 
 unsafe extern "C" fn handle_parse_error(raw_string: MlirStringRef, data: *mut c_void) {
@@ -207,8 +197,9 @@ mod tests {
             "llvm.func @main() -> i32 { %0 = llvm.mlir.constant(42 : i32) : i32 llvm.return %0 : i32 }",
         )
         .unwrap();
+        let llvm_context = llvm_ir::Context::new();
 
-        insta::assert_snapshot!(translate_module_to_llvm_ir(&module).unwrap());
+        insta::assert_snapshot!(translate_module_to_llvm_ir(&module, &llvm_context).unwrap());
     }
 
     #[test]
@@ -217,8 +208,8 @@ mod tests {
         let module = Module::parse(&context, "func.func @main() { return }").unwrap();
 
         assert_eq!(
-            translate_module_to_llvm_ir(&module),
-            Err(Error::TranslateToLlvmIr)
+            translate_module_to_llvm_ir(&module, &llvm_ir::Context::new()).unwrap_err(),
+            Error::TranslateToLlvmIr
         );
     }
 }
