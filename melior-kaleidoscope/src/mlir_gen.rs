@@ -3,7 +3,7 @@
 use crate::{
     ast::{
         self, Binary, BinaryOperator, Call, Expression, Function, Literal, Record, Return,
-        Statement, StructLiteral, VariableDeclaration, VariableType,
+        Statement, StructLiteral, VariableDeclaration,
     },
     error::Error,
     toy,
@@ -83,7 +83,7 @@ impl<'c, 'a> ModuleGenerator<'c, 'a> {
             .iter()
             .map(|variable| {
                 if variable.initializer().is_some()
-                    || matches!(variable.r#type(), VariableType::Tensor(shape) if !shape.is_empty())
+                    || matches!(variable.r#type(), ast::Type::Tensor(shape) if !shape.is_empty())
                 {
                     return Err(error(
                         variable.location(),
@@ -162,12 +162,12 @@ impl<'c, 'a> ModuleGenerator<'c, 'a> {
 
     fn variable_type(&self, variable: &VariableDeclaration) -> Result<Type<'c>, Error> {
         match variable.r#type() {
-            VariableType::Struct(name) => self
+            ast::Type::Struct(name) => self
                 .structs
                 .get(name.as_str())
                 .map(|(r#type, _)| (*r#type).into())
                 .ok_or_else(|| error(variable.location(), format!("unknown struct type '{name}'"))),
-            VariableType::Tensor(shape) => self.tensor_type(shape, variable.location()),
+            ast::Type::Tensor(shape) => self.tensor_type(shape, variable.location()),
         }
     }
 
@@ -318,7 +318,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
         let mut value = self.generate_expression(initializer)?;
 
         match declaration.r#type() {
-            VariableType::Struct(_) => {
+            ast::Type::Struct(_) => {
                 let r#type = self.module.variable_type(declaration)?;
 
                 if r#type != value.r#type() {
@@ -333,7 +333,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
             }
             // A reshape operation is emitted for a declaration with a shape. It
             // gets optimized out later as needed.
-            VariableType::Tensor(shape) if !shape.is_empty() => {
+            ast::Type::Tensor(shape) if !shape.is_empty() => {
                 value = self
                     .block
                     .append_operation(
@@ -348,7 +348,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
                     .result(0)?
                     .into();
             }
-            VariableType::Tensor(_) => {}
+            ast::Type::Tensor(_) => {}
         }
 
         self.declare(declaration, value)
@@ -481,8 +481,8 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
     fn struct_definition(&self, expression: &Expression) -> Option<&'a ast::Struct> {
         let name = match expression {
             Expression::Variable(variable) => match self.lookup(variable.name())?.1.r#type() {
-                VariableType::Struct(name) => name,
-                VariableType::Tensor(_) => return None,
+                ast::Type::Struct(name) => name,
+                ast::Type::Tensor(_) => return None,
             },
             Expression::Binary(binary) if binary.operator() == BinaryOperator::Access => {
                 let Expression::Variable(member) = binary.rhs() else {
@@ -496,8 +496,8 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
                     .find(|variable| variable.name() == member.name())?
                     .r#type()
                 {
-                    VariableType::Struct(name) => name,
-                    VariableType::Tensor(_) => return None,
+                    ast::Type::Struct(name) => name,
+                    ast::Type::Tensor(_) => return None,
                 }
             }
             _ => return None,

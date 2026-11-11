@@ -1,11 +1,11 @@
-use super::{Expression, VariableType};
+use super::{Expression, Type};
 use crate::location::Location;
 
 /// A variable declaration.
 #[derive(Debug, PartialEq)]
 pub struct VariableDeclaration {
     name: String,
-    r#type: VariableType,
+    r#type: Type,
     initializer: Option<Expression>,
     location: Location,
 }
@@ -14,7 +14,7 @@ impl VariableDeclaration {
     /// Creates a variable declaration.
     pub const fn new(
         name: String,
-        r#type: VariableType,
+        r#type: Type,
         initializer: Option<Expression>,
         location: Location,
     ) -> Self {
@@ -32,7 +32,7 @@ impl VariableDeclaration {
     }
 
     /// Returns a type.
-    pub const fn r#type(&self) -> &VariableType {
+    pub const fn r#type(&self) -> &Type {
         &self.r#type
     }
 

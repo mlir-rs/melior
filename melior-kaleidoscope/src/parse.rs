@@ -3,8 +3,8 @@
 use crate::{
     ast::{
         Binary, BinaryOperator, Call, Expression, Function, Literal, Module, Number, Print,
-        Prototype, Record, Return, Statement, Struct, StructLiteral, Variable, VariableDeclaration,
-        VariableType,
+        Prototype, Record, Return, Statement, Struct, StructLiteral, Type, Variable,
+        VariableDeclaration,
     },
     error,
     location::Location,
@@ -99,11 +99,9 @@ fn parameter(input: &mut Input<'_>) -> ModalResult<VariableDeclaration> {
     (located(identifier), opt(identifier))
         .map(|((location, name_or_type), name)| match name {
             Some(name) => {
-                VariableDeclaration::new(name, VariableType::Struct(name_or_type), None, location)
+                VariableDeclaration::new(name, Type::Struct(name_or_type), None, location)
             }
-            None => {
-                VariableDeclaration::new(name_or_type, VariableType::Tensor(vec![]), None, location)
-            }
+            None => VariableDeclaration::new(name_or_type, Type::Tensor(vec![]), None, location),
         })
         .parse_next(input)
 }
@@ -181,7 +179,7 @@ fn variable_declaration<'a>(
             .map(|((location, _), (name, shape, initializer))| {
                 VariableDeclaration::new(
                     name,
-                    VariableType::Tensor(shape.unwrap_or_default()),
+                    Type::Tensor(shape.unwrap_or_default()),
                     initializer,
                     location,
                 )
@@ -192,12 +190,7 @@ fn variable_declaration<'a>(
             initializer(requires_initializer),
         )
             .map(|((location, type_name), name, initializer)| {
-                VariableDeclaration::new(
-                    name,
-                    VariableType::Struct(type_name),
-                    initializer,
-                    location,
-                )
+                VariableDeclaration::new(name, Type::Struct(type_name), initializer, location)
             }),
     ))
 }
@@ -464,13 +457,13 @@ mod tests {
                         vec![
                             VariableDeclaration::new(
                                 "a".into(),
-                                VariableType::Tensor(vec![]),
+                                Type::Tensor(vec![]),
                                 None,
                                 Location::new(1, 9)
                             ),
                             VariableDeclaration::new(
                                 "b".into(),
-                                VariableType::Struct("Bar".into()),
+                                Type::Struct("Bar".into()),
                                 None,
                                 Location::new(1, 12)
                             ),
@@ -493,7 +486,7 @@ mod tests {
                 Prototype::new("main".into(), vec![], Location::new(1, 1)),
                 vec![Statement::VariableDeclaration(VariableDeclaration::new(
                     "a".into(),
-                    VariableType::Tensor(vec![2, 3]),
+                    Type::Tensor(vec![2, 3]),
                     Some(Expression::Literal(Literal::new(
                         (1..=6)
                             .map(|index| Expression::Number(Number::new(
@@ -520,7 +513,7 @@ mod tests {
                     Prototype::new("main".into(), vec![], Location::new(1, 1)),
                     vec![Statement::VariableDeclaration(VariableDeclaration::new(
                         "a".into(),
-                        VariableType::Tensor(vec![]),
+                        Type::Tensor(vec![]),
                         Some(Expression::Literal(Literal::new(
                             vec![
                                 Expression::Literal(Literal::new(
@@ -640,13 +633,13 @@ mod tests {
                         vec![
                             VariableDeclaration::new(
                                 "a".into(),
-                                VariableType::Tensor(vec![]),
+                                Type::Tensor(vec![]),
                                 None,
                                 Location::new(2, 3)
                             ),
                             VariableDeclaration::new(
                                 "b".into(),
-                                VariableType::Tensor(vec![]),
+                                Type::Tensor(vec![]),
                                 None,
                                 Location::new(3, 3)
                             ),
@@ -658,7 +651,7 @@ mod tests {
                         vec![
                             Statement::VariableDeclaration(VariableDeclaration::new(
                                 "x".into(),
-                                VariableType::Struct("Foo".into()),
+                                Type::Struct("Foo".into()),
                                 Some(Expression::StructLiteral(StructLiteral::new(
                                     vec![
                                         Expression::Number(Number::new(1.0, Location::new(7, 12))),
