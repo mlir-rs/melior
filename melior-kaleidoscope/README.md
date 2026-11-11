@@ -14,15 +14,15 @@ The `--emit` option selects an output like the tutorial's `-emit` option: `ast`,
 
 ## Tutorial chapters
 
-| Chapter                                                      | Implementation                                   |
-| ------------------------------------------------------------ | ------------------------------------------------ |
-| 1. Toy language and AST                                      | `src/parse.rs` and `src/ast.rs` |
-| 2. Emitting basic MLIR                                       | `src/toy.td` and `src/mlir_gen.rs`               |
-| 3. High-level language-specific analysis and transformation  | `src/canonicalize.rs`                            |
-| 4. Enabling generic transformation with interfaces           | `src/inliner.rs` and `src/shape_inference.rs`    |
-| 5. Partial lowering to lower-level dialects for optimization | `src/lower_to_affine.rs`                         |
-| 6. Lowering to LLVM and code generation                      | `src/lower_to_llvm.rs` and `src/compile.rs`      |
-| 7. Adding a composite type to Toy                            | Struct types in the modules above                |
+| Chapter                                                      | Implementation                                |
+| ------------------------------------------------------------ | --------------------------------------------- |
+| 1. Toy language and AST                                      | `src/parse.rs` and `src/ast.rs`               |
+| 2. Emitting basic MLIR                                       | `src/toy.td` and `src/mlir_gen.rs`            |
+| 3. High-level language-specific analysis and transformation  | `src/canonicalize.rs`                         |
+| 4. Enabling generic transformation with interfaces           | `src/inliner.rs` and `src/shape_inference.rs` |
+| 5. Partial lowering to lower-level dialects for optimization | `src/lower_to_affine.rs`                      |
+| 6. Lowering to LLVM and code generation                      | `src/lower_to_llvm.rs` and `src/compile.rs`   |
+| 7. Adding a composite type to Toy                            | Struct types in the modules above             |
 
 ## Differences from the tutorial
 
