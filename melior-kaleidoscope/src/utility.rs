@@ -73,5 +73,5 @@ pub fn operation_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Resu
 }
 
 pub fn symbol_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Result<&'c str, Error> {
-    Ok(StringAttribute::try_from(operation.attribute("sym_name")?)?.value())
+    Ok(StringAttribute::try_from(operation.attribute("sym_name")?)?.value()?)
 }

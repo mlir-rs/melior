@@ -433,7 +433,7 @@ fn lower_function<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewrite
         return false;
     };
 
-    if name.value() != "main"
+    if Attribute::from(name) != StringAttribute::new(context, "main").into()
         || function_type.input_count() != 0
         || function_type.result_count() != 0
     {

@@ -86,7 +86,7 @@ fn reaches<'a>(
 }
 
 fn callee_name<'c>(call: OperationRef<'c, '_>) -> Result<&'c str, Error> {
-    Ok(FlatSymbolRefAttribute::try_from(call.attribute("callee")?)?.value())
+    Ok(FlatSymbolRefAttribute::try_from(call.attribute("callee")?)?.value()?)
 }
 
 fn inline_call<'c>(
