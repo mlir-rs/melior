@@ -1,4 +1,4 @@
-use super::{Expression, Print, Return, VariableDeclaration};
+use super::{Expression, Print, Return, VariableDefinition};
 
 /// A statement in a function body.
 #[derive(Debug, PartialEq)]
@@ -9,6 +9,6 @@ pub enum Statement {
     Print(Print),
     /// A return statement.
     Return(Return),
-    /// A variable declaration.
-    VariableDeclaration(VariableDeclaration),
+    /// A variable definition.
+    VariableDefinition(VariableDefinition),
 }

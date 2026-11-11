@@ -18,11 +18,12 @@ mod struct_literal;
 mod r#type;
 mod variable;
 mod variable_declaration;
+mod variable_definition;
 
 pub use self::{
     binary::Binary, binary_operator::BinaryOperator, call::Call, expression::Expression,
     function::Function, literal::Literal, module::Module, number::Number, print::Print,
     prototype::Prototype, record::Record, r#return::Return, statement::Statement, r#struct::Struct,
     struct_literal::StructLiteral, r#type::Type, variable::Variable,
-    variable_declaration::VariableDeclaration,
+    variable_declaration::VariableDeclaration, variable_definition::VariableDefinition,
 };

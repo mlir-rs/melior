@@ -1,27 +1,20 @@
-use super::{Expression, Type};
+use super::Type;
 use crate::location::Location;
 
 /// A variable declaration.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct VariableDeclaration {
     name: String,
     r#type: Type,
-    initializer: Option<Expression>,
     location: Location,
 }
 
 impl VariableDeclaration {
     /// Creates a variable declaration.
-    pub const fn new(
-        name: String,
-        r#type: Type,
-        initializer: Option<Expression>,
-        location: Location,
-    ) -> Self {
+    pub const fn new(name: String, r#type: Type, location: Location) -> Self {
         Self {
             name,
             r#type,
-            initializer,
             location,
         }
     }
@@ -34,11 +27,6 @@ impl VariableDeclaration {
     /// Returns a type.
     pub const fn r#type(&self) -> &Type {
         &self.r#type
-    }
-
-    /// Returns an initializer.
-    pub const fn initializer(&self) -> Option<&Expression> {
-        self.initializer.as_ref()
     }
 
     /// Returns a location.

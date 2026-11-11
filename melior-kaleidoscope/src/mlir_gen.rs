@@ -3,7 +3,7 @@
 use crate::{
     ast::{
         self, Binary, BinaryOperator, Call, Expression, Function, Literal, Record, Return,
-        Statement, StructLiteral, VariableDeclaration,
+        Statement, StructLiteral, VariableDeclaration, VariableDefinition,
     },
     error::Error,
     toy,
@@ -82,13 +82,10 @@ impl<'c, 'a> ModuleGenerator<'c, 'a> {
             .variables()
             .iter()
             .map(|variable| {
-                if variable.initializer().is_some()
-                    || matches!(variable.r#type(), ast::Type::Tensor(shape) if !shape.is_empty())
-                {
+                if matches!(variable.r#type(), ast::Type::Tensor(shape) if !shape.is_empty()) {
                     return Err(error(
                         variable.location(),
-                        "variables within a struct definition must not have initializers or shapes"
-                            .into(),
+                        "variables within a struct definition must not have shapes".into(),
                     ));
                 }
 
@@ -275,8 +272,8 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
                     self.generate_return(r#return)?;
                     break;
                 }
-                Statement::VariableDeclaration(declaration) => {
-                    self.generate_variable_declaration(declaration)?;
+                Statement::VariableDefinition(definition) => {
+                    self.generate_variable_definition(definition)?;
                 }
             }
         }
@@ -304,17 +301,12 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
         Ok(())
     }
 
-    fn generate_variable_declaration(
+    fn generate_variable_definition(
         &mut self,
-        declaration: &'a VariableDeclaration,
+        definition: &'a VariableDefinition,
     ) -> Result<(), Error> {
-        let Some(initializer) = declaration.initializer() else {
-            return Err(error(
-                declaration.location(),
-                "missing initializer in variable declaration".into(),
-            ));
-        };
-        let mut value = self.generate_expression(initializer)?;
+        let declaration = definition.declaration();
+        let mut value = self.generate_expression(definition.initializer())?;
 
         match declaration.r#type() {
             ast::Type::Struct(_) => {

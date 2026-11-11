@@ -4,7 +4,7 @@ use crate::{
     ast::{
         Binary, BinaryOperator, Call, Expression, Function, Literal, Module, Number, Print,
         Prototype, Record, Return, Statement, Struct, StructLiteral, Type, Variable,
-        VariableDeclaration,
+        VariableDeclaration, VariableDefinition,
     },
     error,
     location::Location,
@@ -99,9 +99,9 @@ fn parameter(input: &mut Input<'_>) -> ModalResult<VariableDeclaration> {
     (located(identifier), opt(identifier))
         .map(|((location, name_or_type), name)| {
             if let Some(name) = name {
-                VariableDeclaration::new(name, Type::Struct(name_or_type), None, location)
+                VariableDeclaration::new(name, Type::Struct(name_or_type), location)
             } else {
-                VariableDeclaration::new(name_or_type, Type::Tensor(vec![]), None, location)
+                VariableDeclaration::new(name_or_type, Type::Tensor(vec![]), location)
             }
         })
         .parse_next(input)
@@ -114,7 +114,7 @@ fn r#struct(input: &mut Input<'_>) -> ModalResult<Struct> {
             identifier,
             delimited(
                 symbol('{'),
-                repeat(1.., terminated(variable_declaration(false), symbol(';'))),
+                repeat(1.., terminated(variable_declaration, symbol(';'))),
                 symbol('}'),
             ),
         )),
@@ -146,7 +146,7 @@ fn statement(input: &mut Input<'_>) -> ModalResult<Statement> {
     token(alt((
         print_statement.map(Statement::Print),
         return_statement.map(Statement::Return),
-        variable_declaration(true).map(Statement::VariableDeclaration),
+        variable_definition.map(Statement::VariableDefinition),
         expression.map(Statement::Expression),
     )))
     .parse_next(input)
@@ -169,45 +169,27 @@ fn return_statement(input: &mut Input<'_>) -> ModalResult<Return> {
 
 // A variable declaration is either a `var` declaration with an optional shape
 // or a declaration with a struct type name.
-fn variable_declaration<'a>(
-    requires_initializer: bool,
-) -> impl Parser<Input<'a>, VariableDeclaration, ErrMode<ContextError>> {
+fn variable_declaration(input: &mut Input<'_>) -> ModalResult<VariableDeclaration> {
     alt((
-        (
-            located(keyword("var")),
-            cut_err((identifier, opt(shape), initializer(requires_initializer))),
-        )
-            .map(|((location, _), (name, shape, initializer))| {
-                VariableDeclaration::new(
-                    name,
-                    Type::Tensor(shape.unwrap_or_default()),
-                    initializer,
-                    location,
-                )
-            }),
-        (
-            located(identifier),
-            identifier,
-            initializer(requires_initializer),
-        )
-            .map(|((location, type_name), name, initializer)| {
-                VariableDeclaration::new(name, Type::Struct(type_name), initializer, location)
-            }),
+        (located(keyword("var")), cut_err((identifier, opt(shape)))).map(
+            |((location, _), (name, shape))| {
+                VariableDeclaration::new(name, Type::Tensor(shape.unwrap_or_default()), location)
+            },
+        ),
+        (located(identifier), identifier).map(|((location, type_name), name)| {
+            VariableDeclaration::new(name, Type::Struct(type_name), location)
+        }),
     ))
+    .parse_next(input)
 }
 
-fn initializer<'a>(
-    required: bool,
-) -> impl Parser<Input<'a>, Option<Expression>, ErrMode<ContextError>> {
-    move |input: &mut Input<'a>| {
-        if required {
-            cut_err(preceded(symbol('='), expression))
-                .map(Some)
-                .parse_next(input)
-        } else {
-            empty.map(|()| None).parse_next(input)
-        }
-    }
+fn variable_definition(input: &mut Input<'_>) -> ModalResult<VariableDefinition> {
+    (
+        variable_declaration,
+        cut_err(preceded(symbol('='), expression)),
+    )
+        .map(|(declaration, initializer)| VariableDefinition::new(declaration, initializer))
+        .parse_next(input)
 }
 
 fn shape(input: &mut Input<'_>) -> ModalResult<Vec<u64>> {
@@ -460,13 +442,11 @@ mod tests {
                             VariableDeclaration::new(
                                 "a".into(),
                                 Type::Tensor(vec![]),
-                                None,
                                 Location::new(1, 9)
                             ),
                             VariableDeclaration::new(
                                 "b".into(),
                                 Type::Struct("Bar".into()),
-                                None,
                                 Location::new(1, 12)
                             ),
                         ],
@@ -486,10 +466,13 @@ mod tests {
                 .first(),
             Some(&Record::Function(Function::new(
                 Prototype::new("main".into(), vec![], Location::new(1, 1)),
-                vec![Statement::VariableDeclaration(VariableDeclaration::new(
-                    "a".into(),
-                    Type::Tensor(vec![2, 3]),
-                    Some(Expression::Literal(Literal::new(
+                vec![Statement::VariableDefinition(VariableDefinition::new(
+                    VariableDeclaration::new(
+                        "a".into(),
+                        Type::Tensor(vec![2, 3]),
+                        Location::new(1, 14)
+                    ),
+                    Expression::Literal(Literal::new(
                         (1..=6)
                             .map(|index| Expression::Number(Number::new(
                                 index as f64,
@@ -498,8 +481,7 @@ mod tests {
                             .collect(),
                         vec![6],
                         Location::new(1, 28)
-                    ))),
-                    Location::new(1, 14)
+                    ))
                 ))]
             )))
         );
@@ -513,10 +495,13 @@ mod tests {
                 "test.toy".into(),
                 vec![Record::Function(Function::new(
                     Prototype::new("main".into(), vec![], Location::new(1, 1)),
-                    vec![Statement::VariableDeclaration(VariableDeclaration::new(
-                        "a".into(),
-                        Type::Tensor(vec![]),
-                        Some(Expression::Literal(Literal::new(
+                    vec![Statement::VariableDefinition(VariableDefinition::new(
+                        VariableDeclaration::new(
+                            "a".into(),
+                            Type::Tensor(vec![]),
+                            Location::new(1, 14)
+                        ),
+                        Expression::Literal(Literal::new(
                             vec![
                                 Expression::Literal(Literal::new(
                                     vec![
@@ -537,8 +522,7 @@ mod tests {
                             ],
                             vec![2, 2],
                             Location::new(1, 22)
-                        ))),
-                        Location::new(1, 14)
+                        ))
                     ))]
                 ))]
             )
@@ -636,13 +620,11 @@ mod tests {
                             VariableDeclaration::new(
                                 "a".into(),
                                 Type::Tensor(vec![]),
-                                None,
                                 Location::new(2, 3)
                             ),
                             VariableDeclaration::new(
                                 "b".into(),
                                 Type::Tensor(vec![]),
-                                None,
                                 Location::new(3, 3)
                             ),
                         ],
@@ -651,10 +633,13 @@ mod tests {
                     Record::Function(Function::new(
                         Prototype::new("main".into(), vec![], Location::new(6, 1)),
                         vec![
-                            Statement::VariableDeclaration(VariableDeclaration::new(
-                                "x".into(),
-                                Type::Struct("Foo".into()),
-                                Some(Expression::StructLiteral(StructLiteral::new(
+                            Statement::VariableDefinition(VariableDefinition::new(
+                                VariableDeclaration::new(
+                                    "x".into(),
+                                    Type::Struct("Foo".into()),
+                                    Location::new(7, 3)
+                                ),
+                                Expression::StructLiteral(StructLiteral::new(
                                     vec![
                                         Expression::Number(Number::new(1.0, Location::new(7, 12))),
                                         Expression::Literal(Literal::new(
@@ -673,8 +658,7 @@ mod tests {
                                         )),
                                     ],
                                     Location::new(7, 11)
-                                ))),
-                                Location::new(7, 3)
+                                ))
                             )),
                             Statement::Print(Print::new(
                                 Expression::Binary(Binary::new(

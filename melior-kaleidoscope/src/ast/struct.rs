@@ -2,7 +2,7 @@ use super::VariableDeclaration;
 use crate::location::Location;
 
 /// A struct definition.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Struct {
     name: String,
     variables: Vec<VariableDeclaration>,

@@ -2,7 +2,7 @@ use super::VariableDeclaration;
 use crate::location::Location;
 
 /// A function prototype.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Prototype {
     name: String,
     parameters: Vec<VariableDeclaration>,
