@@ -1,7 +1,7 @@
 //! The Toy compiler command.
 
 use clap::{Parser, ValueEnum};
-use melior::ir::Module;
+use melior::{ir::Module, llvm, utility::translate_module_to_llvm_ir};
 use melior_kaleidoscope::{Action, create_context, generate, parse::parse, process, run_jit};
 use std::{error::Error, fs::read_to_string, path::PathBuf, process::exit};
 
@@ -28,6 +28,8 @@ enum Emit {
     MlirAffine,
     /// An MLIR dump after LLVM lowering.
     MlirLlvm,
+    /// An LLVM IR dump.
+    Llvm,
     /// JIT compilation and execution of the main function.
     Jit,
 }
@@ -53,6 +55,7 @@ fn run(arguments: &Arguments) -> Result<(), Box<dyn Error>> {
         Emit::Mlir => Action::Mlir,
         Emit::MlirAffine => Action::MlirAffine,
         Emit::MlirLlvm => Action::MlirLlvm,
+        Emit::Llvm => Action::Llvm,
         Emit::Jit => Action::Jit,
     };
 
@@ -69,10 +72,15 @@ fn run(arguments: &Arguments) -> Result<(), Box<dyn Error>> {
 
     process(&context, &mut module, action, arguments.optimize)?;
 
-    if action == Action::Jit {
-        run_jit(&module, arguments.optimize)?;
-    } else {
-        print!("{}", module.as_operation());
+    match action {
+        Action::Mlir | Action::MlirAffine | Action::MlirLlvm => {
+            print!("{}", module.as_operation())
+        }
+        Action::Llvm => print!(
+            "{}",
+            translate_module_to_llvm_ir(&module, &llvm::Context::new())?
+        ),
+        Action::Jit => run_jit(&module, arguments.optimize)?,
     }
 
     Ok(())

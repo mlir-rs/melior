@@ -10,7 +10,7 @@ cargo run -p melior-kaleidoscope -- melior-kaleidoscope/examples/codegen.toy --e
 cargo run -p melior-kaleidoscope -- melior-kaleidoscope/examples/codegen.toy --emit jit --optimize
 ```
 
-The `--emit` option selects an output like the tutorial's `-emit` option: `ast`, `mlir`, `mlir-affine`, `mlir-llvm`, or `jit`. The `--optimize` flag enables optimizations. An input file with the `.mlir` extension is read as an MLIR module instead of a Toy program.
+The `--emit` option selects an output like the tutorial's `-emit` option: `ast`, `mlir`, `mlir-affine`, `mlir-llvm`, `llvm`, or `jit`. The `--optimize` flag enables optimizations. An input file with the `.mlir` extension is read as an MLIR module instead of a Toy program.
 
 ## Tutorial chapters
 
@@ -32,4 +32,4 @@ The Toy dialect is defined in TableGen as in the tutorial, and the `melior::dial
 - The operations have no verifiers, traits, or interfaces. Transformations relying on them in the tutorial, such as inlining, dead code elimination, common sub-expression elimination of constants, and shape inference, are implemented in Rust.
 - The conversion framework is not available in the C API. Lowering is implemented as rewrite patterns applied by the greedy rewrite driver, followed by a check that no Toy operation is left.
 
-The struct type of chapter 7 is represented by the builtin tuple type because custom types cannot be defined through the C API either. The `-emit=llvm` output of the tutorial is not supported because Melior has no binding for the translation of MLIR modules into LLVM IR.
+The struct type of chapter 7 is represented by the builtin tuple type because custom types cannot be defined through the C API either. The `-emit=llvm` output is the plain translation of the module in the LLVM dialect. The target triple and data layout setup and the LLVM optimization pipeline of the tutorial are not applied because the MLIR C API does not expose them.

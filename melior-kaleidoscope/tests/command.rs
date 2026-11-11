@@ -96,6 +96,16 @@ fn emit_optimized_mlir_llvm() {
 }
 
 #[test]
+fn emit_optimized_llvm() {
+    insta::assert_snapshot!(run_successfully(&[
+        "codegen.toy",
+        "--emit",
+        "llvm",
+        "--optimize"
+    ]));
+}
+
+#[test]
 fn emit_mlir_affine_from_mlir() {
     insta::assert_snapshot!(run_successfully(&[
         "affine_lowering.mlir",

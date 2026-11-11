@@ -19,6 +19,8 @@ pub enum Action {
     MlirAffine,
     /// The LLVM dialect.
     MlirLlvm,
+    /// LLVM IR.
+    Llvm,
     /// JIT execution.
     Jit,
 }
