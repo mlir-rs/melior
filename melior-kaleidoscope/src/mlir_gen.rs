@@ -167,16 +167,38 @@ impl<'c, 'a> ModuleGenerator<'c, 'a> {
                 .get(name.as_str())
                 .map(|(r#type, _)| (*r#type).into())
                 .ok_or_else(|| error(variable.location(), format!("unknown struct type '{name}'"))),
-            VariableType::Tensor(shape) => Ok(self.tensor_type(shape)),
+            VariableType::Tensor(shape) => self.tensor_type(shape, variable.location()),
         }
     }
 
-    fn tensor_type(&self, shape: &[u64]) -> Type<'c> {
-        if shape.is_empty() {
+    fn tensor_type(&self, shape: &[u64], location: crate::Location) -> Result<Type<'c>, Error> {
+        Ok(if shape.is_empty() {
             self.unranked_tensor_type()
         } else {
-            RankedTensorType::new(shape, Type::float64(self.context), None).into()
+            self.ranked_tensor_type(shape, location)?.into()
+        })
+    }
+
+    fn ranked_tensor_type(
+        &self,
+        shape: &[u64],
+        location: crate::Location,
+    ) -> Result<RankedTensorType<'c>, Error> {
+        if shape
+            .iter()
+            .try_fold(size_of::<f64>() as i64, |size, &dimension| {
+                size.checked_mul(i64::try_from(dimension).ok()?)
+            })
+            .is_none()
+        {
+            return Err(error(location, "tensor shape is too large".into()));
         }
+
+        Ok(RankedTensorType::new(
+            shape,
+            Type::float64(self.context),
+            None,
+        ))
     }
 
     fn unranked_tensor_type(&self) -> Type<'c> {
@@ -322,7 +344,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
                     .append_operation(
                         toy::reshape(
                             self.module.context,
-                            self.module.tensor_type(shape),
+                            self.module.tensor_type(shape, declaration.location())?,
                             value,
                             self.module.location(declaration.location()),
                         )
@@ -349,8 +371,9 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
                     .append_operation(
                         toy::constant(
                             self.module.context,
-                            self.module.tensor_type(literal.dimensions()),
-                            self.literal_attribute(literal),
+                            self.module
+                                .tensor_type(literal.dimensions(), literal.location())?,
+                            self.literal_attribute(literal)?,
                             location,
                         )
                         .into(),
@@ -562,21 +585,17 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
             .into())
     }
 
-    fn literal_attribute(&self, literal: &Literal) -> DenseElementsAttribute<'c> {
+    fn literal_attribute(&self, literal: &Literal) -> Result<DenseElementsAttribute<'c>, Error> {
         let mut data = vec![];
 
         collect_literal_data(literal, &mut data);
 
-        DenseElementsAttribute::f64_values(
-            RankedTensorType::new(
-                literal.dimensions(),
-                Type::float64(self.module.context),
-                None,
-            )
-            .into(),
+        Ok(DenseElementsAttribute::f64_values(
+            self.module
+                .ranked_tensor_type(literal.dimensions(), literal.location())?
+                .into(),
             &data,
-        )
-        .expect("element count matching a literal shape")
+        )?)
     }
 
     fn struct_literal_attribute(
@@ -589,7 +608,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
         for value in literal.values() {
             let (attribute, r#type) = match value {
                 Expression::Literal(literal) => (
-                    self.literal_attribute(literal).into(),
+                    self.literal_attribute(literal)?.into(),
                     self.module.unranked_tensor_type(),
                 ),
                 Expression::Number(number) => (
@@ -694,6 +713,11 @@ mod tests {
     }
 
     #[test]
+    fn generate_largest_tensor_shape() {
+        assert!(generate_source("def main() { var a<1152921504606846975> = 1; }").is_ok());
+    }
+
+    #[test]
     fn fail_to_generate_unknown_variable() {
         assert!(matches!(
             generate_source("def main() { print(a); }"),
@@ -751,6 +775,58 @@ mod tests {
         assert!(matches!(
             generate_source("def main() { Foo x = {1}; }"),
             Err(Error::CodeGeneration { message, .. }) if message == "unknown struct type 'Foo'"
+        ));
+    }
+
+    #[test]
+    fn fail_to_generate_dimension_above_maximum() {
+        assert!(matches!(
+            generate_source("def main() { var a<0, 9223372036854775808> = 1; }"),
+            Err(Error::CodeGeneration { message, .. }) if message == "tensor shape is too large"
+        ));
+    }
+
+    #[test]
+    fn fail_to_generate_tensor_size_above_maximum() {
+        assert!(matches!(
+            generate_source("def main() { var a<1152921504606846976> = 1; }"),
+            Err(Error::CodeGeneration { message, .. }) if message == "tensor shape is too large"
+        ));
+    }
+
+    #[test]
+    fn fail_to_generate_wrapping_tensor_shape() {
+        assert!(matches!(
+            generate_source("def main() { var a<3, 6148914691236517206> = [1, 2]; }"),
+            Err(Error::CodeGeneration { message, .. }) if message == "tensor shape is too large"
+        ));
+    }
+
+    #[test]
+    fn fail_to_generate_too_large_literal() {
+        let location = crate::Location::new(1, 1);
+
+        assert!(matches!(
+            generate(
+                &create_context(),
+                &ast::Module::new(
+                    "test.toy".into(),
+                    vec![Record::Function(Function::new(
+                        ast::Prototype::new("main".into(), vec![], location),
+                        vec![Statement::Expression(Expression::StructLiteral(
+                            StructLiteral::new(
+                                vec![Expression::Literal(Literal::new(
+                                    vec![Expression::Number(ast::Number::new(1.0, location))],
+                                    vec![1 << 32, 1 << 32],
+                                    location,
+                                ))],
+                                location,
+                            )
+                        ))],
+                    ))],
+                ),
+            ),
+            Err(Error::CodeGeneration { message, .. }) if message == "tensor shape is too large"
         ));
     }
 }
