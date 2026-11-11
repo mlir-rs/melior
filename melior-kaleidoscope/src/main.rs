@@ -14,8 +14,8 @@ struct Arguments {
     #[arg(long, value_enum)]
     emit: Emit,
     /// Enables optimizations.
-    #[arg(long)]
-    opt: bool,
+    #[arg(long = "opt")]
+    optimize: bool,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, ValueEnum)]
@@ -67,10 +67,10 @@ fn run(arguments: &Arguments) -> Result<(), Box<dyn Error>> {
         generate(&context, &parse(&source, &file_name)?)?
     };
 
-    process(&context, &mut module, action, arguments.opt)?;
+    process(&context, &mut module, action, arguments.optimize)?;
 
     if action == Action::Jit {
-        run_jit(&module, arguments.opt)?;
+        run_jit(&module, arguments.optimize)?;
     } else {
         print!("{}", module.as_operation());
     }
