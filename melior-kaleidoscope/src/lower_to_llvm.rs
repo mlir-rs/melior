@@ -75,6 +75,7 @@ pub fn lower_to_llvm<'c>(context: &'c Context, module: &mut Module<'c>) -> Resul
 
 // The execution engine invokes functions through their C interfaces.
 fn emit_c_interface<'c>(context: &'c Context, module: &mut Module<'c>) {
+    // TODO Use a symbol table lookup once Melior wraps the symbol table API.
     module
         .as_operation_mut()
         .walk_mut(WalkOrder::PreOrder, |mut operation| {
@@ -265,6 +266,7 @@ fn declare_printf<'c>(
     module_body: BlockRef<'c, '_>,
     location: Location<'c>,
 ) {
+    // TODO Use a symbol table lookup once Melior wraps the symbol table API.
     if block_operations(module_body).any(|operation| {
         is_operation(operation, "llvm.func")
             && symbol_name(operation).is_ok_and(|name| name == "printf")
@@ -312,6 +314,7 @@ fn global_string<'c, 'r>(
 ) -> Option<Value<'c, 'r>> {
     let location = operation.location();
 
+    // TODO Use a symbol table lookup once Melior wraps the symbol table API.
     if !block_operations(module_body).any(|operation| {
         is_operation(operation, "llvm.mlir.global")
             && symbol_name(operation).is_ok_and(|symbol| symbol == name)
