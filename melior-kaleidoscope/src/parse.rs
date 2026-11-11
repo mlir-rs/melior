@@ -97,11 +97,12 @@ fn prototype(input: &mut Input<'_>) -> ModalResult<Prototype> {
 // A parameter is an optional struct type name followed by a name.
 fn parameter(input: &mut Input<'_>) -> ModalResult<VariableDeclaration> {
     (located(identifier), opt(identifier))
-        .map(|((location, name_or_type), name)| match name {
-            Some(name) => {
+        .map(|((location, name_or_type), name)| {
+            if let Some(name) = name {
                 VariableDeclaration::new(name, Type::Struct(name_or_type), None, location)
+            } else {
+                VariableDeclaration::new(name_or_type, Type::Tensor(vec![]), None, location)
             }
-            None => VariableDeclaration::new(name_or_type, Type::Tensor(vec![]), None, location),
         })
         .parse_next(input)
 }
@@ -261,9 +262,10 @@ fn primary(input: &mut Input<'_>) -> ModalResult<Expression> {
 fn call_or_variable(input: &mut Input<'_>) -> ModalResult<Expression> {
     let (location, name) = located(identifier).parse_next(input)?;
 
-    Ok(match opt(arguments).parse_next(input)? {
-        Some(arguments) => Expression::Call(Call::new(name, arguments, location)),
-        None => Expression::Variable(Variable::new(name, location)),
+    Ok(if let Some(arguments) = opt(arguments).parse_next(input)? {
+        Expression::Call(Call::new(name, arguments, location))
+    } else {
+        Expression::Variable(Variable::new(name, location))
     })
 }
 

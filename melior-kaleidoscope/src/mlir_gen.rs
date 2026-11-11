@@ -133,14 +133,13 @@ impl<'c, 'a> ModuleGenerator<'c, 'a> {
         generator.generate_block(function.body())?;
 
         // A result type of a function is inferred from its return statement.
-        let result_types = match terminator(&block) {
-            Some(terminator) if is_operation(terminator, "toy.return") => {
-                terminator.operands().map(|value| value.r#type()).collect()
-            }
-            _ => {
-                block.append_operation(toy::r#return(self.context, &[], location).into());
-                vec![]
-            }
+        let result_types = if let Some(terminator) = terminator(&block)
+            && is_operation(terminator, "toy.return")
+        {
+            terminator.operands().map(|value| value.r#type()).collect()
+        } else {
+            block.append_operation(toy::r#return(self.context, &[], location).into());
+            vec![]
         };
 
         let region = Region::new();
