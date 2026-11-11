@@ -19,14 +19,7 @@ use std::collections::{HashMap, HashSet};
 pub fn inline_functions<'c>(context: &'c Context, module: &Module<'c>) -> Result<(), Error> {
     let functions = block_operations(module.body())
         .filter(|operation| is_operation(*operation, "toy.func"))
-        .map(|function| {
-            Ok((
-                symbol_name(function).ok_or_else(|| {
-                    Error::Melior(melior::Error::AttributeNotFound("sym_name".into()))
-                })?,
-                function,
-            ))
-        })
+        .map(|function| Ok((symbol_name(function)?, function)))
         .collect::<Result<Vec<_>, Error>>()?;
 
     check_recursion(&functions)?;
@@ -143,7 +136,8 @@ fn inline_call<'c>(
 
     rewriter.inline_block_before(block, call, &arguments);
 
-    // The inlined return operation is replaced by its operands at the call site.
+    // The inlined return operation is replaced by its operands at the call
+    // site.
     let results = terminator.operands().collect::<Vec<_>>();
 
     if results.len() != call.result_count() {
@@ -290,6 +284,34 @@ mod tests {
                 "#
             )),
             Err(Error::ArgumentCount { function, expected: 1, actual: 0 }) if function == "identity"
+        ));
+    }
+
+    #[test]
+    fn fail_to_inline_function_without_name() {
+        assert!(matches!(
+            inline_module(indoc!(
+                r#"
+                "toy.func"() ({
+                  "toy.return"() : () -> ()
+                }) {function_type = () -> ()} : () -> ()
+                "#
+            )),
+            Err(Error::Melior(melior::Error::AttributeNotFound(name))) if name == "sym_name"
+        ));
+    }
+
+    #[test]
+    fn fail_to_inline_function_with_non_string_name() {
+        assert!(matches!(
+            inline_module(indoc!(
+                r#"
+                "toy.func"() ({
+                  "toy.return"() : () -> ()
+                }) {function_type = () -> (), sym_name = 42 : i64} : () -> ()
+                "#
+            )),
+            Err(Error::Melior(melior::Error::AttributeExpected(..)))
         ));
     }
 }

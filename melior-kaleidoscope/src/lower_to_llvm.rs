@@ -78,7 +78,9 @@ fn emit_c_interface<'c>(context: &'c Context, module: &mut Module<'c>) {
     module
         .as_operation_mut()
         .walk_mut(WalkOrder::PreOrder, |mut operation| {
-            if is_operation(&*operation, "func.func") && symbol_name(&*operation) == Some("main") {
+            if is_operation(&*operation, "func.func")
+                && symbol_name(&*operation).is_ok_and(|name| name == "main")
+            {
                 operation.set_attribute("llvm.emit_c_interface", Attribute::unit(context));
 
                 WalkResult::Interrupt
@@ -222,7 +224,7 @@ fn module_body<'c, 'a>(operation: OperationRef<'c, 'a>) -> Option<BlockRef<'c, '
         operation = operation.parent_operation()?;
     }
 
-    operation.region(0).ok()?.first_block()
+    operation.regions().next()?.first_block()
 }
 
 fn index_constant<'c, 'r>(
@@ -264,7 +266,8 @@ fn declare_printf<'c>(
     location: Location<'c>,
 ) {
     if block_operations(module_body).any(|operation| {
-        is_operation(operation, "llvm.func") && symbol_name(operation) == Some("printf")
+        is_operation(operation, "llvm.func")
+            && symbol_name(operation).is_ok_and(|name| name == "printf")
     }) {
         return;
     }
@@ -310,7 +313,8 @@ fn global_string<'c, 'r>(
     let location = operation.location();
 
     if !block_operations(module_body).any(|operation| {
-        is_operation(operation, "llvm.mlir.global") && symbol_name(operation) == Some(name)
+        is_operation(operation, "llvm.mlir.global")
+            && symbol_name(operation).is_ok_and(|symbol| symbol == name)
     }) {
         rewriter.set_insertion_point_to_start(module_body);
         rewriter.insert(

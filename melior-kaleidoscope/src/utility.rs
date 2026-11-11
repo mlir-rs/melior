@@ -49,7 +49,7 @@ pub fn block_operations<'c: 'a, 'a>(
 }
 
 pub fn body_block<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Option<BlockRef<'c, 'a>> {
-    operation.region(0).ok()?.first_block()
+    operation.regions().next()?.first_block()
 }
 
 // Terminators of unregistered dialects are not recognized by MLIR, so the
@@ -72,10 +72,6 @@ pub fn operation_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Resu
     Ok(operation.name().as_string_ref().as_str()?.into())
 }
 
-pub fn symbol_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Option<&'c str> {
-    operation
-        .attribute("sym_name")
-        .ok()
-        .and_then(|attribute| StringAttribute::try_from(attribute).ok())
-        .map(|attribute| attribute.value())
+pub fn symbol_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Result<&'c str, Error> {
+    Ok(StringAttribute::try_from(operation.attribute("sym_name")?)?.value())
 }
