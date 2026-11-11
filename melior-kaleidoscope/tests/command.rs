@@ -105,6 +105,22 @@ fn emit_mlir_affine_from_mlir() {
     ]));
 }
 
+#[test]
+fn fail_to_parse() {
+    let output = run(&["invalid.toy", "--emit", "ast"]);
+
+    assert!(!output.status.success());
+    insta::assert_snapshot!(String::from_utf8(output.stderr).unwrap());
+}
+
+#[test]
+fn fail_to_infer_shapes() {
+    let output = run(&["shape_mismatch.toy", "--emit", "mlir", "--opt"]);
+
+    assert!(!output.status.success());
+    insta::assert_snapshot!(String::from_utf8(output.stderr).unwrap());
+}
+
 // The JIT compiler cannot resolve the `printf` function on Windows.
 #[cfg(not(windows))]
 mod jit {
@@ -134,20 +150,4 @@ mod jit {
             "1.000000 16.000000 \n4.000000 25.000000 \n9.000000 36.000000 \n"
         );
     }
-}
-
-#[test]
-fn fail_to_parse() {
-    let output = run(&["invalid.toy", "--emit", "ast"]);
-
-    assert!(!output.status.success());
-    insta::assert_snapshot!(String::from_utf8(output.stderr).unwrap());
-}
-
-#[test]
-fn fail_to_infer_shapes() {
-    let output = run(&["shape_mismatch.toy", "--emit", "mlir", "--opt"]);
-
-    assert!(!output.status.success());
-    insta::assert_snapshot!(String::from_utf8(output.stderr).unwrap());
 }
