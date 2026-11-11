@@ -1,4 +1,4 @@
-//! The Toy language compiler from [the MLIR Toy tutorial](https://mlir.llvm.org/docs/Tutorials/Toy/) built with Melior.
+//! The Toy language compiler from [the MLIR Toy tutorial](https://mlir.llvm.org/docs/Tutorials/Toy/).
 
 pub mod ast;
 mod canonicalize;
