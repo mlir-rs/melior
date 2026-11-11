@@ -1,9 +1,12 @@
 use crate::error::Error;
 use core::iter::successors;
-use melior::ir::{
-    BlockLike, BlockRef, Module, OperationRef, RegionLike, Value,
-    attribute::StringAttribute,
-    operation::{OperationLike, OperationResult, WalkOrder, WalkResult},
+use melior::{
+    StringRef,
+    ir::{
+        BlockLike, BlockRef, Module, OperationRef, RegionLike, Value,
+        attribute::StringAttribute,
+        operation::{OperationLike, OperationResult, WalkOrder, WalkResult},
+    },
 };
 
 // Checks that Toy operations other than legal ones are lowered.
@@ -62,7 +65,7 @@ pub fn defining_operation<'c, 'a>(value: Value<'c, 'a>) -> Option<OperationRef<'
 }
 
 pub fn is_operation<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>, name: &str) -> bool {
-    operation.name().as_string_ref().as_str() == Ok(name)
+    operation.name().as_string_ref() == StringRef::new(name)
 }
 
 pub fn operation_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Result<String, Error> {
