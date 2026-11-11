@@ -107,8 +107,9 @@ pub fn lower_to_affine<'c>(context: &'c Context, module: &mut Module<'c>) -> Res
 
 fn lower_constant<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewriter<'c, '_>) -> bool {
     let rewriter = rewriter.as_rewriter_base();
-    // SAFETY: The context outlives the pattern application.
-    let context = unsafe { rewriter.context().to_ref() };
+    let context = rewriter.context();
+    // SAFETY: The context reference lives until the end of this function.
+    let context = unsafe { context.to_ref() };
     let Ok(elements) = operation
         .attribute("value")
         .and_then(DenseElementsAttribute::try_from)
@@ -189,8 +190,9 @@ fn lower_transpose<'c>(
     rewriter: &PatternRewriter<'c, '_>,
 ) -> bool {
     let rewriter = rewriter.as_rewriter_base();
-    // SAFETY: The context outlives the pattern application.
-    let context = unsafe { rewriter.context().to_ref() };
+    let context = rewriter.context();
+    // SAFETY: The context reference lives until the end of this function.
+    let context = unsafe { context.to_ref() };
     let Some(input) = operation
         .operand(0)
         .ok()
@@ -226,8 +228,9 @@ fn lower_binary<'c>(
     build: impl Fn(&'c Context, Value<'c, '_>, Value<'c, '_>, Location<'c>) -> Operation<'c>,
 ) -> bool {
     let rewriter = rewriter.as_rewriter_base();
-    // SAFETY: The context outlives the pattern application.
-    let context = unsafe { rewriter.context().to_ref() };
+    let context = rewriter.context();
+    // SAFETY: The context reference lives until the end of this function.
+    let context = unsafe { context.to_ref() };
     let (Ok(lhs), Ok(rhs)) = (operation.operand(0), operation.operand(1)) else {
         return false;
     };
@@ -407,8 +410,9 @@ fn affine_map_attribute<'c>(context: &'c Context, map: AffineMap<'c>) -> Attribu
 // inlined.
 fn lower_function<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewriter<'c, '_>) -> bool {
     let rewriter = rewriter.as_rewriter_base();
-    // SAFETY: The context outlives the pattern application.
-    let context = unsafe { rewriter.context().to_ref() };
+    let context = rewriter.context();
+    // SAFETY: The context reference lives until the end of this function.
+    let context = unsafe { context.to_ref() };
     let (Ok(name), Ok(function_type), Ok(body)) = (
         operation
             .attribute("sym_name")
@@ -471,8 +475,9 @@ fn lower_return<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewriter<
     }
 
     let rewriter = rewriter.as_rewriter_base();
-    // SAFETY: The context outlives the pattern application.
-    let context = unsafe { rewriter.context().to_ref() };
+    let context = rewriter.context();
+    // SAFETY: The context reference lives until the end of this function.
+    let context = unsafe { context.to_ref() };
     let r#return = rewriter.insert(func::r#return(context, &[], operation.location()).into());
 
     rewriter.replace_op_with_operation(operation, r#return);

@@ -1,6 +1,5 @@
 #![expect(missing_docs)]
 
-use pretty_assertions::assert_eq;
 use std::{
     path::Path,
     process::{Command, Output},
@@ -108,30 +107,33 @@ fn emit_mlir_affine_from_mlir() {
 
 // The JIT compiler cannot resolve the `printf` function on Windows.
 #[cfg(not(windows))]
-#[test]
-fn run_jit() {
-    assert_eq!(
-        run_successfully(&["jit.toy", "--emit", "jit"]),
-        "1.000000 2.000000 \n3.000000 4.000000 \n"
-    );
-}
+mod jit {
+    use super::*;
+    use pretty_assertions::assert_eq;
 
-#[cfg(not(windows))]
-#[test]
-fn run_optimized_jit() {
-    assert_eq!(
-        run_successfully(&["codegen.toy", "--emit", "jit", "--opt"]),
-        "1.000000 16.000000 \n4.000000 25.000000 \n9.000000 36.000000 \n"
-    );
-}
+    #[test]
+    fn run_jit() {
+        assert_eq!(
+            run_successfully(&["jit.toy", "--emit", "jit"]),
+            "1.000000 2.000000 \n3.000000 4.000000 \n"
+        );
+    }
 
-#[cfg(not(windows))]
-#[test]
-fn run_jit_with_struct() {
-    assert_eq!(
-        run_successfully(&["struct_codegen.toy", "--emit", "jit"]),
-        "1.000000 16.000000 \n4.000000 25.000000 \n9.000000 36.000000 \n"
-    );
+    #[test]
+    fn run_optimized_jit() {
+        assert_eq!(
+            run_successfully(&["codegen.toy", "--emit", "jit", "--opt"]),
+            "1.000000 16.000000 \n4.000000 25.000000 \n9.000000 36.000000 \n"
+        );
+    }
+
+    #[test]
+    fn run_jit_with_struct() {
+        assert_eq!(
+            run_successfully(&["struct_codegen.toy", "--emit", "jit"]),
+            "1.000000 16.000000 \n4.000000 25.000000 \n9.000000 36.000000 \n"
+        );
+    }
 }
 
 #[test]

@@ -154,8 +154,9 @@ fn simplify_reshape<'c>(
     rewriter: &PatternRewriter<'c, '_>,
 ) -> bool {
     let rewriter = rewriter.as_rewriter_base();
-    // SAFETY: The context outlives the pattern application.
-    let context = unsafe { rewriter.context().to_ref() };
+    let context = rewriter.context();
+    // SAFETY: The context reference lives until the end of this function.
+    let context = unsafe { context.to_ref() };
     let (Ok(input), Ok(output)) = (operation.operand(0), operation.result(0)) else {
         return false;
     };
@@ -231,8 +232,9 @@ fn fold_struct_access<'c>(
     rewriter: &PatternRewriter<'c, '_>,
 ) -> bool {
     let rewriter = rewriter.as_rewriter_base();
-    // SAFETY: The context outlives the pattern application.
-    let context = unsafe { rewriter.context().to_ref() };
+    let context = rewriter.context();
+    // SAFETY: The context reference lives until the end of this function.
+    let context = unsafe { context.to_ref() };
     let Some(producer) = operation
         .operand(0)
         .ok()

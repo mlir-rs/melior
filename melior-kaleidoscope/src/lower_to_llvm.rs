@@ -92,8 +92,9 @@ fn emit_c_interface<'c>(context: &'c Context, module: &mut Module<'c>) {
 // a memory reference.
 fn lower_print<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewriter<'c, '_>) -> bool {
     let rewriter = rewriter.as_rewriter_base();
-    // SAFETY: The context outlives the pattern application.
-    let context = unsafe { rewriter.context().to_ref() };
+    let context = rewriter.context();
+    // SAFETY: The context reference lives until the end of this function.
+    let context = unsafe { context.to_ref() };
     let Some((input, memref_type)) = operation
         .operand(0)
         .ok()
