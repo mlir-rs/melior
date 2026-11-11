@@ -25,21 +25,21 @@ use std::collections::HashMap;
 
 /// Generates an MLIR module in the Toy dialect from a Toy AST.
 pub fn generate<'c>(context: &'c Context, module: &ast::Module) -> Result<Module<'c>, Error> {
-    ModuleGenerator::new(context, module.file_name()).generate(module)
+    ModuleGenerator::new(context, module.path()).generate(module)
 }
 
 struct ModuleGenerator<'c, 'a> {
     context: &'c Context,
-    file_name: &'a str,
+    path: &'a str,
     functions: HashMap<&'a str, FunctionType<'c>>,
     structs: HashMap<&'a str, (TupleType<'c>, &'a ast::Struct)>,
 }
 
 impl<'c, 'a> ModuleGenerator<'c, 'a> {
-    fn new(context: &'c Context, file_name: &'a str) -> Self {
+    fn new(context: &'c Context, path: &'a str) -> Self {
         Self {
             context,
-            file_name,
+            path,
             functions: Default::default(),
             structs: Default::default(),
         }
@@ -206,12 +206,7 @@ impl<'c, 'a> ModuleGenerator<'c, 'a> {
     }
 
     fn location(&self, location: crate::Location) -> Location<'c> {
-        Location::new(
-            self.context,
-            self.file_name,
-            location.line(),
-            location.column(),
-        )
+        Location::new(self.context, self.path, location.line(), location.column())
     }
 }
 
@@ -336,8 +331,8 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
                     ));
                 }
             }
-            // A reshape operation is emitted for a declaration with a shape. It gets optimized
-            // out later as needed.
+            // A reshape operation is emitted for a declaration with a shape. It
+            // gets optimized out later as needed.
             VariableType::Tensor(shape) if !shape.is_empty() => {
                 value = self
                     .block
@@ -481,7 +476,8 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
             .into())
     }
 
-    // Returns the struct definition of a type of an expression if it is a struct.
+    // Returns the struct definition of a type of an expression if it is a
+    // struct.
     fn struct_definition(&self, expression: &Expression) -> Option<&'a ast::Struct> {
         let name = match expression {
             Expression::Variable(variable) => match self.lookup(variable.name())?.1.r#type() {

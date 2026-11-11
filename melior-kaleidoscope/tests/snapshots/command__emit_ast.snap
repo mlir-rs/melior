@@ -3,7 +3,7 @@ source: melior-kaleidoscope/tests/command.rs
 expression: "run_successfully(&[\"ast.toy\", \"--emit\", \"ast\"])"
 ---
 Module {
-    file_name: "ast.toy",
+    path: "ast.toy",
     records: [
         Function(
             Function {

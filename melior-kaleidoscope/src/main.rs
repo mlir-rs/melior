@@ -45,11 +45,11 @@ fn main() {
 
 fn run(arguments: &Arguments) -> Result<(), Box<dyn Error>> {
     let source = read_to_string(&arguments.input)?;
-    let file_name = arguments.input.display().to_string();
+    let path = arguments.input.display().to_string();
 
     let action = match arguments.emit {
         Emit::Ast => {
-            println!("{:#?}", parse(&source, &file_name)?);
+            println!("{:#?}", parse(&source, &path)?);
             return Ok(());
         }
         Emit::Mlir => Action::Mlir,
@@ -67,7 +67,7 @@ fn run(arguments: &Arguments) -> Result<(), Box<dyn Error>> {
     {
         Module::parse(&context, &source).ok_or(melior_kaleidoscope::Error::ModuleParse)?
     } else {
-        generate(&context, &parse(&source, &file_name)?)?
+        generate(&context, &parse(&source, &path)?)?
     };
 
     process(&context, &mut module, action, arguments.optimize)?;

@@ -3,7 +3,7 @@ source: melior-kaleidoscope/tests/command.rs
 expression: "run_successfully(&[\"struct_codegen.toy\", \"--emit\", \"ast\"])"
 ---
 Module {
-    file_name: "struct_codegen.toy",
+    path: "struct_codegen.toy",
     records: [
         Struct(
             Struct {

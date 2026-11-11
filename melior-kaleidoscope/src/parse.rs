@@ -27,7 +27,7 @@ const KEYWORDS: &[&str] = &["def", "print", "return", "struct", "var"];
 type Input<'a> = Stateful<LocatingSlice<&'a str>, &'a [usize]>;
 
 /// Parses a module.
-pub fn parse(source: &str, file_name: &str) -> Result<Module, error::Error> {
+pub fn parse(source: &str, path: &str) -> Result<Module, error::Error> {
     let line_starts = [0]
         .into_iter()
         .chain(source.match_indices('\n').map(|(index, _)| index + 1))
@@ -38,7 +38,7 @@ pub fn parse(source: &str, file_name: &str) -> Result<Module, error::Error> {
             input: LocatingSlice::new(source),
             state: &line_starts,
         })
-        .map(|records| Module::new(file_name.into(), records))
+        .map(|records| Module::new(path.into(), records))
         .map_err(|error| error::Error::Syntax {
             location: location_at(&line_starts, error.offset()),
             message: match error.inner().to_string() {
