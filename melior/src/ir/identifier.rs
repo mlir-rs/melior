@@ -36,7 +36,7 @@ impl<'c> Identifier<'c> {
         unsafe { StringRef::from_raw(mlirIdentifierStr(self.raw)) }
     }
 
-    /// Creates a location from a raw object.
+    /// Creates an identifier from a raw object.
     ///
     /// # Safety
     ///
@@ -48,7 +48,7 @@ impl<'c> Identifier<'c> {
         }
     }
 
-    /// Converts a location into a raw object.
+    /// Converts an identifier into a raw object.
     pub const fn to_raw(self) -> MlirIdentifier {
         self.raw
     }
