@@ -13,8 +13,8 @@ use winnow::{
     ModalResult, Parser,
     ascii::{dec_uint, digit1, till_line_ending},
     combinator::{
-        self, Infix, alt, cut_err, delimited, dispatch, empty, eof, fail, opt, peek, preceded,
-        repeat, separated, terminated,
+        self, Infix, alt, cut_err, delimited, dispatch, empty, eof, fail, opt, preceded, repeat,
+        separated, terminated,
     },
     error::{AddContext, ContextError, ErrMode, StrContext, StrContextValue},
     stream::{LocatingSlice, Location as _, Stateful, Stream},
@@ -94,10 +94,10 @@ fn prototype(input: &mut Input<'_>) -> ModalResult<Prototype> {
         .parse_next(input)
 }
 
-// A parameter is an optional struct type name followed by a name.
+// A parameter is a name optionally followed by a struct type name.
 fn parameter(input: &mut Input<'_>) -> ModalResult<VariableDeclaration> {
-    located((opt(terminated(identifier, peek(identifier))), identifier))
-        .map(|(location, (type_name, name))| {
+    (located(identifier), opt(identifier))
+        .map(|((location, name), type_name)| {
             VariableDeclaration::new(
                 name,
                 if let Some(name) = type_name {
@@ -436,7 +436,7 @@ mod tests {
     #[test]
     fn parse_function_with_parameters() {
         assert_eq!(
-            parse_source("def foo(a, Bar b) {}"),
+            parse_source("def foo(a, b Bar) {}"),
             Module::new(
                 "test.toy".into(),
                 vec![Record::Function(Function::new(
