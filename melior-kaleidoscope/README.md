@@ -7,10 +7,10 @@ A compiler of the Toy language from [the MLIR Toy tutorial](https://mlir.llvm.or
 ```sh
 cargo run -p melior-kaleidoscope -- melior-kaleidoscope/examples/codegen.toy --emit mlir
 cargo run -p melior-kaleidoscope -- melior-kaleidoscope/examples/codegen.toy --emit mlir-affine --optimize
-cargo run -p melior-kaleidoscope -- melior-kaleidoscope/examples/codegen.toy --emit jit --optimize
+cargo run -p melior-kaleidoscope -- melior-kaleidoscope/examples/codegen.toy --optimize
 ```
 
-The `--emit` option selects an output like the tutorial's `-emit` option: `ast`, `mlir`, `mlir-affine`, `mlir-llvm`, `llvm`, or `jit`, defaulting to `jit` when omitted. The `--optimize` flag enables optimizations. An input file with the `.mlir` extension is read as an MLIR module instead of a Toy program.
+The `--emit` option selects an output like the tutorial's `-emit` option: `ast`, `mlir`, `mlir-affine`, `mlir-llvm`, or `llvm`. The main function is JIT-compiled and executed when it is omitted. The `--optimize` flag enables optimizations. An input file with the `.mlir` extension is read as an MLIR module instead of a Toy program.
 
 ## Tutorial chapters
 

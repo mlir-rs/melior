@@ -10,9 +10,10 @@ use std::{error::Error, fs::read_to_string, path::PathBuf, process::exit};
 struct Arguments {
     /// An input file in the Toy language or MLIR for the `.mlir` extension.
     input: PathBuf,
-    /// A kind of output.
-    #[arg(long, value_enum, default_value_t = Emit::Jit)]
-    emit: Emit,
+    /// A kind of output. The main function is JIT-compiled and executed if
+    /// omitted.
+    #[arg(long, value_enum)]
+    emit: Option<Emit>,
     /// Enables optimizations.
     #[arg(long)]
     optimize: bool,
@@ -30,8 +31,6 @@ enum Emit {
     MlirLlvm,
     /// An LLVM IR dump.
     Llvm,
-    /// JIT compilation and execution of the main function.
-    Jit,
 }
 
 fn main() {
@@ -48,15 +47,15 @@ fn run(arguments: &Arguments) -> Result<(), Box<dyn Error>> {
     let path = arguments.input.display().to_string();
 
     let action = match arguments.emit {
-        Emit::Ast => {
+        Some(Emit::Ast) => {
             println!("{:#?}", parse(&source, &path)?);
             return Ok(());
         }
-        Emit::Mlir => Action::Mlir,
-        Emit::MlirAffine => Action::MlirAffine,
-        Emit::MlirLlvm => Action::MlirLlvm,
-        Emit::Llvm => Action::Llvm,
-        Emit::Jit => Action::Jit,
+        Some(Emit::Mlir) => Action::Mlir,
+        Some(Emit::MlirAffine) => Action::MlirAffine,
+        Some(Emit::MlirLlvm) => Action::MlirLlvm,
+        Some(Emit::Llvm) => Action::Llvm,
+        None => Action::Jit,
     };
 
     let context = create_context();
