@@ -59,7 +59,8 @@ fn infer_shape(operation: OperationRef) -> Result<(), Error> {
     result.set_type(match operation_name(operation)? {
         "toy.constant" => DenseElementsAttribute::try_from(operation.attribute("value")?)?.r#type(),
         "toy.add" | "toy.mul" => {
-            let (lhs, rhs) = (operand_type(0)?, operand_type(1)?);
+            let lhs = operand_type(0)?;
+            let rhs = operand_type(1)?;
 
             if lhs != rhs {
                 return Err(Error::ShapeInference(format!(
