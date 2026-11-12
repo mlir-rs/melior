@@ -35,7 +35,7 @@ impl<'c> Dialect<'c> {
     }
 
     /// Returns a namespace.
-    pub fn namespace(&self) -> Result<&str, Utf8Error> {
+    pub fn namespace(&self) -> Result<&'c str, Utf8Error> {
         unsafe { StringRef::from_raw(mlirDialectGetNamespace(self.raw)) }.as_str()
     }
 
@@ -75,6 +75,18 @@ mod tests {
                 .unwrap(),
             "llvm"
         );
+    }
+
+    #[test]
+    fn namespace_outliving_dialect() {
+        let context = Context::new();
+        let namespace = {
+            let dialect = DialectHandle::llvm().load_dialect(&context);
+
+            dialect.namespace()
+        };
+
+        assert_eq!(namespace, Ok("llvm"));
     }
 
     #[test]
