@@ -10,7 +10,7 @@ cargo run -p melior-kaleidoscope -- melior-kaleidoscope/examples/codegen.toy --e
 cargo run -p melior-kaleidoscope -- melior-kaleidoscope/examples/codegen.toy --emit jit --optimize
 ```
 
-The `--emit` option selects an output like the tutorial's `-emit` option: `ast`, `mlir`, `mlir-affine`, `mlir-llvm`, `llvm`, or `jit`. The `--optimize` flag enables optimizations. An input file with the `.mlir` extension is read as an MLIR module instead of a Toy program.
+The `--emit` option selects an output like the tutorial's `-emit` option: `ast`, `mlir`, `mlir-affine`, `mlir-llvm`, `llvm`, or `jit`, defaulting to `jit` when omitted. The `--optimize` flag enables optimizations. An input file with the `.mlir` extension is read as an MLIR module instead of a Toy program.
 
 ## Tutorial chapters
 

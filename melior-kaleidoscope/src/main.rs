@@ -11,7 +11,7 @@ struct Arguments {
     /// An input file in the Toy language or MLIR for the `.mlir` extension.
     input: PathBuf,
     /// A kind of output.
-    #[arg(long, value_enum)]
+    #[arg(long, value_enum, default_value_t = Emit::Jit)]
     emit: Emit,
     /// Enables optimizations.
     #[arg(long)]

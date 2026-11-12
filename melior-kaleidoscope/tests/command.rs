@@ -146,6 +146,14 @@ mod jit {
     }
 
     #[test]
+    fn run_jit_by_default() {
+        assert_eq!(
+            run_successfully(&["jit.toy"]),
+            "1.000000 2.000000 \n3.000000 4.000000 \n"
+        );
+    }
+
+    #[test]
     fn run_optimized_jit() {
         assert_eq!(
             run_successfully(&["codegen.toy", "--emit", "jit", "--optimize"]),
