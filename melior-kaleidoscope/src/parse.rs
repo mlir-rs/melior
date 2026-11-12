@@ -94,7 +94,6 @@ fn prototype(input: &mut Input<'_>) -> ModalResult<Prototype> {
         .parse_next(input)
 }
 
-// A parameter is a name optionally followed by a struct type name.
 fn parameter(input: &mut Input<'_>) -> ModalResult<VariableDeclaration> {
     (located(identifier), opt(identifier))
         .map(|((location, name), type_name)| {
