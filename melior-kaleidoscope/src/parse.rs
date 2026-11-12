@@ -13,8 +13,8 @@ use winnow::{
     ModalResult, Parser,
     ascii::{dec_uint, digit1, till_line_ending},
     combinator::{
-        self, Infix, alt, cut_err, delimited, dispatch, empty, eof, fail, opt, preceded, repeat,
-        separated, terminated,
+        self, Infix, alt, cut_err, delimited, dispatch, empty, eof, fail, opt, peek, preceded,
+        repeat, separated, terminated,
     },
     error::{AddContext, ContextError, ErrMode, StrContext, StrContextValue},
     stream::{LocatingSlice, Location as _, Stateful, Stream},
@@ -96,13 +96,17 @@ fn prototype(input: &mut Input<'_>) -> ModalResult<Prototype> {
 
 // A parameter is an optional struct type name followed by a name.
 fn parameter(input: &mut Input<'_>) -> ModalResult<VariableDeclaration> {
-    (located(identifier), opt(identifier))
-        .map(|((location, name_or_type), name)| {
-            if let Some(name) = name {
-                VariableDeclaration::new(name, Type::Struct(name_or_type), location)
-            } else {
-                VariableDeclaration::new(name_or_type, Type::Tensor(vec![]), location)
-            }
+    located((opt(terminated(identifier, peek(identifier))), identifier))
+        .map(|(location, (type_name, name))| {
+            VariableDeclaration::new(
+                name,
+                if let Some(name) = type_name {
+                    Type::Struct(name)
+                } else {
+                    Type::Tensor(vec![])
+                },
+                location,
+            )
         })
         .parse_next(input)
 }
