@@ -124,6 +124,16 @@ fn lower_constant<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewrite
     let Some((alloc, shape)) = allocate_result(context, &rewriter, operation) else {
         return false;
     };
+
+    // A dense elements attribute must carry exactly one value per tensor cell.
+    if shape
+        .iter()
+        .try_fold(1usize, |count, &size| count.checked_mul(size as usize))
+        != Some(elements.len())
+    {
+        return false;
+    }
+
     let location = operation.location();
     let element_type = Type::float64(context);
 
@@ -573,6 +583,29 @@ mod tests {
         assert!(matches!(
             lower_source("def main() { return [1]; }", false),
             Err(Error::Lowering(message)) if message.starts_with("'toy.func'")
+        ));
+    }
+
+    #[test]
+    fn fail_to_lower_constant_with_mismatched_shape() {
+        let context = create_context();
+        let mut module = melior::ir::Module::parse(
+            &context,
+            indoc!(
+                r#"
+                "toy.func"() ({
+                  %0 = "toy.constant"() {value = dense<[1.0, 2.0]> : tensor<2xf64>} : () -> tensor<0xf64>
+                  "toy.print"(%0) : (tensor<0xf64>) -> ()
+                  "toy.return"() : () -> ()
+                }) {sym_name = "main", function_type = () -> ()} : () -> ()
+                "#
+            ),
+        )
+        .unwrap();
+
+        assert!(matches!(
+            lower_to_affine(&context, &mut module),
+            Err(Error::Lowering(message)) if message.starts_with("'toy.constant'")
         ));
     }
 
