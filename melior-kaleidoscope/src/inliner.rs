@@ -15,6 +15,7 @@ use melior::{
 };
 use std::collections::{HashMap, HashSet};
 
+// TODO Use the inliner pass once Toy operations can implement its interfaces.
 /// Inlines all calls to Toy functions and removes the private functions.
 pub fn inline_functions<'c>(context: &'c Context, module: &Module<'c>) -> Result<(), Error> {
     let functions = block_operations(module.body())

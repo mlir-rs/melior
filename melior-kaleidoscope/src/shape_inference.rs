@@ -11,6 +11,8 @@ use melior::ir::{
     r#type::{DimSize, RankedTensorType, ShapedTypeLike},
 };
 
+// TODO Implement this as an operation interface once Toy operations can
+// implement interfaces.
 /// Infers shapes of Toy operations in every function of a module.
 ///
 /// Operations returning tensors of unknown shapes are collected in a worklist.

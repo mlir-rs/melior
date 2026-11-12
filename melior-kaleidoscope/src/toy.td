@@ -4,6 +4,10 @@
 // `melior::dialect!` macro. The operations are never registered in MLIR
 // contexts, so they are built as operations of an unregistered dialect and
 // the type constraints below are documentation only.
+//
+// TODO Define custom assembly formats once the dialect can be registered.
+// TODO Define verifiers, traits, and interfaces once the dialect can be
+// registered.
 
 include "mlir/IR/OpBase.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"

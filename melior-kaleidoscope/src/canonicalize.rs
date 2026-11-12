@@ -83,6 +83,9 @@ pub fn canonicalize<'c>(context: &'c Context, module: &mut Module<'c>) -> Result
 // elimination pass cannot know that they are free of side effects. This
 // replaces uses of pure Toy operations equivalent to earlier ones in a block
 // by the results of the earlier ones instead.
+//
+// TODO Use the common sub-expression elimination pass once Toy operations can
+// have traits.
 fn eliminate_common_subexpressions<'c>(rewriter: &RewriterBase<'c, '_>, block: BlockRef<'c, '_>) {
     let mut operations = HashMap::<_, Vec<Value<'c, '_>>>::new();
 
@@ -274,6 +277,9 @@ fn fold_struct_access<'c>(
 // Toy operations are not registered in MLIR, so the greedy rewrite driver
 // cannot know that the unused ones are free of side effects. This removes
 // unused pure Toy operations instead.
+//
+// TODO Rely on dead code elimination of the greedy rewrite driver once Toy
+// operations can have traits.
 fn remove_dead_operations<'c>(rewriter: &RewriterBase<'c, '_>, block: BlockRef<'c, '_>) {
     let operations = block_operations(block).collect::<Vec<_>>();
     let mut use_counts = HashMap::<usize, usize>::new();

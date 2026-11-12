@@ -24,6 +24,7 @@ use melior::{
     },
 };
 
+// TODO Use the dialect conversion framework once the C API exposes it.
 /// Lowers Toy operations except print operations in a module to affine loops.
 pub fn lower_to_affine<'c>(context: &'c Context, module: &mut Module<'c>) -> Result<(), Error> {
     let patterns = RewritePatternSet::new(context);

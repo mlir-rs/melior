@@ -28,6 +28,7 @@ use melior::{
     pass::{PassManager, conversion},
 };
 
+// TODO Use the dialect conversion framework once the C API exposes it.
 /// Lowers a module to the LLVM dialect.
 pub fn lower_to_llvm<'c>(context: &'c Context, module: &mut Module<'c>) -> Result<(), Error> {
     let patterns = RewritePatternSet::new(context);
