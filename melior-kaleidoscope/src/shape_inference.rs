@@ -56,7 +56,7 @@ fn infer_shape(operation: OperationRef) -> Result<(), Error> {
     let result = operation.result(0)?;
     let operand_type = |index| Ok::<_, melior::Error>(operation.operand(index)?.r#type());
 
-    result.set_type(match operation_name(operation)?.as_str() {
+    result.set_type(match operation_name(operation)? {
         "toy.constant" => DenseElementsAttribute::try_from(operation.attribute("value")?)?.r#type(),
         "toy.add" | "toy.mul" => {
             let (lhs, rhs) = (operand_type(0)?, operand_type(1)?);

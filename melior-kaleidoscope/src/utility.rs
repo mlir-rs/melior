@@ -70,8 +70,8 @@ pub fn is_operation<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>, name: &st
     operation.name().as_string_ref() == StringRef::new(name)
 }
 
-pub fn operation_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Result<String, Error> {
-    Ok(operation.name().as_string_ref().as_str()?.into())
+pub fn operation_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Result<&'c str, Error> {
+    Ok(operation.name().as_string_ref().as_str()?)
 }
 
 pub fn symbol_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Result<&'c str, Error> {
