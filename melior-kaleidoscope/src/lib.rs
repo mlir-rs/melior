@@ -15,7 +15,7 @@ mod utility;
 
 pub use self::{
     canonicalize::canonicalize,
-    compile::{Action, create_context, process, run_jit},
+    compile::{Action, compile, create_context, run_jit},
     error::Error,
     inliner::inline_functions,
     location::Location,

@@ -2,7 +2,7 @@
 
 use clap::{Parser, ValueEnum};
 use melior::{ir::Module, llvm, utility::translate_module_to_llvm_ir};
-use melior_kaleidoscope::{Action, create_context, generate, parse::parse, process, run_jit};
+use melior_kaleidoscope::{Action, compile, create_context, generate, parse::parse, run_jit};
 use std::{error::Error, fs::read_to_string, path::PathBuf, process::exit};
 
 #[derive(Parser)]
@@ -70,7 +70,7 @@ fn run(arguments: &Arguments) -> Result<(), Box<dyn Error>> {
         generate(&context, &parse(&source, &path)?)?
     };
 
-    process(&context, &mut module, action, arguments.optimize)?;
+    compile(&context, &mut module, action, arguments.optimize)?;
 
     match action {
         Action::Mlir | Action::MlirAffine | Action::MlirLlvm => {

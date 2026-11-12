@@ -43,7 +43,7 @@ pub fn create_context() -> Context {
 }
 
 /// Transforms a module in the Toy dialect for a compilation target.
-pub fn process<'c>(
+pub fn compile<'c>(
     context: &'c Context,
     module: &mut Module<'c>,
     action: Action,
@@ -108,7 +108,7 @@ pub mod tests {
     ) -> Result<Module<'c>, Error> {
         let mut module = generate(context, &parse(source, "test.toy")?)?;
 
-        process(context, &mut module, action, optimize)?;
+        super::compile(context, &mut module, action, optimize)?;
 
         Ok(module)
     }
