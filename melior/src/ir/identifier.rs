@@ -32,11 +32,11 @@ impl<'c> Identifier<'c> {
     }
 
     /// Converts an identifier into a string reference.
-    pub fn as_string_ref(&self) -> StringRef<'_> {
+    pub fn as_string_ref(&self) -> StringRef<'c> {
         unsafe { StringRef::from_raw(mlirIdentifierStr(self.raw)) }
     }
 
-    /// Creates a location from a raw object.
+    /// Creates an identifier from a raw object.
     ///
     /// # Safety
     ///
@@ -48,7 +48,7 @@ impl<'c> Identifier<'c> {
         }
     }
 
-    /// Converts a location into a raw object.
+    /// Converts an identifier into a raw object.
     pub const fn to_raw(self) -> MlirIdentifier {
         self.raw
     }
@@ -74,6 +74,28 @@ mod tests {
     #[test]
     fn context() {
         Identifier::new(&Context::new(), "foo").context();
+    }
+
+    #[test]
+    fn as_string_ref() {
+        let context = Context::new();
+
+        assert_eq!(
+            Identifier::new(&context, "foo").as_string_ref().as_str(),
+            Ok("foo")
+        );
+    }
+
+    #[test]
+    fn as_string_ref_outliving_identifier() {
+        let context = Context::new();
+        let string = {
+            let identifier = Identifier::new(&context, "foo");
+
+            identifier.as_string_ref()
+        };
+
+        assert_eq!(string.as_str(), Ok("foo"));
     }
 
     #[test]
