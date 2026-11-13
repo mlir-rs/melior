@@ -1,0 +1,5 @@
+---
+source: melior-kaleidoscope/tests/command.rs
+expression: "String::from_utf8(output.stderr).unwrap()"
+---
+shape_mismatch.toy: shape inference failed: operand shapes mismatch: tensor<3x2xf64> and tensor<2x3xf64>

@@ -1,0 +1,17 @@
+---
+source: melior-kaleidoscope/src/lower_to_affine.rs
+expression: "lower_source(include_str!(\"../examples/scalar.toy\"), false).unwrap()"
+---
+module {
+  func.func @main() {
+    %cst = arith.constant 5.500000e+00 : f64
+    %alloc = memref.alloc() : memref<2x2xf64>
+    affine.store %cst, %alloc[0, 0] : memref<2x2xf64>
+    affine.store %cst, %alloc[0, 1] : memref<2x2xf64>
+    affine.store %cst, %alloc[1, 0] : memref<2x2xf64>
+    affine.store %cst, %alloc[1, 1] : memref<2x2xf64>
+    "toy.print"(%alloc) : (memref<2x2xf64>) -> ()
+    memref.dealloc %alloc : memref<2x2xf64>
+    return
+  }
+}

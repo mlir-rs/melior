@@ -1,0 +1,12 @@
+---
+source: melior-kaleidoscope/src/shape_inference.rs
+expression: "infer_source(indoc!(\"\n                def main() {\n                  var a<2, 3> = [1, 2, 3, 4, 5, 6];\n                  print(a + a);\n                }\n                \")).unwrap()"
+---
+module {
+  "toy.func"() ({
+    %0 = "toy.constant"() {value = dense<[[1.000000e+00, 2.000000e+00, 3.000000e+00], [4.000000e+00, 5.000000e+00, 6.000000e+00]]> : tensor<2x3xf64>} : () -> tensor<2x3xf64>
+    %1 = "toy.add"(%0, %0) : (tensor<2x3xf64>, tensor<2x3xf64>) -> tensor<2x3xf64>
+    "toy.print"(%1) : (tensor<2x3xf64>) -> ()
+    "toy.return"() : () -> ()
+  }) {function_type = () -> (), sym_name = "main"} : () -> ()
+}

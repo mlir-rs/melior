@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["melior", "melior-macro"]
+members = ["melior", "melior-kaleidoscope", "melior-macro"]
 
 [workspace.package]
 version = "0.29.1"

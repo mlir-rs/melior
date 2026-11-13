@@ -1,0 +1,132 @@
+---
+source: melior-kaleidoscope/tests/command.rs
+expression: "run_successfully(&[\"codegen.toy\", \"--emit\", \"llvm\", \"--optimize\"])"
+---
+; ModuleID = 'LLVMDialectModule'
+source_filename = "LLVMDialectModule"
+
+@newline = internal constant [2 x i8] c"\0A\00"
+@format_specifier = internal constant [4 x i8] c"%f \00"
+
+declare void @free(ptr)
+
+declare ptr @malloc(i64)
+
+declare i32 @printf(ptr, ...)
+
+define void @main() {
+  %1 = call ptr @malloc(i64 48)
+  %2 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } poison, ptr %1, 0
+  %3 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %2, ptr %1, 1
+  %4 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %3, i64 0, 2
+  %5 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %4, i64 3, 3, 0
+  %6 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %5, i64 2, 3, 1
+  %7 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %6, i64 2, 4, 0
+  %8 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %7, i64 1, 4, 1
+  %9 = call ptr @malloc(i64 48)
+  %10 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } poison, ptr %9, 0
+  %11 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %10, ptr %9, 1
+  %12 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %11, i64 0, 2
+  %13 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %12, i64 2, 3, 0
+  %14 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %13, i64 3, 3, 1
+  %15 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %14, i64 3, 4, 0
+  %16 = insertvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %15, i64 1, 4, 1
+  %17 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %16, 1
+  %18 = getelementptr inbounds nuw double, ptr %17, i64 0
+  store double 1.000000e+00, ptr %18, align 8
+  %19 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %16, 1
+  %20 = getelementptr inbounds nuw double, ptr %19, i64 1
+  store double 2.000000e+00, ptr %20, align 8
+  %21 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %16, 1
+  %22 = getelementptr inbounds nuw double, ptr %21, i64 2
+  store double 3.000000e+00, ptr %22, align 8
+  %23 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %16, 1
+  %24 = getelementptr inbounds nuw double, ptr %23, i64 3
+  store double 4.000000e+00, ptr %24, align 8
+  %25 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %16, 1
+  %26 = getelementptr inbounds nuw double, ptr %25, i64 4
+  store double 5.000000e+00, ptr %26, align 8
+  %27 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %16, 1
+  %28 = getelementptr inbounds nuw double, ptr %27, i64 5
+  store double 6.000000e+00, ptr %28, align 8
+  br label %29
+
+29:                                               ; preds = %48, %0
+  %30 = phi i64 [ %49, %48 ], [ 0, %0 ]
+  %31 = icmp slt i64 %30, 3
+  br i1 %31, label %32, label %50
+
+32:                                               ; preds = %29
+  br label %33
+
+33:                                               ; preds = %36, %32
+  %34 = phi i64 [ %47, %36 ], [ 0, %32 ]
+  %35 = icmp slt i64 %34, 2
+  br i1 %35, label %36, label %48
+
+36:                                               ; preds = %33
+  %37 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %16, 1
+  %38 = mul nuw nsw i64 %34, 3
+  %39 = add nuw nsw i64 %38, %30
+  %40 = getelementptr inbounds nuw double, ptr %37, i64 %39
+  %41 = load double, ptr %40, align 8
+  %42 = fmul double %41, %41
+  %43 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %8, 1
+  %44 = mul nuw nsw i64 %30, 2
+  %45 = add nuw nsw i64 %44, %34
+  %46 = getelementptr inbounds nuw double, ptr %43, i64 %45
+  store double %42, ptr %46, align 8
+  %47 = add i64 %34, 1
+  br label %33
+
+48:                                               ; preds = %33
+  %49 = add i64 %30, 1
+  br label %29
+
+50:                                               ; preds = %29
+  br label %51
+
+51:                                               ; preds = %66, %50
+  %52 = phi i64 [ %68, %66 ], [ 0, %50 ]
+  %53 = icmp slt i64 %52, 3
+  br i1 %53, label %54, label %69
+
+54:                                               ; preds = %51
+  br label %55
+
+55:                                               ; preds = %58, %54
+  %56 = phi i64 [ %65, %58 ], [ 0, %54 ]
+  %57 = icmp slt i64 %56, 2
+  br i1 %57, label %58, label %66
+
+58:                                               ; preds = %55
+  %59 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %8, 1
+  %60 = mul nuw nsw i64 %52, 2
+  %61 = add nuw nsw i64 %60, %56
+  %62 = getelementptr inbounds nuw double, ptr %59, i64 %61
+  %63 = load double, ptr %62, align 8
+  %64 = call i32 (ptr, ...) @printf(ptr @format_specifier, double %63)
+  %65 = add i64 %56, 1
+  br label %55
+
+66:                                               ; preds = %55
+  %67 = call i32 (ptr, ...) @printf(ptr @newline)
+  %68 = add i64 %52, 1
+  br label %51
+
+69:                                               ; preds = %51
+  %70 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %16, 0
+  call void @free(ptr %70)
+  %71 = extractvalue { ptr, ptr, i64, [2 x i64], [2 x i64] } %8, 0
+  call void @free(ptr %71)
+  ret void
+}
+
+define void @_mlir_ciface_main() {
+  call void @main()
+  ret void
+}
+
+!llvm.module.flags = !{!0}
+
+!0 = !{i32 2, !"Debug Info Version", i32 3}
