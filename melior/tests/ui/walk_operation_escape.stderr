@@ -5,7 +5,7 @@ error[E0521]: borrowed data escapes outside of closure
    |         -------------- `operations` declared here, outside of the closure body
 13 |
 14 |     module.as_operation().walk(WalkOrder::PreOrder, |operation| {
-   |                                                      --------- `operation` is a reference that is only valid in the closure body
+   |                                                      --------- `operation` is only valid in the closure body
 15 |         operations.push(operation);
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ `operation` escapes the closure body here
    |
