@@ -14,7 +14,7 @@ categories = ["development-tools::procedural-macro-helpers"]
 proc-macro = true
 
 [dependencies]
-comrak = { version = "0.59.0", default-features = false }
+comrak = { version = "1.0.0", default-features = false }
 convert_case = "0.12.0"
 proc-macro2 = "1"
 quote = "1"
