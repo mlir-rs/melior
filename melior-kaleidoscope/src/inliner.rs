@@ -143,7 +143,7 @@ fn inline_call<'c>(
     let results = terminator.operands().collect::<Vec<_>>();
 
     if results.len() != call.result_count() {
-        return Err(Error::ArgumentCount {
+        return Err(Error::ResultCount {
             function: callee_name.into(),
             expected: call.result_count(),
             actual: results.len(),
@@ -286,6 +286,24 @@ mod tests {
                 "#
             )),
             Err(Error::ArgumentCount { function, expected: 1, actual: 0 }) if function == "identity"
+        ));
+    }
+
+    #[test]
+    fn fail_to_inline_call_with_wrong_result_count() {
+        assert!(matches!(
+            inline_module(indoc!(
+                r#"
+                "toy.func"() ({
+                  "toy.return"() : () -> ()
+                }) {function_type = () -> (), sym_name = "nothing", sym_visibility = "private"} : () -> ()
+                "toy.func"() ({
+                  %0 = "toy.generic_call"() {callee = @nothing} : () -> tensor<*xf64>
+                  "toy.return"() : () -> ()
+                }) {function_type = () -> (), sym_name = "main"} : () -> ()
+                "#
+            )),
+            Err(Error::ResultCount { function, expected: 1, actual: 0 }) if function == "nothing"
         ));
     }
 

@@ -8,7 +8,7 @@ use core::{
 /// A compilation error.
 #[derive(Debug)]
 pub enum Error {
-    /// A mismatched number of function arguments or results.
+    /// A mismatched number of function arguments.
     ArgumentCount {
         /// A function name.
         function: String,
@@ -36,6 +36,15 @@ pub enum Error {
     ModuleParse,
     /// A recursive function that cannot be inlined.
     RecursiveFunction(String),
+    /// A mismatched number of function results.
+    ResultCount {
+        /// A function name.
+        function: String,
+        /// An expected count.
+        expected: usize,
+        /// An actual count.
+        actual: usize,
+    },
     /// A failure of shape inference.
     ShapeInference(String),
     /// A syntax error.
@@ -58,7 +67,7 @@ impl Display for Error {
                 actual,
             } => write!(
                 formatter,
-                "function '{function}' expects {expected} values but got {actual}"
+                "function '{function}' expects {expected} arguments but got {actual}"
             ),
             Self::CodeGeneration { location, message } => {
                 write!(formatter, "{location}: {message}")
@@ -73,6 +82,14 @@ impl Display for Error {
             Self::RecursiveFunction(name) => {
                 write!(formatter, "recursive function '{name}' cannot be inlined")
             }
+            Self::ResultCount {
+                function,
+                expected,
+                actual,
+            } => write!(
+                formatter,
+                "call to function '{function}' expects {expected} results but got {actual}"
+            ),
             Self::ShapeInference(message) => write!(formatter, "shape inference failed: {message}"),
             Self::Syntax { location, message } => write!(formatter, "{location}: {message}"),
             Self::Verification => write!(formatter, "module verification error"),
