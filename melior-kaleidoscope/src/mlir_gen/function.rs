@@ -123,7 +123,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
                     return Err(error(
                         declaration.location(),
                         format!(
-                            "struct type of initializer is different than the variable declaration. Got {}, but expected {type}",
+                            "struct type of initializer is different than the variable declaration: got {}, but expected {type}",
                             value.r#type()
                         ),
                     ));
@@ -324,7 +324,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
             let [argument] = arguments.as_slice() else {
                 return Err(error(
                     call.location(),
-                    "toy.transpose does not accept multiple arguments".into(),
+                    "function 'transpose' expects exactly one argument".into(),
                 ));
             };
 
@@ -346,7 +346,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
         let Some(function_type) = self.module.functions().get(call.callee()) else {
             return Err(error(
                 call.location(),
-                format!("no defined function found for '{}'", call.callee()),
+                format!("function '{}' not found", call.callee()),
             ));
         };
 

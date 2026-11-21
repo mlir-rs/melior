@@ -90,8 +90,16 @@ mod tests {
     fn fail_to_generate_unknown_function() {
         assert!(matches!(
             generate_source("def main() { foo(1); }"),
+            Err(Error::CodeGeneration { message, .. }) if message == "function 'foo' not found"
+        ));
+    }
+
+    #[test]
+    fn fail_to_generate_transpose_without_arguments() {
+        assert!(matches!(
+            generate_source("def main() { print(transpose()); }"),
             Err(Error::CodeGeneration { message, .. })
-                if message == "no defined function found for 'foo'"
+                if message == "function 'transpose' expects exactly one argument"
         ));
     }
 

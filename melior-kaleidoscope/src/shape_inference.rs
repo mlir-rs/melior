@@ -44,7 +44,7 @@ pub fn infer_shapes(module: &Module) -> Result<(), Error> {
 
         if !worklist.is_empty() {
             return Err(Error::ShapeInference(format!(
-                "{} operations couldn't be inferred",
+                "{} operations cannot be inferred",
                 worklist.len()
             )));
         }
