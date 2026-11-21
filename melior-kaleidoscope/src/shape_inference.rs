@@ -54,48 +54,51 @@ pub fn infer_shapes(module: &Module) -> Result<(), Error> {
 }
 
 fn infer_shape(operation: OperationRef) -> Result<(), Error> {
-    let result = operation.result(0)?;
     let operand_type = |index| Ok::<_, melior::Error>(operation.operand(index)?.r#type());
 
-    result.set_type(match operation_name(operation)? {
-        "toy.constant" => DenseElementsAttribute::try_from(operation.attribute("value")?)?.r#type(),
-        "toy.add" | "toy.mul" => {
-            let lhs = operand_type(0)?;
-            let rhs = operand_type(1)?;
+    operation
+        .result(0)?
+        .set_type(match operation_name(operation)? {
+            "toy.constant" => {
+                DenseElementsAttribute::try_from(operation.attribute("value")?)?.r#type()
+            }
+            "toy.add" | "toy.mul" => {
+                let lhs = operand_type(0)?;
+                let rhs = operand_type(1)?;
 
-            if lhs != rhs {
+                if lhs != rhs {
+                    return Err(Error::ShapeInference(format!(
+                        "operand shapes mismatch: {lhs} and {rhs}"
+                    )));
+                }
+
+                lhs
+            }
+            "toy.cast" => operand_type(0)?,
+            "toy.transpose" => {
+                let input = RankedTensorType::try_from(operand_type(0)?)?;
+
+                RankedTensorType::new(
+                    &(0..input.rank())
+                        .rev()
+                        .map(|index| match input.dim_size(index)? {
+                            DimSize::Static(size) => Ok(size),
+                            DimSize::Dynamic => Err(Error::ShapeInference(format!(
+                                "dynamic dimension in {input}"
+                            ))),
+                        })
+                        .collect::<Result<Vec<_>, _>>()?,
+                    input.element(),
+                    None,
+                )
+                .into()
+            }
+            name => {
                 return Err(Error::ShapeInference(format!(
-                    "operand shapes mismatch: {lhs} and {rhs}"
+                    "unable to infer shape of operation '{name}'"
                 )));
             }
-
-            lhs
-        }
-        "toy.cast" => operand_type(0)?,
-        "toy.transpose" => {
-            let input = RankedTensorType::try_from(operand_type(0)?)?;
-
-            RankedTensorType::new(
-                &(0..input.rank())
-                    .rev()
-                    .map(|index| match input.dim_size(index)? {
-                        DimSize::Static(size) => Ok(size),
-                        DimSize::Dynamic => Err(Error::ShapeInference(format!(
-                            "dynamic dimension in {input}"
-                        ))),
-                    })
-                    .collect::<Result<Vec<_>, _>>()?,
-                input.element(),
-                None,
-            )
-            .into()
-        }
-        name => {
-            return Err(Error::ShapeInference(format!(
-                "unable to infer shape of operation '{name}'"
-            )));
-        }
-    });
+        });
 
     Ok(())
 }

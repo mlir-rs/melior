@@ -479,9 +479,11 @@ fn lower_return<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewriter<
     let context = rewriter.context();
     // SAFETY: The context reference lives until the end of this function.
     let context = unsafe { context.to_ref() };
-    let r#return = rewriter.insert(func::r#return(context, &[], operation.location()).into());
 
-    rewriter.replace_op_with_operation(operation, r#return);
+    rewriter.replace_op_with_operation(
+        operation,
+        rewriter.insert(func::r#return(context, &[], operation.location()).into()),
+    );
 
     true
 }

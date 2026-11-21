@@ -169,39 +169,39 @@ fn simplify_reshape<'c>(
         return false;
     };
 
-    let replacement = if is_operation(producer, "toy.reshape") {
-        // A reshape of a reshape is folded into a single reshape.
-        let Ok(input) = producer.operand(0) else {
+    rewriter.replace_op_with_operation(
+        operation,
+        rewriter.insert(if is_operation(producer, "toy.reshape") {
+            // A reshape of a reshape is folded into a single reshape.
+            let Ok(input) = producer.operand(0) else {
+                return false;
+            };
+
+            toy::reshape(context, output_type, input, operation.location()).into()
+        } else if is_operation(producer, "toy.constant") {
+            // A reshape of a constant is folded into a constant.
+            //
+            // A splat constant, such as a single number, is broadcast to the
+            // output shape.
+            let Ok(value) = producer
+                .attribute("value")
+                .and_then(DenseElementsAttribute::try_from)
+                .and_then(|value| {
+                    if value.is_splat() {
+                        DenseElementsAttribute::splat(output_type, value.splat_value()?)
+                    } else {
+                        value.reshape(output_type)
+                    }
+                })
+            else {
+                return false;
+            };
+
+            toy::constant(context, output_type, value, operation.location()).into()
+        } else {
             return false;
-        };
-
-        toy::reshape(context, output_type, input, operation.location()).into()
-    } else if is_operation(producer, "toy.constant") {
-        // A reshape of a constant is folded into a constant.
-        //
-        // A splat constant, such as a single number, is broadcast to the
-        // output shape.
-        let Ok(value) = producer
-            .attribute("value")
-            .and_then(DenseElementsAttribute::try_from)
-            .and_then(|value| {
-                if value.is_splat() {
-                    DenseElementsAttribute::splat(output_type, value.splat_value()?)
-                } else {
-                    value.reshape(output_type)
-                }
-            })
-        else {
-            return false;
-        };
-
-        toy::constant(context, output_type, value, operation.location()).into()
-    } else {
-        return false;
-    };
-    let replacement = rewriter.insert(replacement);
-
-    rewriter.replace_op_with_operation(operation, replacement);
+        }),
+    );
 
     true
 }
@@ -257,16 +257,18 @@ fn fold_struct_access<'c>(
     let output_type = output.r#type();
     let location = operation.location();
 
-    let constant = if let Ok(element) = DenseElementsAttribute::try_from(element) {
-        toy::constant(context, output_type, element, location).into()
-    } else if let Ok(element) = ArrayAttribute::try_from(element) {
-        toy::struct_constant(context, output_type, element, location).into()
-    } else {
-        return false;
-    };
-    let constant = rewriter.insert(constant);
-
-    rewriter.replace_op_with_operation(operation, constant);
+    rewriter.replace_op_with_operation(
+        operation,
+        rewriter.insert(
+            if let Ok(element) = DenseElementsAttribute::try_from(element) {
+                toy::constant(context, output_type, element, location).into()
+            } else if let Ok(element) = ArrayAttribute::try_from(element) {
+                toy::struct_constant(context, output_type, element, location).into()
+            } else {
+                return false;
+            },
+        ),
+    );
 
     true
 }
