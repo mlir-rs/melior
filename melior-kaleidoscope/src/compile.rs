@@ -94,42 +94,37 @@ pub fn run_jit(module: &Module, optimize: bool) -> Result<(), Error> {
     Ok(())
 }
 
-#[cfg(test)]
+// The JIT compiler cannot resolve the `printf` function on Windows.
+#[cfg(all(test, not(windows)))]
 mod tests {
-    // The JIT compiler cannot resolve the `printf` function on Windows.
-    #[cfg(not(windows))]
-    mod jit {
-        use crate::{
-            compile::{Action, create_context, run_jit},
-            test::compile_source,
-        };
+    use super::*;
+    use crate::test::compile_source;
 
-        #[test]
-        fn print() {
-            let context = create_context();
-            let module = compile_source(
-                &context,
-                include_str!("../examples/jit.toy"),
-                Action::Jit,
-                false,
-            )
-            .unwrap();
+    #[test]
+    fn run_print() {
+        let context = create_context();
+        let module = compile_source(
+            &context,
+            include_str!("../examples/jit.toy"),
+            Action::Jit,
+            false,
+        )
+        .unwrap();
 
-            run_jit(&module, false).unwrap();
-        }
+        run_jit(&module, false).unwrap();
+    }
 
-        #[test]
-        fn optimized_multiply_transpose() {
-            let context = create_context();
-            let module = compile_source(
-                &context,
-                include_str!("../examples/codegen.toy"),
-                Action::Jit,
-                true,
-            )
-            .unwrap();
+    #[test]
+    fn run_multiply_transpose_with_optimization() {
+        let context = create_context();
+        let module = compile_source(
+            &context,
+            include_str!("../examples/codegen.toy"),
+            Action::Jit,
+            true,
+        )
+        .unwrap();
 
-            run_jit(&module, true).unwrap();
-        }
+        run_jit(&module, true).unwrap();
     }
 }
