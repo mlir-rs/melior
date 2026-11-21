@@ -878,19 +878,6 @@ mod tests {
     }
 
     #[test]
-    fn raw_buffer_round_trip() {
-        let context = create_test_context();
-        // Build a tensor of 4 x i32 from a raw byte buffer
-        let values: [i32; 4] = [1, 2, 3, 4];
-        let bytes: &[u8] =
-            unsafe { core::slice::from_raw_parts(values.as_ptr() as *const u8, values.len() * 4) };
-        let ty = i32_tensor_type(&context, 4);
-        let attr = DenseElementsAttribute::raw_buffer(ty, bytes).unwrap();
-        assert_eq!(attr.len(), 4);
-        assert!(!attr.raw_data().unwrap().is_null());
-    }
-
-    #[test]
     fn raw_buffer_splat() {
         let context = create_test_context();
         let attribute =
@@ -966,6 +953,19 @@ mod tests {
 
         assert!(!attribute.is_splat());
         assert_eq!(attribute.len(), 2);
+    }
+
+    #[test]
+    fn raw_buffer_round_trip() {
+        let context = create_test_context();
+        // Build a tensor of 4 x i32 from a raw byte buffer
+        let values: [i32; 4] = [1, 2, 3, 4];
+        let bytes: &[u8] =
+            unsafe { core::slice::from_raw_parts(values.as_ptr() as *const u8, values.len() * 4) };
+        let ty = i32_tensor_type(&context, 4);
+        let attr = DenseElementsAttribute::raw_buffer(ty, bytes).unwrap();
+        assert_eq!(attr.len(), 4);
+        assert!(!attr.raw_data().unwrap().is_null());
     }
 
     #[test]
