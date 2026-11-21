@@ -65,12 +65,10 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
                     self.generate_expression(expression)?;
                 }
                 Statement::Print(print) => {
-                    let argument = self.generate_expression(print.argument())?;
-
                     self.block.append_operation(
                         toy::print(
                             self.module.context(),
-                            argument,
+                            self.generate_expression(print.argument())?,
                             self.module.location(print.location()),
                         )
                         .into(),
@@ -92,15 +90,14 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
     }
 
     fn generate_return(&mut self, r#return: &'a Return) -> Result<(), Error> {
-        let values = r#return
-            .value()
-            .map(|value| self.generate_expression(value))
-            .transpose()?;
-
         self.block.append_operation(
             toy::r#return(
                 self.module.context(),
-                values.as_slice(),
+                r#return
+                    .value()
+                    .map(|value| self.generate_expression(value))
+                    .transpose()?
+                    .as_slice(),
                 self.module.location(r#return.location()),
             )
             .into(),
@@ -271,7 +268,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
     }
 
     fn struct_definition(&self, expression: &Expression) -> Option<&'a ast::Struct> {
-        let name = match expression {
+        self.module.struct_definition(match expression {
             Expression::Variable(variable) => match self.lookup(variable.name())?.1.r#type() {
                 ast::Type::Struct(name) => name,
                 ast::Type::Tensor(_) => return None,
@@ -293,9 +290,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
                 }
             }
             _ => return None,
-        };
-
-        self.module.struct_definition(name)
+        })
     }
 
     fn member_index(&self, access: &Binary) -> Option<usize> {

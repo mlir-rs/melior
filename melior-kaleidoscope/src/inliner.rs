@@ -98,11 +98,12 @@ fn inline_call<'c>(
     call: OperationRef<'c, '_>,
 ) -> Result<(), Error> {
     let callee_name = callee_name(call)?;
-    let callee = functions
-        .get(callee_name)
-        .ok_or_else(|| Error::FunctionNotFound(callee_name.into()))?;
     // The callee is cloned so that it can be inlined at several call sites.
-    let callee: Operation = (**callee).clone();
+    let callee = Operation::clone(
+        functions
+            .get(callee_name)
+            .ok_or_else(|| Error::FunctionNotFound(callee_name.into()))?,
+    );
     let block = body_block(&callee).ok_or_else(|| Error::InvalidFunction(callee_name.into()))?;
 
     if block.argument_count() != call.operand_count() {
@@ -113,30 +114,35 @@ fn inline_call<'c>(
         });
     }
 
-    rewriter.set_insertion_point_before(call);
-
-    let arguments = (0..call.operand_count())
-        .map(|index| {
-            let operand = call.operand(index)?;
-            let argument = block.argument(index)?;
-
-            // A call operand is cast into a callee argument type when they
-            // differ, for example, from a ranked tensor into an unranked one.
-            Ok(if operand.r#type() == argument.r#type() {
-                operand
-            } else {
-                rewriter
-                    .insert(toy::cast(context, argument.r#type(), operand, call.location()).into())
-                    .result(0)?
-                    .into()
-            })
-        })
-        .collect::<Result<Vec<_>, melior::Error>>()?;
     let terminator = terminator(block)
         .filter(|terminator| is_operation(*terminator, "toy.return"))
         .ok_or_else(|| Error::InvalidFunction(callee_name.into()))?;
 
-    rewriter.inline_block_before(block, call, &arguments);
+    rewriter.set_insertion_point_before(call);
+    rewriter.inline_block_before(
+        block,
+        call,
+        &(0..call.operand_count())
+            .map(|index| {
+                let operand = call.operand(index)?;
+                let argument = block.argument(index)?;
+
+                // A call operand is cast into a callee argument type when they
+                // differ, for example, from a ranked tensor into an unranked
+                // one.
+                Ok(if operand.r#type() == argument.r#type() {
+                    operand
+                } else {
+                    rewriter
+                        .insert(
+                            toy::cast(context, argument.r#type(), operand, call.location()).into(),
+                        )
+                        .result(0)?
+                        .into()
+                })
+            })
+            .collect::<Result<Vec<_>, melior::Error>>()?,
+    );
 
     // The inlined return operation is replaced by its operands at the call
     // site.

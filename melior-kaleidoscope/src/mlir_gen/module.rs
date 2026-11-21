@@ -78,24 +78,32 @@ impl<'c, 'a> ModuleGenerator<'c, 'a> {
             ));
         }
 
-        let types = r#struct
-            .variables()
-            .iter()
-            .map(|variable| {
-                if matches!(variable.r#type(), ast::Type::Tensor(shape) if !shape.is_empty()) {
-                    return Err(error(
-                        variable.location(),
-                        "variables within a struct definition must not have shapes".into(),
-                    ));
-                }
-
-                self.variable_type(variable)
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
         self.structs.insert(
             r#struct.name(),
-            (TupleType::new(self.context, &types), r#struct),
+            (
+                TupleType::new(
+                    self.context,
+                    &r#struct
+                        .variables()
+                        .iter()
+                        .map(|variable| {
+                            if matches!(
+                                variable.r#type(),
+                                ast::Type::Tensor(shape) if !shape.is_empty()
+                            ) {
+                                return Err(error(
+                                    variable.location(),
+                                    "variables within a struct definition must not have shapes"
+                                        .into(),
+                                ));
+                            }
+
+                            self.variable_type(variable)
+                        })
+                        .collect::<Result<Vec<_>, _>>()?,
+                ),
+                r#struct,
+            ),
         );
 
         Ok(())

@@ -255,11 +255,14 @@ fn lower_binary<'c>(
         operation,
         |rewriter, induction_variables| {
             let location = operation.location();
-            let lhs = load_element(context, rewriter, lhs, induction_variables, location)?;
-            let rhs = load_element(context, rewriter, rhs, induction_variables, location)?;
 
             rewriter
-                .insert(build(context, lhs, rhs, location))
+                .insert(build(
+                    context,
+                    load_element(context, rewriter, lhs, induction_variables, location)?,
+                    load_element(context, rewriter, rhs, induction_variables, location)?,
+                    location,
+                ))
                 .result(0)
                 .ok()
                 .map(Into::into)

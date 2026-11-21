@@ -102,29 +102,31 @@ mod tests {
 
     #[test]
     fn run_print() {
-        let context = create_context();
-        let module = compile_source(
-            &context,
-            include_str!("../examples/jit.toy"),
-            Action::Jit,
+        run_jit(
+            &compile_source(
+                &create_context(),
+                include_str!("../examples/jit.toy"),
+                Action::Jit,
+                false,
+            )
+            .unwrap(),
             false,
         )
         .unwrap();
-
-        run_jit(&module, false).unwrap();
     }
 
     #[test]
     fn run_multiply_transpose_with_optimization() {
-        let context = create_context();
-        let module = compile_source(
-            &context,
-            include_str!("../examples/codegen.toy"),
-            Action::Jit,
+        run_jit(
+            &compile_source(
+                &create_context(),
+                include_str!("../examples/codegen.toy"),
+                Action::Jit,
+                true,
+            )
+            .unwrap(),
             true,
         )
         .unwrap();
-
-        run_jit(&module, true).unwrap();
     }
 }
