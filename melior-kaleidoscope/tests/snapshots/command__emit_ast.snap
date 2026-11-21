@@ -1,0 +1,481 @@
+---
+source: melior-kaleidoscope/tests/command.rs
+expression: "run_successfully(&[\"ast.toy\", \"--emit\", \"ast\"])"
+---
+Module {
+    path: "ast.toy",
+    records: [
+        Function(
+            Function {
+                prototype: Prototype {
+                    name: "multiply_transpose",
+                    parameters: [
+                        VariableDeclaration {
+                            name: "a",
+                            type: Tensor(
+                                [],
+                            ),
+                            location: Location {
+                                line: 2,
+                                column: 24,
+                            },
+                        },
+                        VariableDeclaration {
+                            name: "b",
+                            type: Tensor(
+                                [],
+                            ),
+                            location: Location {
+                                line: 2,
+                                column: 27,
+                            },
+                        },
+                    ],
+                    location: Location {
+                        line: 2,
+                        column: 1,
+                    },
+                },
+                body: [
+                    Return(
+                        Return {
+                            value: Some(
+                                Binary(
+                                    Binary {
+                                        operator: Multiply,
+                                        lhs: Call(
+                                            Call {
+                                                callee: "transpose",
+                                                arguments: [
+                                                    Variable(
+                                                        Variable {
+                                                            name: "a",
+                                                            location: Location {
+                                                                line: 3,
+                                                                column: 20,
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                location: Location {
+                                                    line: 3,
+                                                    column: 10,
+                                                },
+                                            },
+                                        ),
+                                        rhs: Call(
+                                            Call {
+                                                callee: "transpose",
+                                                arguments: [
+                                                    Variable(
+                                                        Variable {
+                                                            name: "b",
+                                                            location: Location {
+                                                                line: 3,
+                                                                column: 35,
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                location: Location {
+                                                    line: 3,
+                                                    column: 25,
+                                                },
+                                            },
+                                        ),
+                                        location: Location {
+                                            line: 3,
+                                            column: 25,
+                                        },
+                                    },
+                                ),
+                            ),
+                            location: Location {
+                                line: 3,
+                                column: 3,
+                            },
+                        },
+                    ),
+                ],
+            },
+        ),
+        Function(
+            Function {
+                prototype: Prototype {
+                    name: "main",
+                    parameters: [],
+                    location: Location {
+                        line: 6,
+                        column: 1,
+                    },
+                },
+                body: [
+                    VariableDefinition(
+                        VariableDefinition {
+                            declaration: VariableDeclaration {
+                                name: "a",
+                                type: Tensor(
+                                    [],
+                                ),
+                                location: Location {
+                                    line: 9,
+                                    column: 3,
+                                },
+                            },
+                            initializer: Literal(
+                                Literal {
+                                    values: [
+                                        Literal(
+                                            Literal {
+                                                values: [
+                                                    Number(
+                                                        Number {
+                                                            value: 1.0,
+                                                            location: Location {
+                                                                line: 9,
+                                                                column: 13,
+                                                            },
+                                                        },
+                                                    ),
+                                                    Number(
+                                                        Number {
+                                                            value: 2.0,
+                                                            location: Location {
+                                                                line: 9,
+                                                                column: 16,
+                                                            },
+                                                        },
+                                                    ),
+                                                    Number(
+                                                        Number {
+                                                            value: 3.0,
+                                                            location: Location {
+                                                                line: 9,
+                                                                column: 19,
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                dimensions: [
+                                                    3,
+                                                ],
+                                                location: Location {
+                                                    line: 9,
+                                                    column: 12,
+                                                },
+                                            },
+                                        ),
+                                        Literal(
+                                            Literal {
+                                                values: [
+                                                    Number(
+                                                        Number {
+                                                            value: 4.0,
+                                                            location: Location {
+                                                                line: 9,
+                                                                column: 24,
+                                                            },
+                                                        },
+                                                    ),
+                                                    Number(
+                                                        Number {
+                                                            value: 5.0,
+                                                            location: Location {
+                                                                line: 9,
+                                                                column: 27,
+                                                            },
+                                                        },
+                                                    ),
+                                                    Number(
+                                                        Number {
+                                                            value: 6.0,
+                                                            location: Location {
+                                                                line: 9,
+                                                                column: 30,
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                dimensions: [
+                                                    3,
+                                                ],
+                                                location: Location {
+                                                    line: 9,
+                                                    column: 23,
+                                                },
+                                            },
+                                        ),
+                                    ],
+                                    dimensions: [
+                                        2,
+                                        3,
+                                    ],
+                                    location: Location {
+                                        line: 9,
+                                        column: 11,
+                                    },
+                                },
+                            ),
+                        },
+                    ),
+                    VariableDefinition(
+                        VariableDefinition {
+                            declaration: VariableDeclaration {
+                                name: "b",
+                                type: Tensor(
+                                    [
+                                        2,
+                                        3,
+                                    ],
+                                ),
+                                location: Location {
+                                    line: 13,
+                                    column: 3,
+                                },
+                            },
+                            initializer: Literal(
+                                Literal {
+                                    values: [
+                                        Number(
+                                            Number {
+                                                value: 1.0,
+                                                location: Location {
+                                                    line: 13,
+                                                    column: 18,
+                                                },
+                                            },
+                                        ),
+                                        Number(
+                                            Number {
+                                                value: 2.0,
+                                                location: Location {
+                                                    line: 13,
+                                                    column: 21,
+                                                },
+                                            },
+                                        ),
+                                        Number(
+                                            Number {
+                                                value: 3.0,
+                                                location: Location {
+                                                    line: 13,
+                                                    column: 24,
+                                                },
+                                            },
+                                        ),
+                                        Number(
+                                            Number {
+                                                value: 4.0,
+                                                location: Location {
+                                                    line: 13,
+                                                    column: 27,
+                                                },
+                                            },
+                                        ),
+                                        Number(
+                                            Number {
+                                                value: 5.0,
+                                                location: Location {
+                                                    line: 13,
+                                                    column: 30,
+                                                },
+                                            },
+                                        ),
+                                        Number(
+                                            Number {
+                                                value: 6.0,
+                                                location: Location {
+                                                    line: 13,
+                                                    column: 33,
+                                                },
+                                            },
+                                        ),
+                                    ],
+                                    dimensions: [
+                                        6,
+                                    ],
+                                    location: Location {
+                                        line: 13,
+                                        column: 17,
+                                    },
+                                },
+                            ),
+                        },
+                    ),
+                    VariableDefinition(
+                        VariableDefinition {
+                            declaration: VariableDeclaration {
+                                name: "c",
+                                type: Tensor(
+                                    [],
+                                ),
+                                location: Location {
+                                    line: 17,
+                                    column: 3,
+                                },
+                            },
+                            initializer: Call(
+                                Call {
+                                    callee: "multiply_transpose",
+                                    arguments: [
+                                        Variable(
+                                            Variable {
+                                                name: "a",
+                                                location: Location {
+                                                    line: 17,
+                                                    column: 30,
+                                                },
+                                            },
+                                        ),
+                                        Variable(
+                                            Variable {
+                                                name: "b",
+                                                location: Location {
+                                                    line: 17,
+                                                    column: 33,
+                                                },
+                                            },
+                                        ),
+                                    ],
+                                    location: Location {
+                                        line: 17,
+                                        column: 11,
+                                    },
+                                },
+                            ),
+                        },
+                    ),
+                    VariableDefinition(
+                        VariableDefinition {
+                            declaration: VariableDeclaration {
+                                name: "d",
+                                type: Tensor(
+                                    [],
+                                ),
+                                location: Location {
+                                    line: 20,
+                                    column: 3,
+                                },
+                            },
+                            initializer: Call(
+                                Call {
+                                    callee: "multiply_transpose",
+                                    arguments: [
+                                        Variable(
+                                            Variable {
+                                                name: "b",
+                                                location: Location {
+                                                    line: 20,
+                                                    column: 30,
+                                                },
+                                            },
+                                        ),
+                                        Variable(
+                                            Variable {
+                                                name: "a",
+                                                location: Location {
+                                                    line: 20,
+                                                    column: 33,
+                                                },
+                                            },
+                                        ),
+                                    ],
+                                    location: Location {
+                                        line: 20,
+                                        column: 11,
+                                    },
+                                },
+                            ),
+                        },
+                    ),
+                    VariableDefinition(
+                        VariableDefinition {
+                            declaration: VariableDeclaration {
+                                name: "e",
+                                type: Tensor(
+                                    [],
+                                ),
+                                location: Location {
+                                    line: 23,
+                                    column: 3,
+                                },
+                            },
+                            initializer: Call(
+                                Call {
+                                    callee: "multiply_transpose",
+                                    arguments: [
+                                        Variable(
+                                            Variable {
+                                                name: "c",
+                                                location: Location {
+                                                    line: 23,
+                                                    column: 30,
+                                                },
+                                            },
+                                        ),
+                                        Variable(
+                                            Variable {
+                                                name: "d",
+                                                location: Location {
+                                                    line: 23,
+                                                    column: 33,
+                                                },
+                                            },
+                                        ),
+                                    ],
+                                    location: Location {
+                                        line: 23,
+                                        column: 11,
+                                    },
+                                },
+                            ),
+                        },
+                    ),
+                    VariableDefinition(
+                        VariableDefinition {
+                            declaration: VariableDeclaration {
+                                name: "f",
+                                type: Tensor(
+                                    [],
+                                ),
+                                location: Location {
+                                    line: 26,
+                                    column: 3,
+                                },
+                            },
+                            initializer: Call(
+                                Call {
+                                    callee: "multiply_transpose",
+                                    arguments: [
+                                        Variable(
+                                            Variable {
+                                                name: "a",
+                                                location: Location {
+                                                    line: 26,
+                                                    column: 30,
+                                                },
+                                            },
+                                        ),
+                                        Variable(
+                                            Variable {
+                                                name: "c",
+                                                location: Location {
+                                                    line: 26,
+                                                    column: 33,
+                                                },
+                                            },
+                                        ),
+                                    ],
+                                    location: Location {
+                                        line: 26,
+                                        column: 11,
+                                    },
+                                },
+                            ),
+                        },
+                    ),
+                ],
+            },
+        ),
+    ],
+}
