@@ -1,7 +1,7 @@
 use crate::{
     error::Error,
     toy,
-    utility::{block_operations, body_block, is_operation, symbol_name, terminator},
+    utility::{body_block, is_operation, symbol_name, terminator},
 };
 use melior::{
     Context, IrRewriter, RewriterBase,
@@ -16,7 +16,9 @@ use std::collections::{HashMap, HashSet};
 /// Inlines all calls to Toy functions and removes the private functions.
 // TODO Use the inliner pass once Toy operations can implement its interfaces.
 pub fn inline_functions<'c>(context: &'c Context, module: &Module<'c>) -> Result<(), Error> {
-    let functions = block_operations(module.body())
+    let functions = module
+        .body()
+        .into_iter()
         .filter(|operation| is_operation(*operation, "toy.func"))
         .map(|function| Ok((symbol_name(function)?, function)))
         .collect::<Result<Vec<_>, Error>>()?;
@@ -28,7 +30,8 @@ pub fn inline_functions<'c>(context: &'c Context, module: &Module<'c>) -> Result
     let function_map = functions.iter().copied().collect::<HashMap<_, _>>();
 
     while let Some(call) = functions.iter().find_map(|(_, function)| {
-        block_operations(body_block(*function)?)
+        body_block(*function)?
+            .into_iter()
             .find(|operation| is_operation(*operation, "toy.generic_call"))
     }) {
         inline_call(context, &rewriter, &function_map, call)?;
@@ -56,7 +59,7 @@ fn check_recursion(functions: &[(&str, OperationRef)]) -> Result<(), Error> {
                 *name,
                 body_block(*function)
                     .into_iter()
-                    .flat_map(block_operations)
+                    .flatten()
                     .filter(|operation| is_operation(*operation, "toy.generic_call"))
                     .map(callee_name)
                     .collect::<Result<Vec<_>, _>>()?,

@@ -1,6 +1,6 @@
 use crate::{
     error::Error,
-    utility::{block_operations, check_lowering, is_operation, symbol_name},
+    utility::{check_lowering, is_operation, symbol_name},
 };
 use melior::{
     Context, GreedyRewriteDriverConfig, PatternRewriter, RewritePatternSet, RewriterBase,
@@ -265,7 +265,7 @@ fn declare_printf<'c>(
     location: Location<'c>,
 ) {
     // TODO Use a symbol table lookup once Melior wraps the symbol table API.
-    if block_operations(module_body).any(|operation| {
+    if module_body.into_iter().any(|operation| {
         is_operation(operation, "llvm.func")
             && symbol_name(operation).is_ok_and(|name| name == "printf")
     }) {
@@ -313,7 +313,7 @@ fn global_string<'c, 'r>(
     let location = operation.location();
 
     // TODO Use a symbol table lookup once Melior wraps the symbol table API.
-    if !block_operations(module_body).any(|operation| {
+    if !module_body.into_iter().any(|operation| {
         is_operation(operation, "llvm.mlir.global")
             && symbol_name(operation).is_ok_and(|symbol| symbol == name)
     }) {

@@ -1,9 +1,8 @@
 use crate::error::Error;
-use core::iter::successors;
 use melior::{
     StringRef,
     ir::{
-        BlockLike, BlockRef, Module, OperationRef, RegionLike, Value,
+        BlockRef, Module, OperationRef, RegionLike, Value,
         attribute::StringAttribute,
         operation::{OperationLike, OperationResult, WalkOrder, WalkResult},
     },
@@ -40,22 +39,16 @@ pub fn check_lowering<'c>(
     result
 }
 
-pub fn block_operations<'c: 'a, 'a>(
-    block: impl BlockLike<'c, 'a>,
-) -> impl Iterator<Item = OperationRef<'c, 'a>> {
-    successors(block.first_operation(), |operation| {
-        operation.next_in_block()
-    })
-}
-
 pub fn body_block<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Option<BlockRef<'c, 'a>> {
     operation.regions().next()?.first_block()
 }
 
 // Terminators of unregistered dialects are not recognized by MLIR, so the
 // last operation in a block is taken as a terminator.
-pub fn terminator<'c: 'a, 'a>(block: impl BlockLike<'c, 'a>) -> Option<OperationRef<'c, 'a>> {
-    block_operations(block).last()
+pub fn terminator<'c: 'a, 'a>(
+    block: impl IntoIterator<Item = OperationRef<'c, 'a>>,
+) -> Option<OperationRef<'c, 'a>> {
+    block.into_iter().last()
 }
 
 pub fn defining_operation<'c, 'a>(value: Value<'c, 'a>) -> Option<OperationRef<'c, 'a>> {

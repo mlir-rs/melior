@@ -1,6 +1,6 @@
 use crate::{
     error::Error,
-    utility::{block_operations, body_block, is_operation, operation_name},
+    utility::{body_block, is_operation, operation_name},
 };
 use melior::ir::{
     Module, OperationRef, TypeLike, ValueLike,
@@ -17,13 +17,16 @@ use melior::ir::{
 // TODO Implement this as an operation interface once Toy operations can
 // implement interfaces.
 pub fn infer_shapes(module: &Module) -> Result<(), Error> {
-    for function in
-        block_operations(module.body()).filter(|operation| is_operation(*operation, "toy.func"))
+    for function in module
+        .body()
+        .into_iter()
+        .filter(|operation| is_operation(*operation, "toy.func"))
     {
         let Some(block) = body_block(function) else {
             continue;
         };
-        let mut worklist = block_operations(block)
+        let mut worklist = block
+            .into_iter()
             .filter(|operation| {
                 operation
                     .results()

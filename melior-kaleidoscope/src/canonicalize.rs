@@ -1,7 +1,7 @@
 use crate::{
     error::Error,
     toy,
-    utility::{block_operations, body_block, defining_operation, is_operation},
+    utility::{body_block, defining_operation, is_operation},
 };
 use melior::{
     Context, GreedyRewriteDriverConfig, IrRewriter, PatternRewriter, RewritePatternSet,
@@ -67,7 +67,7 @@ pub fn canonicalize<'c>(context: &'c Context, module: &mut Module<'c>) -> Result
     let rewriter = IrRewriter::new(context);
     let rewriter = rewriter.as_rewriter_base();
 
-    for function in block_operations(module.body()) {
+    for function in module.body() {
         if let Some(block) = body_block(function) {
             eliminate_common_subexpressions(&rewriter, block);
             remove_dead_operations(&rewriter, block);
@@ -87,7 +87,7 @@ pub fn canonicalize<'c>(context: &'c Context, module: &mut Module<'c>) -> Result
 fn eliminate_common_subexpressions<'c>(rewriter: &RewriterBase<'c, '_>, block: BlockRef<'c, '_>) {
     let mut operations = HashMap::<_, Vec<Value<'c, '_>>>::new();
 
-    for operation in block_operations(block) {
+    for operation in block {
         if !is_pure(operation) {
             continue;
         }
@@ -278,7 +278,7 @@ fn fold_struct_access<'c>(
 // TODO Rely on dead code elimination of the greedy rewrite driver once Toy
 // operations can have traits.
 fn remove_dead_operations<'c>(rewriter: &RewriterBase<'c, '_>, block: BlockRef<'c, '_>) {
-    let operations = block_operations(block).collect::<Vec<_>>();
+    let operations = block.into_iter().collect::<Vec<_>>();
     let mut use_counts = HashMap::<usize, usize>::new();
 
     for operation in &operations {
