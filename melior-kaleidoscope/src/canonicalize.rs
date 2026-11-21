@@ -1,5 +1,3 @@
-//! Canonicalization of Toy operations.
-
 use crate::{
     error::Error,
     toy,
@@ -127,7 +125,7 @@ fn is_pure<'c: 'a, 'a>(operation: OperationRef<'c, 'a>) -> bool {
         .any(|name| is_operation(operation, name))
 }
 
-// transpose(transpose(x)) -> x
+// A transpose of a transpose is folded away.
 fn simplify_redundant_transpose<'c>(
     operation: OperationRef<'c, '_>,
     rewriter: &PatternRewriter<'c, '_>,
@@ -162,7 +160,6 @@ fn simplify_reshape<'c>(
     };
     let output_type = output.r#type();
 
-    // A reshape into the same type is redundant.
     if input.r#type() == output_type {
         rewriter.replace_op_with_values(operation, &[input]);
         return true;
@@ -173,14 +170,14 @@ fn simplify_reshape<'c>(
     };
 
     let replacement = if is_operation(producer, "toy.reshape") {
-        // reshape(reshape(x)) -> reshape(x)
+        // A reshape of a reshape is folded into a single reshape.
         let Ok(input) = producer.operand(0) else {
             return false;
         };
 
         toy::reshape(context, output_type, input, operation.location()).into()
     } else if is_operation(producer, "toy.constant") {
-        // reshape(constant) -> constant
+        // A reshape of a constant is folded into a constant.
         //
         // A splat constant, such as a single number, is broadcast to the
         // output shape.

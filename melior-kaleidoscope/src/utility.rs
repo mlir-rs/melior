@@ -9,9 +9,7 @@ use melior::{
     },
 };
 
-// Checks that Toy operations other than legal ones are lowered.
-//
-// TODO Use the dialect conversion framework once the C API exposes it.
+// TODO Use the dialect conversion framework once Melior wraps it.
 pub fn check_lowering<'c>(
     module: &Module<'c>,
     is_legal: impl Fn(OperationRef<'c, '_>) -> bool,

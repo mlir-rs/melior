@@ -1,9 +1,3 @@
-//! Partial lowering of Toy operations to the affine, arith, func, and memref
-//! dialects.
-//!
-//! Print operations are kept in the Toy dialect while their tensor operands
-//! are replaced by memory references.
-
 use crate::{
     error::Error,
     utility::{check_lowering, is_operation, terminator},
@@ -24,8 +18,11 @@ use melior::{
     },
 };
 
-// TODO Use the dialect conversion framework once the C API exposes it.
 /// Lowers Toy operations except print operations in a module to affine loops.
+///
+/// Print operations are kept in the Toy dialect while their tensor operands
+/// are replaced by memory references.
+// TODO Use the dialect conversion framework once Melior wraps it.
 pub fn lower_to_affine<'c>(context: &'c Context, module: &mut Module<'c>) -> Result<(), Error> {
     let patterns = RewritePatternSet::new(context);
     let memory_operations = ["memref.alloc", "memref.dealloc"];
@@ -138,7 +135,6 @@ fn lower_constant<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewrite
     let location = operation.location();
     let element_type = Type::float64(context);
 
-    // Each element is stored at its constant indices.
     for (index, element) in elements.into_iter().enumerate() {
         let Ok(constant) = rewriter
             .insert(
@@ -217,7 +213,6 @@ fn lower_transpose<'c>(
         &rewriter,
         operation,
         |rewriter, induction_variables| {
-            // Elements are loaded from the reversed indices.
             load_element(
                 context,
                 rewriter,

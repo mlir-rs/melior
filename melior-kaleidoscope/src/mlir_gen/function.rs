@@ -275,8 +275,6 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
             .into())
     }
 
-    // Returns the struct definition of a type of an expression if it is a
-    // struct.
     fn struct_definition(&self, expression: &Expression) -> Option<&'a ast::Struct> {
         let name = match expression {
             Expression::Variable(variable) => match self.lookup(variable.name())?.1.r#type() {

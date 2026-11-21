@@ -279,7 +279,6 @@ fn tensor_literal(input: &mut Input<'_>) -> ModalResult<Literal> {
     .parse_next(input)?;
     let mut dimensions = vec![values.len() as u64];
 
-    // Dimensions of nested literals must be uniform.
     if let Some(first) = values.iter().find_map(|value| match value {
         Expression::Literal(literal) => Some(literal.dimensions()),
         _ => None,
@@ -364,7 +363,6 @@ fn symbol<'a>(symbol: char) -> impl Parser<Input<'a>, char, ErrMode<ContextError
     token(symbol).context(StrContext::Expected(StrContextValue::CharLiteral(symbol)))
 }
 
-// Attaches a location of a first character of a token to its output.
 fn located<'a, O>(
     parser: impl Parser<Input<'a>, O, ErrMode<ContextError>>,
 ) -> impl Parser<Input<'a>, (Location, O), ErrMode<ContextError>> {

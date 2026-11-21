@@ -1,5 +1,3 @@
-//! Intra-procedural shape inference of Toy operations.
-
 use crate::{
     error::Error,
     utility::{block_operations, body_block, is_operation, operation_name},
@@ -11,13 +9,13 @@ use melior::ir::{
     r#type::{DimSize, RankedTensorType, ShapedTypeLike},
 };
 
-// TODO Implement this as an operation interface once Toy operations can
-// implement interfaces.
 /// Infers shapes of Toy operations in every function of a module.
 ///
 /// Operations returning tensors of unknown shapes are collected in a worklist.
 /// Then, shapes of the operations are inferred one by one as soon as all of
 /// their operands have known shapes until the worklist gets empty.
+// TODO Implement this as an operation interface once Toy operations can
+// implement interfaces.
 pub fn infer_shapes(module: &Module) -> Result<(), Error> {
     for function in
         block_operations(module.body()).filter(|operation| is_operation(*operation, "toy.func"))

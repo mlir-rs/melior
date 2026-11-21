@@ -1,5 +1,3 @@
-//! MLIR generation from the Toy AST into the Toy dialect.
-
 mod function;
 mod module;
 

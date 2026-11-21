@@ -1,6 +1,3 @@
-//! Lowering of the remaining Toy, affine, arith, func, memref, and scf
-//! operations to the LLVM dialect.
-
 use crate::{
     error::Error,
     utility::{block_operations, check_lowering, is_operation, symbol_name},
@@ -28,8 +25,8 @@ use melior::{
     pass::{PassManager, conversion},
 };
 
-// TODO Use the dialect conversion framework once the C API exposes it.
 /// Lowers a module to the LLVM dialect.
+// TODO Use the dialect conversion framework once Melior wraps it.
 pub fn lower_to_llvm<'c>(context: &'c Context, module: &mut Module<'c>) -> Result<(), Error> {
     let patterns = RewritePatternSet::new(context);
 
