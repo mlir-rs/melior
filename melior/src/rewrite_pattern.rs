@@ -21,8 +21,8 @@ pub struct RewritePattern {
 }
 
 impl RewritePattern {
-    /// Creates an op rewrite pattern that matches operations with the given
-    /// root name.
+    /// Creates a rewrite pattern that matches operations with the given root
+    /// name.
     ///
     /// The `callback` receives the matched operation and a pattern rewriter. It
     /// should rewrite the operation and return `true`, or return `false`
@@ -119,7 +119,7 @@ mod tests {
     }
 
     #[test]
-    fn create_and_add_op_rewrite_pattern() {
+    fn new() {
         let context = create_test_context();
 
         let pattern =
@@ -130,7 +130,7 @@ mod tests {
     }
 
     #[test]
-    fn create_pattern_with_generated_names() {
+    fn new_with_generated_names() {
         let context = create_test_context();
 
         let pattern = RewritePattern::new(
@@ -146,7 +146,7 @@ mod tests {
     }
 
     #[test]
-    fn apply_op_rewrite_pattern() {
+    fn apply_pattern() {
         let context = create_test_context();
         let mut module = Module::new(Location::unknown(&context));
 
