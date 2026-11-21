@@ -37,12 +37,12 @@ impl<'c, 'a> ModuleGenerator<'c, 'a> {
         self.context
     }
 
-    pub const fn functions(&self) -> &HashMap<&'a str, FunctionType<'c>> {
-        &self.functions
+    pub fn function_type(&self, name: &str) -> Option<FunctionType<'c>> {
+        self.functions.get(name).copied()
     }
 
-    pub const fn structs(&self) -> &HashMap<&'a str, (TupleType<'c>, &'a ast::Struct)> {
-        &self.structs
+    pub fn struct_definition(&self, name: &str) -> Option<&'a ast::Struct> {
+        self.structs.get(name).map(|(_, r#struct)| *r#struct)
     }
 
     pub fn generate(mut self, module: &'a ast::Module) -> Result<Module<'c>, Error> {

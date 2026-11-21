@@ -295,10 +295,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
             _ => return None,
         };
 
-        self.module
-            .structs()
-            .get(name.as_str())
-            .map(|(_, r#struct)| *r#struct)
+        self.module.struct_definition(name)
     }
 
     fn member_index(&self, access: &Binary) -> Option<usize> {
@@ -343,7 +340,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
                 .into());
         }
 
-        let Some(function_type) = self.module.functions().get(call.callee()) else {
+        let Some(function_type) = self.module.function_type(call.callee()) else {
             return Err(error(
                 call.location(),
                 format!("unknown function '{}'", call.callee()),
