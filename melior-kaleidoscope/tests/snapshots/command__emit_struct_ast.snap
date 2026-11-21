@@ -1,0 +1,437 @@
+---
+source: melior-kaleidoscope/tests/command.rs
+expression: "run_successfully(&[\"struct_codegen.toy\", \"--emit\", \"ast\"])"
+---
+Module {
+    path: "struct_codegen.toy",
+    records: [
+        Struct(
+            Struct {
+                name: "Struct",
+                variables: [
+                    VariableDeclaration {
+                        name: "a",
+                        type: Tensor(
+                            [],
+                        ),
+                        location: Location {
+                            line: 2,
+                            column: 3,
+                        },
+                    },
+                    VariableDeclaration {
+                        name: "b",
+                        type: Tensor(
+                            [],
+                        ),
+                        location: Location {
+                            line: 3,
+                            column: 3,
+                        },
+                    },
+                ],
+                location: Location {
+                    line: 1,
+                    column: 1,
+                },
+            },
+        ),
+        Function(
+            Function {
+                prototype: Prototype {
+                    name: "multiply_transpose",
+                    parameters: [
+                        VariableDeclaration {
+                            name: "value",
+                            type: Struct(
+                                "Struct",
+                            ),
+                            location: Location {
+                                line: 7,
+                                column: 24,
+                            },
+                        },
+                    ],
+                    location: Location {
+                        line: 7,
+                        column: 1,
+                    },
+                },
+                body: [
+                    Return(
+                        Return {
+                            value: Some(
+                                Binary(
+                                    Binary {
+                                        operator: Multiply,
+                                        lhs: Call(
+                                            Call {
+                                                callee: "transpose",
+                                                arguments: [
+                                                    Binary(
+                                                        Binary {
+                                                            operator: Access,
+                                                            lhs: Variable(
+                                                                Variable {
+                                                                    name: "value",
+                                                                    location: Location {
+                                                                        line: 9,
+                                                                        column: 20,
+                                                                    },
+                                                                },
+                                                            ),
+                                                            rhs: Variable(
+                                                                Variable {
+                                                                    name: "a",
+                                                                    location: Location {
+                                                                        line: 9,
+                                                                        column: 26,
+                                                                    },
+                                                                },
+                                                            ),
+                                                            location: Location {
+                                                                line: 9,
+                                                                column: 26,
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                location: Location {
+                                                    line: 9,
+                                                    column: 10,
+                                                },
+                                            },
+                                        ),
+                                        rhs: Call(
+                                            Call {
+                                                callee: "transpose",
+                                                arguments: [
+                                                    Binary(
+                                                        Binary {
+                                                            operator: Access,
+                                                            lhs: Variable(
+                                                                Variable {
+                                                                    name: "value",
+                                                                    location: Location {
+                                                                        line: 9,
+                                                                        column: 41,
+                                                                    },
+                                                                },
+                                                            ),
+                                                            rhs: Variable(
+                                                                Variable {
+                                                                    name: "b",
+                                                                    location: Location {
+                                                                        line: 9,
+                                                                        column: 47,
+                                                                    },
+                                                                },
+                                                            ),
+                                                            location: Location {
+                                                                line: 9,
+                                                                column: 47,
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                location: Location {
+                                                    line: 9,
+                                                    column: 31,
+                                                },
+                                            },
+                                        ),
+                                        location: Location {
+                                            line: 9,
+                                            column: 31,
+                                        },
+                                    },
+                                ),
+                            ),
+                            location: Location {
+                                line: 9,
+                                column: 3,
+                            },
+                        },
+                    ),
+                ],
+            },
+        ),
+        Function(
+            Function {
+                prototype: Prototype {
+                    name: "main",
+                    parameters: [],
+                    location: Location {
+                        line: 12,
+                        column: 1,
+                    },
+                },
+                body: [
+                    VariableDefinition(
+                        VariableDefinition {
+                            declaration: VariableDeclaration {
+                                name: "value",
+                                type: Struct(
+                                    "Struct",
+                                ),
+                                location: Location {
+                                    line: 14,
+                                    column: 3,
+                                },
+                            },
+                            initializer: StructLiteral(
+                                StructLiteral {
+                                    values: [
+                                        Literal(
+                                            Literal {
+                                                values: [
+                                                    Literal(
+                                                        Literal {
+                                                            values: [
+                                                                Number(
+                                                                    Number {
+                                                                        value: 1.0,
+                                                                        location: Location {
+                                                                            line: 14,
+                                                                            column: 21,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                                Number(
+                                                                    Number {
+                                                                        value: 2.0,
+                                                                        location: Location {
+                                                                            line: 14,
+                                                                            column: 24,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                                Number(
+                                                                    Number {
+                                                                        value: 3.0,
+                                                                        location: Location {
+                                                                            line: 14,
+                                                                            column: 27,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                            ],
+                                                            dimensions: [
+                                                                3,
+                                                            ],
+                                                            location: Location {
+                                                                line: 14,
+                                                                column: 20,
+                                                            },
+                                                        },
+                                                    ),
+                                                    Literal(
+                                                        Literal {
+                                                            values: [
+                                                                Number(
+                                                                    Number {
+                                                                        value: 4.0,
+                                                                        location: Location {
+                                                                            line: 14,
+                                                                            column: 32,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                                Number(
+                                                                    Number {
+                                                                        value: 5.0,
+                                                                        location: Location {
+                                                                            line: 14,
+                                                                            column: 35,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                                Number(
+                                                                    Number {
+                                                                        value: 6.0,
+                                                                        location: Location {
+                                                                            line: 14,
+                                                                            column: 38,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                            ],
+                                                            dimensions: [
+                                                                3,
+                                                            ],
+                                                            location: Location {
+                                                                line: 14,
+                                                                column: 31,
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                dimensions: [
+                                                    2,
+                                                    3,
+                                                ],
+                                                location: Location {
+                                                    line: 14,
+                                                    column: 19,
+                                                },
+                                            },
+                                        ),
+                                        Literal(
+                                            Literal {
+                                                values: [
+                                                    Literal(
+                                                        Literal {
+                                                            values: [
+                                                                Number(
+                                                                    Number {
+                                                                        value: 1.0,
+                                                                        location: Location {
+                                                                            line: 14,
+                                                                            column: 45,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                                Number(
+                                                                    Number {
+                                                                        value: 2.0,
+                                                                        location: Location {
+                                                                            line: 14,
+                                                                            column: 48,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                                Number(
+                                                                    Number {
+                                                                        value: 3.0,
+                                                                        location: Location {
+                                                                            line: 14,
+                                                                            column: 51,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                            ],
+                                                            dimensions: [
+                                                                3,
+                                                            ],
+                                                            location: Location {
+                                                                line: 14,
+                                                                column: 44,
+                                                            },
+                                                        },
+                                                    ),
+                                                    Literal(
+                                                        Literal {
+                                                            values: [
+                                                                Number(
+                                                                    Number {
+                                                                        value: 4.0,
+                                                                        location: Location {
+                                                                            line: 14,
+                                                                            column: 56,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                                Number(
+                                                                    Number {
+                                                                        value: 5.0,
+                                                                        location: Location {
+                                                                            line: 14,
+                                                                            column: 59,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                                Number(
+                                                                    Number {
+                                                                        value: 6.0,
+                                                                        location: Location {
+                                                                            line: 14,
+                                                                            column: 62,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                            ],
+                                                            dimensions: [
+                                                                3,
+                                                            ],
+                                                            location: Location {
+                                                                line: 14,
+                                                                column: 55,
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                dimensions: [
+                                                    2,
+                                                    3,
+                                                ],
+                                                location: Location {
+                                                    line: 14,
+                                                    column: 43,
+                                                },
+                                            },
+                                        ),
+                                    ],
+                                    location: Location {
+                                        line: 14,
+                                        column: 18,
+                                    },
+                                },
+                            ),
+                        },
+                    ),
+                    VariableDefinition(
+                        VariableDefinition {
+                            declaration: VariableDeclaration {
+                                name: "c",
+                                type: Tensor(
+                                    [],
+                                ),
+                                location: Location {
+                                    line: 17,
+                                    column: 3,
+                                },
+                            },
+                            initializer: Call(
+                                Call {
+                                    callee: "multiply_transpose",
+                                    arguments: [
+                                        Variable(
+                                            Variable {
+                                                name: "value",
+                                                location: Location {
+                                                    line: 17,
+                                                    column: 30,
+                                                },
+                                            },
+                                        ),
+                                    ],
+                                    location: Location {
+                                        line: 17,
+                                        column: 11,
+                                    },
+                                },
+                            ),
+                        },
+                    ),
+                    Print(
+                        Print {
+                            argument: Variable(
+                                Variable {
+                                    name: "c",
+                                    location: Location {
+                                        line: 18,
+                                        column: 9,
+                                    },
+                                },
+                            ),
+                            location: Location {
+                                line: 18,
+                                column: 3,
+                            },
+                        },
+                    ),
+                ],
+            },
+        ),
+    ],
+}

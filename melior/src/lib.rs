@@ -17,6 +17,7 @@ mod greedy_rewrite_driver;
 pub mod helpers;
 pub mod ir;
 mod ir_rewriter;
+pub mod llvm;
 mod logical_result;
 pub mod pass;
 mod rewrite_pattern;

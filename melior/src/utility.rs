@@ -1,8 +1,8 @@
 //! Utility functions.
 
 use crate::{
-    Error, context::Context, dialect::DialectRegistry, ir::Module, logical_result::LogicalResult,
-    pass, string_ref::StringRef,
+    Error, context::Context, dialect::DialectRegistry, ir::Module, llvm,
+    logical_result::LogicalResult, pass, string_ref::StringRef,
 };
 use core::{
     ffi::c_void,
@@ -10,7 +10,7 @@ use core::{
 };
 use mlir_sys::{
     MlirStringRef, mlirLoadIRDLDialects, mlirParsePassPipeline, mlirRegisterAllDialects,
-    mlirRegisterAllLLVMTranslations, mlirRegisterAllPasses,
+    mlirRegisterAllLLVMTranslations, mlirRegisterAllPasses, mlirTranslateModuleToLLVMIR,
 };
 use std::sync::Once;
 
@@ -58,6 +58,21 @@ pub fn parse_pass_pipeline(manager: pass::OperationPassManager, source: &str) ->
 /// the module's associated context.
 pub fn load_irdl_dialects(module: &Module) -> bool {
     unsafe { mlirLoadIRDLDialects(module.to_raw()).value == 1 }
+}
+
+/// Translates a module into LLVM IR. Translations of the dialects used in the
+/// module must be registered in its context beforehand.
+pub fn translate_module_to_llvm_ir<'c>(
+    module: &Module,
+    context: &'c llvm::Context,
+) -> Result<llvm::Module<'c>, Error> {
+    unsafe {
+        llvm::Module::from_option_raw(mlirTranslateModuleToLLVMIR(
+            module.as_operation().to_raw(),
+            context.to_raw(),
+        ))
+    }
+    .ok_or(Error::TranslateToLlvmIr)
 }
 
 unsafe extern "C" fn handle_parse_error(raw_string: MlirStringRef, data: *mut c_void) {
@@ -114,7 +129,7 @@ pub(crate) unsafe extern "C" fn collect_bytes_callback(string: MlirStringRef, da
 
 #[cfg(test)]
 mod tests {
-    use crate::ir::Location;
+    use crate::{ir::Location, test::create_test_context};
 
     use super::*;
 
@@ -172,5 +187,29 @@ mod tests {
         let module = Module::new(Location::unknown(&context));
 
         assert!(load_irdl_dialects(&module));
+    }
+
+    #[test]
+    fn translate_module() {
+        let context = create_test_context();
+        let module = Module::parse(
+            &context,
+            "llvm.func @main() -> i32 { %0 = llvm.mlir.constant(42 : i32) : i32 llvm.return %0 : i32 }",
+        )
+        .unwrap();
+        let llvm_context = llvm::Context::new();
+
+        insta::assert_snapshot!(translate_module_to_llvm_ir(&module, &llvm_context).unwrap());
+    }
+
+    #[test]
+    fn fail_to_translate_module() {
+        let context = create_test_context();
+        let module = Module::parse(&context, "func.func @main() { return }").unwrap();
+
+        assert_eq!(
+            translate_module_to_llvm_ir(&module, &llvm::Context::new()).unwrap_err(),
+            Error::TranslateToLlvmIr
+        );
     }
 }

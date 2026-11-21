@@ -427,12 +427,19 @@ impl<'c> DenseElementsAttribute<'c> {
 
     fn element_count(r#type: Type<'c>) -> Result<usize, Error> {
         if r#type.is_shaped() && unsafe { mlirShapedTypeHasStaticShape(r#type.to_raw()) } {
-            Ok((0..unsafe { mlirShapedTypeGetRank(r#type.to_raw()) })
-                .map(
-                    |index| unsafe { mlirShapedTypeGetDimSize(r#type.to_raw(), index as isize) }
-                        as usize,
-                )
-                .product())
+            (0..unsafe { mlirShapedTypeGetRank(r#type.to_raw()) })
+                .try_fold(1, |count: i64, index| {
+                    let dimension =
+                        unsafe { mlirShapedTypeGetDimSize(r#type.to_raw(), index as isize) };
+
+                    if dimension < 0 {
+                        None
+                    } else {
+                        count.checked_mul(dimension)
+                    }
+                })
+                .and_then(|count| usize::try_from(count).ok())
+                .ok_or_else(|| Error::TypeExpected("countable", r#type.to_string()))
         } else {
             Err(Error::TypeExpected("statically shaped", r#type.to_string()))
         }
@@ -813,6 +820,18 @@ mod tests {
     }
 
     #[test]
+    fn splat_largest_shape() {
+        let context = create_test_context();
+
+        assert_eq!(
+            DenseElementsAttribute::i32_splat(i32_tensor_type(&context, i64::MAX as u64), 1)
+                .unwrap()
+                .len(),
+            i64::MAX as usize
+        );
+    }
+
+    #[test]
     fn raw_buffer_round_trip() {
         let context = create_test_context();
         // Build a tensor of 4 x i32 from a raw byte buffer
@@ -906,6 +925,30 @@ mod tests {
             )
             .unwrap_err(),
             Error::TypeExpected("statically shaped", "tensor<?xi32>".into())
+        );
+    }
+
+    #[test]
+    fn fail_to_create_values_with_negative_dimension() {
+        let context = create_test_context();
+
+        assert_eq!(
+            DenseElementsAttribute::i32_values(i32_tensor_type(&context, u64::MAX), &[1])
+                .unwrap_err(),
+            Error::TypeExpected("countable", "tensor<-1xi32>".into())
+        );
+    }
+
+    #[test]
+    fn fail_to_create_splat_with_overflowing_element_count() {
+        let context = create_test_context();
+        let r#type =
+            RankedTensorType::new(&[2, 1 << 62], IntegerType::new(&context, 32).into(), None)
+                .into();
+
+        assert_eq!(
+            DenseElementsAttribute::i32_splat(r#type, 1).unwrap_err(),
+            Error::TypeExpected("countable", r#type.to_string())
         );
     }
 
@@ -1045,6 +1088,25 @@ mod tests {
                 expected: 6,
                 actual: 4
             }
+        );
+    }
+
+    #[test]
+    fn fail_to_reshape_into_overflowing_shape() {
+        let context = create_test_context();
+        let r#type = RankedTensorType::new(
+            &[4, (1 << 62) + 1],
+            IntegerType::new(&context, 32).into(),
+            None,
+        )
+        .into();
+
+        assert_eq!(
+            DenseElementsAttribute::i32_values(i32_tensor_type(&context, 4), &[1, 2, 3, 4])
+                .unwrap()
+                .reshape(r#type)
+                .unwrap_err(),
+            Error::TypeExpected("countable", r#type.to_string())
         );
     }
 

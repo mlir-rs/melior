@@ -153,7 +153,7 @@ mod tests {
     }
 
     // TODO: Fix macro name generation for float4/float6 types — the regex in
-    // macro/src/utility.rs only handles `float_8_` patterns, producing
+    // melior-macro/src/utility.rs only handles `float_8_` patterns, producing
     // inconsistent names like `is_float_4_e_2_m_1_fn` instead of
     // `is_float4_e2m1_fn`.
     #[test]

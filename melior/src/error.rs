@@ -68,6 +68,8 @@ pub enum Error {
     ResultNotFound(&'static str),
     /// A failure of a pass run.
     RunPass,
+    /// A failure of module translation into LLVM IR.
+    TranslateToLlvmIr,
     /// A type expected.
     TypeExpected(&'static str, String),
     /// An unknown diagnostic severity.
@@ -144,6 +146,9 @@ impl Display for Error {
                 write!(formatter, "result {name} not found")
             }
             Self::RunPass => write!(formatter, "failed to run pass"),
+            Self::TranslateToLlvmIr => {
+                write!(formatter, "failed to translate module into LLVM IR")
+            }
             Self::TypeExpected(r#type, actual) => {
                 write!(formatter, "{type} type expected: {actual}")
             }

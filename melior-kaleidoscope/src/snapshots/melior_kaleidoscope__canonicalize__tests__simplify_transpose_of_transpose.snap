@@ -1,0 +1,10 @@
+---
+source: melior-kaleidoscope/src/canonicalize.rs
+expression: "canonicalize_source(indoc!(\"\n            def transpose_transpose(x) {\n              return transpose(transpose(x));\n            }\n            \"))"
+---
+module {
+  "toy.func"() ({
+  ^bb0(%arg0: tensor<*xf64>):
+    "toy.return"(%arg0) : (tensor<*xf64>) -> ()
+  }) {function_type = (tensor<*xf64>) -> tensor<*xf64>, sym_name = "transpose_transpose", sym_visibility = "private"} : () -> ()
+}

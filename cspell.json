@@ -2,6 +2,7 @@
   "words": [
     "addf",
     "addi",
+    "addressof",
     "alloca",
     "amdgpu",
     "andi",
@@ -9,6 +10,7 @@
     "bufferizable",
     "bufferization",
     "bufferize",
+    "callees",
     "canonicalizer",
     "clippy",
     "cmpi",
@@ -72,7 +74,8 @@
     "tosa",
     "trunci",
     "uninlined",
-    "unraw",
+    "unranked",
+    "worklist",
     "xindex",
     "xori"
   ]

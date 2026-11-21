@@ -1,0 +1,6 @@
+---
+source: melior/src/llvm/module.rs
+expression: module
+---
+; ModuleID = 'foo'
+source_filename = "foo"
