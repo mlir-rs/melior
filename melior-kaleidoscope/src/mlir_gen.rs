@@ -2,7 +2,7 @@ mod function;
 mod module;
 
 use self::module::ModuleGenerator;
-use crate::{ast, error::Error};
+use crate::{ast, error::Error, location::Location};
 use melior::{Context, ir::Module};
 
 /// Generates an MLIR module in the Toy dialect from a Toy AST.
@@ -10,7 +10,7 @@ pub fn generate<'c>(context: &'c Context, module: &ast::Module) -> Result<Module
     ModuleGenerator::new(context, module.path()).generate(module)
 }
 
-const fn error(location: crate::Location, message: String) -> Error {
+const fn error(location: Location, message: String) -> Error {
     Error::CodeGeneration { location, message }
 }
 
@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn fail_to_generate_too_large_literal() {
-        let location = crate::Location::new(1, 1);
+        let location = Location::new(1, 1);
 
         assert!(matches!(
             generate(
