@@ -51,13 +51,9 @@ impl<'c, 'a> ModuleGenerator<'c, 'a> {
         for record in module.records() {
             match record {
                 Record::Function(function) => {
-                    let operation = self.generate_function(function)?;
-
-                    self.functions.insert(
-                        function.prototype().name(),
-                        FunctionType::try_from(operation.function_type()?.value())?,
-                    );
-                    mlir_module.body().append_operation(operation.into());
+                    mlir_module
+                        .body()
+                        .append_operation(self.generate_function(function)?.into());
                 }
                 Record::Struct(r#struct) => self.generate_struct(r#struct)?,
             }
@@ -146,6 +142,9 @@ impl<'c, 'a> ModuleGenerator<'c, 'a> {
             block.append_operation(toy::r#return(self.context, &[], location).into());
             vec![]
         };
+        let function_type = FunctionType::new(self.context, &argument_types, &result_types);
+
+        self.functions.insert(prototype.name(), function_type);
 
         let region = Region::new();
         region.append_block(block);
@@ -155,9 +154,7 @@ impl<'c, 'a> ModuleGenerator<'c, 'a> {
         Ok(toy::FuncOperation::builder(self.context, location)
             .body(region)
             .sym_name(StringAttribute::new(self.context, prototype.name()))
-            .function_type(TypeAttribute::new(
-                FunctionType::new(self.context, &argument_types, &result_types).into(),
-            ))
+            .function_type(TypeAttribute::new(function_type.into()))
             .sym_visibility(
                 (prototype.name() != "main").then(|| StringAttribute::new(self.context, "private")),
             )
