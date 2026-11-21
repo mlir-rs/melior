@@ -1,6 +1,6 @@
 use crate::{
     error::Error,
-    utility::{check_lowering, is_operation, symbol_name},
+    utility::{body_block, check_lowering, is_operation, symbol_name},
 };
 use melior::{
     Context, GreedyRewriteDriverConfig, PatternRewriter, RewritePatternSet, RewriterBase,
@@ -140,55 +140,46 @@ fn lower_print<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewriter<'
         return false;
     };
 
-    let mut induction_variables = vec![];
+    let Some(induction_variables) = shape
+        .iter()
+        .enumerate()
+        .map(|(dimension, &size)| {
+            let block = Block::new(&[Type::index(context)], &[location]).ok()?;
 
-    for (dimension, &size) in shape.iter().enumerate() {
-        let (Some(lower_bound), Some(upper_bound), Some(step), Ok(block)) = (
-            index_constant(context, &rewriter, 0, location),
-            index_constant(context, &rewriter, size as i64, location),
-            index_constant(context, &rewriter, 1, location),
-            Block::new(&[Type::index(context)], &[location]),
-        ) else {
-            return false;
-        };
+            // A newline is printed after each row of the innermost dimension.
+            if dimension + 1 != shape.len() {
+                block.append_operation(call_printf(context, &[newline], location));
+            }
 
-        // A newline is printed after each row of the innermost dimension.
-        if dimension + 1 != shape.len() {
-            block.append_operation(call_printf(context, &[newline], location));
-        }
+            block.append_operation(scf::r#yield(context, &[], location).into());
 
-        block.append_operation(scf::r#yield(context, &[], location).into());
+            let region = Region::new();
+            region.append_block(block);
 
-        let region = Region::new();
-        region.append_block(block);
+            let body = body_block(
+                rewriter.insert(
+                    scf::r#for(
+                        context,
+                        &[],
+                        index_constant(context, &rewriter, 0, location)?,
+                        index_constant(context, &rewriter, size as i64, location)?,
+                        index_constant(context, &rewriter, 1, location)?,
+                        &[],
+                        region,
+                        location,
+                    )
+                    .into(),
+                ),
+            )?;
 
-        let Some(body) = rewriter
-            .insert(
-                scf::r#for(
-                    context,
-                    &[],
-                    lower_bound,
-                    upper_bound,
-                    step,
-                    &[],
-                    region,
-                    location,
-                )
-                .into(),
-            )
-            .region(0)
-            .ok()
-            .and_then(|region| region.first_block())
-        else {
-            return false;
-        };
-        let Ok(induction_variable) = body.argument(0) else {
-            return false;
-        };
+            rewriter.set_insertion_point_to_start(body);
 
-        induction_variables.push(induction_variable.into());
-        rewriter.set_insertion_point_to_start(body);
-    }
+            Some(body.argument(0).ok()?.into())
+        })
+        .collect::<Option<Vec<_>>>()
+    else {
+        return false;
+    };
 
     let Ok(element) = rewriter
         .insert(
@@ -223,15 +214,15 @@ fn module_body<'c, 'a>(operation: OperationRef<'c, 'a>) -> Option<BlockRef<'c, '
         operation = operation.parent_operation()?;
     }
 
-    operation.regions().next()?.first_block()
+    body_block(operation)
 }
 
-fn index_constant<'c, 'r>(
+fn index_constant<'c, 'a>(
     context: &'c Context,
-    rewriter: &'r RewriterBase<'c, '_>,
+    rewriter: &'a RewriterBase<'c, '_>,
     value: i64,
     location: Location<'c>,
-) -> Option<Value<'c, 'r>> {
+) -> Option<Value<'c, 'a>> {
     let index_type = Type::index(context);
 
     rewriter
@@ -302,14 +293,14 @@ fn call_printf<'c>(
 }
 
 // Returns a pointer to a global string, creating the string if necessary.
-fn global_string<'c, 'r>(
+fn global_string<'c, 'a>(
     context: &'c Context,
-    rewriter: &'r RewriterBase<'c, '_>,
+    rewriter: &'a RewriterBase<'c, '_>,
     module_body: BlockRef<'c, '_>,
     operation: OperationRef<'c, '_>,
     name: &str,
     value: &str,
-) -> Option<Value<'c, 'r>> {
+) -> Option<Value<'c, 'a>> {
     let location = operation.location();
 
     // TODO Use a symbol table lookup once Melior wraps the symbol table API.
@@ -354,7 +345,10 @@ fn global_string<'c, 'r>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::compile::{Action, create_context, tests::compile};
+    use crate::{
+        compile::{Action, create_context},
+        test::compile,
+    };
     use indoc::indoc;
 
     fn lower_source(source: &str, optimize: bool) -> Result<String, Error> {

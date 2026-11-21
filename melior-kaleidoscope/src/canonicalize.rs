@@ -85,7 +85,7 @@ pub fn canonicalize<'c>(context: &'c Context, module: &mut Module<'c>) -> Result
 // TODO Use the common sub-expression elimination pass once Toy operations can
 // have traits.
 fn eliminate_common_subexpressions<'c>(rewriter: &RewriterBase<'c, '_>, block: BlockRef<'c, '_>) {
-    let mut operations = HashMap::<_, Vec<Value<'c, '_>>>::new();
+    let mut operations = HashMap::<_, Vec<Value>>::new();
 
     for operation in block {
         if !is_pure(operation) {
@@ -119,7 +119,7 @@ fn eliminate_common_subexpressions<'c>(rewriter: &RewriterBase<'c, '_>, block: B
     }
 }
 
-fn is_pure<'c: 'a, 'a>(operation: OperationRef<'c, 'a>) -> bool {
+fn is_pure(operation: OperationRef) -> bool {
     PURE_OPERATIONS
         .iter()
         .any(|name| is_operation(operation, name))

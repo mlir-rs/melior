@@ -50,7 +50,6 @@ pub fn compile<'c>(
     optimize: bool,
 ) -> Result<(), Error> {
     let lowering_to_affine = action >= Action::MlirAffine;
-    let lowering_to_llvm = action >= Action::MlirLlvm;
 
     if optimize || lowering_to_affine {
         // Inline all functions into the main one so that shapes of every
@@ -78,7 +77,7 @@ pub fn compile<'c>(
         pass_manager.run(module)?;
     }
 
-    if lowering_to_llvm {
+    if action >= Action::MlirLlvm {
         lower_to_llvm(context, module)?;
     }
 
@@ -96,27 +95,14 @@ pub fn run_jit(module: &Module, optimize: bool) -> Result<(), Error> {
 }
 
 #[cfg(test)]
-pub mod tests {
-    use super::*;
-    use crate::{mlir_gen::generate, parse::parse};
-
-    pub fn compile<'c>(
-        context: &'c Context,
-        source: &str,
-        action: Action,
-        optimize: bool,
-    ) -> Result<Module<'c>, Error> {
-        let mut module = generate(context, &parse(source, "test.toy")?)?;
-
-        super::compile(context, &mut module, action, optimize)?;
-
-        Ok(module)
-    }
-
+mod tests {
     // The JIT compiler cannot resolve the `printf` function on Windows.
     #[cfg(not(windows))]
     mod jit {
-        use super::*;
+        use crate::{
+            compile::{Action, create_context, run_jit},
+            test::compile,
+        };
 
         #[test]
         fn print() {

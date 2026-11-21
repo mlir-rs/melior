@@ -8,7 +8,7 @@ use crate::{
     toy,
 };
 use melior::ir::{
-    Block, BlockLike, Type, Value, ValueLike,
+    Attribute, Block, BlockLike, Type, Value, ValueLike,
     attribute::{ArrayAttribute, DenseElementsAttribute, FlatSymbolRefAttribute, IntegerAttribute},
     r#type::{IntegerType, RankedTensorType, TupleType},
 };
@@ -114,9 +114,8 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
         definition: &'a VariableDefinition,
     ) -> Result<(), Error> {
         let declaration = definition.declaration();
-        let mut value = self.generate_expression(definition.initializer())?;
-
-        match declaration.r#type() {
+        let value = self.generate_expression(definition.initializer())?;
+        let value = match declaration.r#type() {
             ast::Type::Struct(_) => {
                 let r#type = self.module.variable_type(declaration)?;
 
@@ -129,26 +128,26 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
                         ),
                     ));
                 }
+
+                value
             }
             // A reshape operation is emitted for a declaration with a shape. It
             // gets optimized out later as needed.
-            ast::Type::Tensor(shape) if !shape.is_empty() => {
-                value = self
-                    .block
-                    .append_operation(
-                        toy::reshape(
-                            self.module.context(),
-                            self.module.tensor_type(shape, declaration.location())?,
-                            value,
-                            self.module.location(declaration.location()),
-                        )
-                        .into(),
+            ast::Type::Tensor(shape) if !shape.is_empty() => self
+                .block
+                .append_operation(
+                    toy::reshape(
+                        self.module.context(),
+                        self.module.tensor_type(shape, declaration.location())?,
+                        value,
+                        self.module.location(declaration.location()),
                     )
-                    .result(0)?
-                    .into();
-            }
-            ast::Type::Tensor(_) => {}
-        }
+                    .into(),
+                )
+                .result(0)?
+                .into(),
+            ast::Type::Tensor(_) => value,
+        };
 
         self.declare(declaration, value)
     }
@@ -157,24 +156,20 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
         match expression {
             Expression::Binary(binary) => self.generate_binary(binary),
             Expression::Call(call) => self.generate_call(call),
-            Expression::Literal(literal) => {
-                let location = self.module.location(literal.location());
-
-                Ok(self
-                    .block
-                    .append_operation(
-                        toy::constant(
-                            self.module.context(),
-                            self.module
-                                .tensor_type(literal.dimensions(), literal.location())?,
-                            self.literal_attribute(literal)?,
-                            location,
-                        )
-                        .into(),
+            Expression::Literal(literal) => Ok(self
+                .block
+                .append_operation(
+                    toy::constant(
+                        self.module.context(),
+                        self.module
+                            .tensor_type(literal.dimensions(), literal.location())?,
+                        self.literal_attribute(literal)?,
+                        self.module.location(literal.location()),
                     )
-                    .result(0)?
-                    .into())
-            }
+                    .into(),
+                )
+                .result(0)?
+                .into()),
             Expression::Number(number) => {
                 let r#type = RankedTensorType::new(&[], Type::float64(self.module.context()), None);
 
@@ -395,40 +390,38 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
         &self,
         literal: &StructLiteral,
     ) -> Result<(ArrayAttribute<'c>, Type<'c>), Error> {
-        let mut attributes = vec![];
-        let mut types = vec![];
+        let (attributes, types) = literal
+            .values()
+            .iter()
+            .map(|value| {
+                Ok(match value {
+                    Expression::Literal(literal) => (
+                        Attribute::from(self.literal_attribute(literal)?),
+                        self.module.unranked_tensor_type(),
+                    ),
+                    Expression::Number(number) => (
+                        DenseElementsAttribute::f64_values(
+                            RankedTensorType::new(&[], Type::float64(self.module.context()), None)
+                                .into(),
+                            &[number.value()],
+                        )?
+                        .into(),
+                        self.module.unranked_tensor_type(),
+                    ),
+                    Expression::StructLiteral(literal) => {
+                        let (attribute, r#type) = self.struct_literal_attribute(literal)?;
 
-        for value in literal.values() {
-            let (attribute, r#type) = match value {
-                Expression::Literal(literal) => (
-                    self.literal_attribute(literal)?.into(),
-                    self.module.unranked_tensor_type(),
-                ),
-                Expression::Number(number) => (
-                    DenseElementsAttribute::f64_values(
-                        RankedTensorType::new(&[], Type::float64(self.module.context()), None)
-                            .into(),
-                        &[number.value()],
-                    )?
-                    .into(),
-                    self.module.unranked_tensor_type(),
-                ),
-                Expression::StructLiteral(literal) => {
-                    let (attribute, r#type) = self.struct_literal_attribute(literal)?;
-
-                    (attribute.into(), r#type)
-                }
-                _ => {
-                    return Err(error(
-                        value.location(),
-                        "literal expected in struct literal".into(),
-                    ));
-                }
-            };
-
-            attributes.push(attribute);
-            types.push(r#type);
-        }
+                        (attribute.into(), r#type)
+                    }
+                    _ => {
+                        return Err(error(
+                            value.location(),
+                            "literal expected in struct literal".into(),
+                        ));
+                    }
+                })
+            })
+            .collect::<Result<(Vec<_>, Vec<_>), Error>>()?;
 
         Ok((
             ArrayAttribute::new(self.module.context(), &attributes),

@@ -9,9 +9,9 @@ use melior::{
 };
 
 // TODO Use the dialect conversion framework once Melior wraps it.
-pub fn check_lowering<'c>(
-    module: &Module<'c>,
-    is_legal: impl Fn(OperationRef<'c, '_>) -> bool,
+pub fn check_lowering(
+    module: &Module,
+    is_legal: impl Fn(OperationRef) -> bool,
 ) -> Result<(), Error> {
     let mut result = Ok(());
 

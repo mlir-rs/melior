@@ -11,6 +11,8 @@ mod lower_to_llvm;
 mod mlir_gen;
 pub mod parse;
 mod shape_inference;
+#[cfg(test)]
+mod test;
 mod utility;
 
 pub use self::{

@@ -1,6 +1,6 @@
 use crate::{
     error::Error,
-    utility::{check_lowering, is_operation, terminator},
+    utility::{body_block, check_lowering, is_operation, terminator},
 };
 use melior::{
     Context, GreedyRewriteDriverConfig, PatternRewriter, RewritePatternSet, RewriterBase,
@@ -25,7 +25,6 @@ use melior::{
 // TODO Use the dialect conversion framework once Melior wraps it.
 pub fn lower_to_affine<'c>(context: &'c Context, module: &mut Module<'c>) -> Result<(), Error> {
     let patterns = RewritePatternSet::new(context);
-    let memory_operations = ["memref.alloc", "memref.dealloc"];
     let loop_operations = [
         "memref.alloc",
         "memref.dealloc",
@@ -40,7 +39,12 @@ pub fn lower_to_affine<'c>(context: &'c Context, module: &mut Module<'c>) -> Res
         1,
         context,
         lower_constant,
-        &[&memory_operations[..], &["arith.constant", "affine.store"]].concat(),
+        &[
+            "memref.alloc",
+            "memref.dealloc",
+            "arith.constant",
+            "affine.store",
+        ],
     ));
     patterns.add(create_op_rewrite_pattern(
         "toy.transpose",
@@ -265,11 +269,11 @@ fn lower_binary<'c>(
 
 // Lowers an operation to a nest of affine loops storing an element computed by
 // the given callback at every index of a result tensor.
-fn lower_to_loops<'c, 'r>(
+fn lower_to_loops<'c, 'a>(
     context: &'c Context,
-    rewriter: &'r RewriterBase<'c, '_>,
+    rewriter: &'a RewriterBase<'c, '_>,
     operation: OperationRef<'c, '_>,
-    build_element: impl FnOnce(&'r RewriterBase<'c, '_>, &[Value<'c, 'r>]) -> Option<Value<'c, 'r>>,
+    build_element: impl FnOnce(&'a RewriterBase<'c, '_>, &[Value<'c, 'a>]) -> Option<Value<'c, 'a>>,
 ) -> bool {
     let Some((alloc, shape)) = allocate_result(context, rewriter, operation) else {
         return false;
@@ -285,8 +289,8 @@ fn lower_to_loops<'c, 'r>(
             block.append_operation(affine::r#yield(context, &[], location).into());
             region.append_block(block);
 
-            let body = rewriter
-                .insert(
+            let body = body_block(
+                rewriter.insert(
                     affine::r#for(
                         context,
                         &[],
@@ -300,10 +304,8 @@ fn lower_to_loops<'c, 'r>(
                         location,
                     )
                     .into(),
-                )
-                .region(0)
-                .ok()?
-                .first_block()?;
+                ),
+            )?;
 
             rewriter.set_insertion_point_before(body.terminator()?);
 
@@ -333,13 +335,13 @@ fn lower_to_loops<'c, 'r>(
     true
 }
 
-fn load_element<'c, 'r>(
+fn load_element<'c, 'a>(
     context: &'c Context,
-    rewriter: &'r RewriterBase<'c, '_>,
+    rewriter: &'a RewriterBase<'c, '_>,
     memref: Value<'c, '_>,
     indices: &[Value<'c, '_>],
     location: Location<'c>,
-) -> Option<Value<'c, 'r>> {
+) -> Option<Value<'c, 'a>> {
     rewriter
         .insert(
             affine::load(
@@ -363,11 +365,11 @@ fn load_element<'c, 'r>(
 // Allocates a memory reference for a result tensor of an operation at the
 // beginning of its block and deallocates it before the terminator. This is fine
 // as Toy functions have no control flow.
-fn allocate_result<'c, 'r>(
+fn allocate_result<'c, 'a>(
     context: &'c Context,
-    rewriter: &'r RewriterBase<'c, '_>,
+    rewriter: &'a RewriterBase<'c, '_>,
     operation: OperationRef<'c, '_>,
-) -> Option<(Value<'c, 'r>, Vec<u64>)> {
+) -> Option<(Value<'c, 'a>, Vec<u64>)> {
     let result_type = RankedTensorType::try_from(operation.result(0).ok()?.r#type()).ok()?;
     let shape = (0..result_type.rank())
         .map(|index| match result_type.dim_size(index) {
@@ -431,11 +433,7 @@ fn lower_function<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewrite
     ) else {
         return false;
     };
-    let Some(old_block) = operation
-        .region(0)
-        .ok()
-        .and_then(|region| region.first_block())
-    else {
+    let Some(old_block) = body_block(operation) else {
         return false;
     };
 
@@ -449,8 +447,8 @@ fn lower_function<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewrite
     let region = Region::new();
     region.append_block(body);
 
-    let Some(new_block) = rewriter
-        .insert(
+    let Some(new_block) = body_block(
+        rewriter.insert(
             func::func(
                 context,
                 region,
@@ -459,11 +457,8 @@ fn lower_function<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewrite
                 operation.location(),
             )
             .into(),
-        )
-        .region(0)
-        .ok()
-        .and_then(|region| region.first_block())
-    else {
+        ),
+    ) else {
         return false;
     };
 
@@ -494,7 +489,10 @@ fn lower_return<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewriter<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::compile::{Action, create_context, tests::compile};
+    use crate::{
+        compile::{Action, create_context},
+        test::compile,
+    };
     use indoc::indoc;
 
     fn lower_source(source: &str, optimize: bool) -> Result<String, Error> {
@@ -585,7 +583,7 @@ mod tests {
     #[test]
     fn fail_to_lower_constant_with_mismatched_shape() {
         let context = create_context();
-        let mut module = melior::ir::Module::parse(
+        let mut module = Module::parse(
             &context,
             indoc!(
                 r#"
@@ -608,7 +606,7 @@ mod tests {
     #[test]
     fn fail_to_lower_non_utf8_operation_name() {
         let context = create_context();
-        let mut module = melior::ir::Module::parse(
+        let mut module = Module::parse(
             &context,
             indoc!(
                 r#"

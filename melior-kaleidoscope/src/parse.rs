@@ -54,7 +54,7 @@ fn location_at(line_starts: &[usize], offset: usize) -> Location {
     Location::new(line, offset - line_starts[line - 1] + 1)
 }
 
-fn module(input: &mut Input<'_>) -> ModalResult<Vec<Record>> {
+fn module(input: &mut Input) -> ModalResult<Vec<Record>> {
     terminated(
         repeat(0.., record),
         token(eof).context(StrContext::Expected(StrContextValue::Description(
@@ -64,7 +64,7 @@ fn module(input: &mut Input<'_>) -> ModalResult<Vec<Record>> {
     .parse_next(input)
 }
 
-fn record(input: &mut Input<'_>) -> ModalResult<Record> {
+fn record(input: &mut Input) -> ModalResult<Record> {
     token(alt((
         function.map(Record::Function),
         r#struct.map(Record::Struct),
@@ -72,13 +72,13 @@ fn record(input: &mut Input<'_>) -> ModalResult<Record> {
     .parse_next(input)
 }
 
-fn function(input: &mut Input<'_>) -> ModalResult<Function> {
+fn function(input: &mut Input) -> ModalResult<Function> {
     (prototype, cut_err(block))
         .map(|(prototype, body)| Function::new(prototype, body))
         .parse_next(input)
 }
 
-fn prototype(input: &mut Input<'_>) -> ModalResult<Prototype> {
+fn prototype(input: &mut Input) -> ModalResult<Prototype> {
     (
         located(keyword("def")),
         cut_err((
@@ -94,7 +94,7 @@ fn prototype(input: &mut Input<'_>) -> ModalResult<Prototype> {
         .parse_next(input)
 }
 
-fn parameter(input: &mut Input<'_>) -> ModalResult<VariableDeclaration> {
+fn parameter(input: &mut Input) -> ModalResult<VariableDeclaration> {
     (located(identifier), opt(identifier))
         .map(|((location, name), type_name)| {
             VariableDeclaration::new(
@@ -110,7 +110,7 @@ fn parameter(input: &mut Input<'_>) -> ModalResult<VariableDeclaration> {
         .parse_next(input)
 }
 
-fn r#struct(input: &mut Input<'_>) -> ModalResult<Struct> {
+fn r#struct(input: &mut Input) -> ModalResult<Struct> {
     (
         located(keyword("struct")),
         cut_err((
@@ -126,7 +126,7 @@ fn r#struct(input: &mut Input<'_>) -> ModalResult<Struct> {
         .parse_next(input)
 }
 
-fn block(input: &mut Input<'_>) -> ModalResult<Vec<Statement>> {
+fn block(input: &mut Input) -> ModalResult<Vec<Statement>> {
     delimited(
         symbol('{'),
         preceded(
@@ -141,11 +141,11 @@ fn block(input: &mut Input<'_>) -> ModalResult<Vec<Statement>> {
     .parse_next(input)
 }
 
-fn semicolons(input: &mut Input<'_>) -> ModalResult<()> {
+fn semicolons(input: &mut Input) -> ModalResult<()> {
     repeat(0.., symbol(';')).parse_next(input)
 }
 
-fn statement(input: &mut Input<'_>) -> ModalResult<Statement> {
+fn statement(input: &mut Input) -> ModalResult<Statement> {
     token(alt((
         print_statement.map(Statement::Print),
         return_statement.map(Statement::Return),
@@ -155,7 +155,7 @@ fn statement(input: &mut Input<'_>) -> ModalResult<Statement> {
     .parse_next(input)
 }
 
-fn print_statement(input: &mut Input<'_>) -> ModalResult<Print> {
+fn print_statement(input: &mut Input) -> ModalResult<Print> {
     (
         located(keyword("print")),
         cut_err(delimited(symbol('('), expression, symbol(')'))),
@@ -164,7 +164,7 @@ fn print_statement(input: &mut Input<'_>) -> ModalResult<Print> {
         .parse_next(input)
 }
 
-fn return_statement(input: &mut Input<'_>) -> ModalResult<Return> {
+fn return_statement(input: &mut Input) -> ModalResult<Return> {
     (located(keyword("return")), opt(expression))
         .map(|((location, _), value)| Return::new(value, location))
         .parse_next(input)
@@ -172,7 +172,7 @@ fn return_statement(input: &mut Input<'_>) -> ModalResult<Return> {
 
 // A variable declaration is either a `var` declaration with an optional shape
 // or a declaration with a struct type name.
-fn variable_declaration(input: &mut Input<'_>) -> ModalResult<VariableDeclaration> {
+fn variable_declaration(input: &mut Input) -> ModalResult<VariableDeclaration> {
     alt((
         (located(keyword("var")), cut_err((identifier, opt(shape)))).map(
             |((location, _), (name, shape))| {
@@ -186,7 +186,7 @@ fn variable_declaration(input: &mut Input<'_>) -> ModalResult<VariableDeclaratio
     .parse_next(input)
 }
 
-fn variable_definition(input: &mut Input<'_>) -> ModalResult<VariableDefinition> {
+fn variable_definition(input: &mut Input) -> ModalResult<VariableDefinition> {
     (
         variable_declaration,
         cut_err(preceded(symbol('='), expression)),
@@ -195,7 +195,7 @@ fn variable_definition(input: &mut Input<'_>) -> ModalResult<VariableDefinition>
         .parse_next(input)
 }
 
-fn shape(input: &mut Input<'_>) -> ModalResult<Vec<u64>> {
+fn shape(input: &mut Input) -> ModalResult<Vec<u64>> {
     delimited(
         symbol('<'),
         cut_err(separated(0.., token(dec_uint::<_, u64, _>), symbol(','))),
@@ -204,7 +204,7 @@ fn shape(input: &mut Input<'_>) -> ModalResult<Vec<u64>> {
     .parse_next(input)
 }
 
-fn expression(input: &mut Input<'_>) -> ModalResult<Expression> {
+fn expression(input: &mut Input) -> ModalResult<Expression> {
     label(
         token(combinator::expression(primary).infix(token(dispatch! {any;
             '+' => empty.map(|()| Infix::Left(20, |_, lhs, rhs| Ok(binary(BinaryOperator::Add, lhs, rhs)))),
@@ -233,7 +233,7 @@ fn first_location(expression: &Expression) -> Location {
     }
 }
 
-fn primary(input: &mut Input<'_>) -> ModalResult<Expression> {
+fn primary(input: &mut Input) -> ModalResult<Expression> {
     alt((
         call_or_variable,
         number.map(Expression::Number),
@@ -244,7 +244,7 @@ fn primary(input: &mut Input<'_>) -> ModalResult<Expression> {
     .parse_next(input)
 }
 
-fn call_or_variable(input: &mut Input<'_>) -> ModalResult<Expression> {
+fn call_or_variable(input: &mut Input) -> ModalResult<Expression> {
     let (location, name) = located(identifier).parse_next(input)?;
 
     Ok(if let Some(arguments) = opt(arguments).parse_next(input)? {
@@ -254,7 +254,7 @@ fn call_or_variable(input: &mut Input<'_>) -> ModalResult<Expression> {
     })
 }
 
-fn arguments(input: &mut Input<'_>) -> ModalResult<Vec<Expression>> {
+fn arguments(input: &mut Input) -> ModalResult<Vec<Expression>> {
     delimited(
         symbol('('),
         cut_err(separated(0.., expression, symbol(','))),
@@ -263,7 +263,7 @@ fn arguments(input: &mut Input<'_>) -> ModalResult<Vec<Expression>> {
     .parse_next(input)
 }
 
-fn tensor_literal(input: &mut Input<'_>) -> ModalResult<Literal> {
+fn tensor_literal(input: &mut Input) -> ModalResult<Literal> {
     let (location, values): (_, Vec<_>) = located(delimited(
         symbol('['),
         cut_err(separated(
@@ -300,7 +300,7 @@ fn tensor_literal(input: &mut Input<'_>) -> ModalResult<Literal> {
     Ok(Literal::new(values, dimensions, location))
 }
 
-fn struct_literal(input: &mut Input<'_>) -> ModalResult<StructLiteral> {
+fn struct_literal(input: &mut Input) -> ModalResult<StructLiteral> {
     located(delimited(
         symbol('{'),
         cut_err(separated(
@@ -318,7 +318,7 @@ fn struct_literal(input: &mut Input<'_>) -> ModalResult<StructLiteral> {
     .parse_next(input)
 }
 
-fn number(input: &mut Input<'_>) -> ModalResult<Number> {
+fn number(input: &mut Input) -> ModalResult<Number> {
     located(
         (
             digit1,
@@ -333,7 +333,7 @@ fn number(input: &mut Input<'_>) -> ModalResult<Number> {
     .parse_next(input)
 }
 
-fn identifier(input: &mut Input<'_>) -> ModalResult<String> {
+fn identifier(input: &mut Input) -> ModalResult<String> {
     token(word.verify(|word: &str| !KEYWORDS.contains(&word)))
         .map(String::from)
         .context(StrContext::Expected(StrContextValue::Description(
@@ -369,7 +369,7 @@ fn located<'a, O>(
     token((location, parser))
 }
 
-fn location(input: &mut Input<'_>) -> ModalResult<Location> {
+fn location(input: &mut Input) -> ModalResult<Location> {
     Ok(location_at(input.state, input.current_token_start()))
 }
 
@@ -400,7 +400,7 @@ fn label<'a, O>(
 }
 
 // Comments start with `#` and last until the ends of lines.
-fn whitespace(input: &mut Input<'_>) -> ModalResult<()> {
+fn whitespace(input: &mut Input) -> ModalResult<()> {
     repeat(
         0..,
         alt((

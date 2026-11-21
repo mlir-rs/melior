@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn fail_to_infer_unknown_operation() {
         let context = create_context();
-        let module = melior::ir::Module::parse(
+        let module = Module::parse(
             &context,
             indoc!(
                 r#"
@@ -196,7 +196,7 @@ mod tests {
     #[test]
     fn fail_to_infer_non_utf8_operation_name() {
         let context = create_context();
-        let module = melior::ir::Module::parse(
+        let module = Module::parse(
             &context,
             indoc!(
                 r#"
