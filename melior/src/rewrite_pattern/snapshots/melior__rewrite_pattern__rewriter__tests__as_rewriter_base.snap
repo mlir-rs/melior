@@ -1,5 +1,5 @@
 ---
-source: melior/src/rewrite_pattern.rs
+source: melior/src/rewrite_pattern/rewriter.rs
 expression: module.as_operation()
 ---
 module {
