@@ -1,76 +1,18 @@
+mod frozen_set;
+mod rewriter;
+mod set;
+
+pub use self::{
+    frozen_set::FrozenRewritePatternSet, rewriter::PatternRewriter, set::RewritePatternSet,
+};
 use crate::{
-    context::Context, ir::OperationRef, ir_rewriter::RewriterBase, logical_result::LogicalResult,
-    string_ref::StringRef,
+    context::Context, ir::OperationRef, logical_result::LogicalResult, string_ref::StringRef,
 };
-use core::{cell::Cell, ffi::c_void, marker::PhantomData, mem::forget};
+use core::ffi::c_void;
 use mlir_sys::{
-    MlirFrozenRewritePatternSet, MlirOperation, MlirPatternRewriter, MlirRewritePattern,
-    MlirRewritePatternCallbacks, MlirRewritePatternSet, mlirFreezeRewritePattern,
-    mlirFrozenRewritePatternSetDestroy, mlirOpRewritePatternCreate, mlirPatternRewriterAsBase,
-    mlirRewritePatternSetAdd, mlirRewritePatternSetCreate, mlirRewritePatternSetDestroy,
+    MlirOperation, MlirPatternRewriter, MlirRewritePattern, MlirRewritePatternCallbacks,
+    mlirOpRewritePatternCreate,
 };
-
-/// A set of rewrite patterns.
-pub struct RewritePatternSet<'c> {
-    raw: MlirRewritePatternSet,
-    _context: PhantomData<&'c Context>,
-}
-
-impl<'c> RewritePatternSet<'c> {
-    /// Creates a rewrite pattern set.
-    pub fn new(context: &'c Context) -> Self {
-        Self {
-            raw: unsafe { mlirRewritePatternSetCreate(context.to_raw()) },
-            _context: Default::default(),
-        }
-    }
-
-    /// Adds a pattern to the set. The pattern's ownership is transferred.
-    pub fn add(&self, pattern: RewritePattern) {
-        unsafe { mlirRewritePatternSetAdd(self.raw, pattern.into_raw()) }
-    }
-
-    /// Freezes the pattern set into a frozen set. Consumes self.
-    pub fn freeze(self) -> FrozenRewritePatternSet {
-        FrozenRewritePatternSet {
-            raw: unsafe { mlirFreezeRewritePattern(self.raw) },
-        }
-    }
-}
-
-impl Drop for RewritePatternSet<'_> {
-    fn drop(&mut self) {
-        unsafe { mlirRewritePatternSetDestroy(self.raw) }
-    }
-}
-
-/// A frozen (immutable) rewrite pattern set.
-pub struct FrozenRewritePatternSet {
-    raw: MlirFrozenRewritePatternSet,
-}
-
-impl FrozenRewritePatternSet {
-    /// Converts the frozen pattern set into a raw object.
-    pub const fn to_raw(&self) -> MlirFrozenRewritePatternSet {
-        self.raw
-    }
-
-    /// Converts the frozen pattern set into a raw object, transferring
-    /// ownership.
-    pub const fn into_raw(self) -> MlirFrozenRewritePatternSet {
-        let raw = self.raw;
-
-        forget(self);
-
-        raw
-    }
-}
-
-impl Drop for FrozenRewritePatternSet {
-    fn drop(&mut self) {
-        unsafe { mlirFrozenRewritePatternSetDestroy(self.raw) }
-    }
-}
 
 /// A single rewrite pattern.
 #[must_use = "add to a RewritePatternSet or resources will leak"]
@@ -82,36 +24,6 @@ impl RewritePattern {
     /// Converts the pattern into a raw object, transferring ownership.
     pub const fn into_raw(self) -> MlirRewritePattern {
         self.raw
-    }
-}
-
-/// A pattern rewriter available inside a match-and-rewrite callback.
-///
-/// This is a non-owning reference; it must not outlive the callback invocation.
-#[derive(Clone, Copy)]
-pub struct PatternRewriter<'c, 'a> {
-    raw: MlirPatternRewriter,
-    _context: PhantomData<Cell<&'c Context>>,
-    _reference: PhantomData<&'a MlirPatternRewriter>,
-}
-
-impl<'c> PatternRewriter<'c, '_> {
-    /// Creates a pattern rewriter from a raw object.
-    ///
-    /// # Safety
-    ///
-    /// A raw object must be valid.
-    pub const unsafe fn from_raw(raw: MlirPatternRewriter) -> Self {
-        Self {
-            raw,
-            _context: PhantomData,
-            _reference: PhantomData,
-        }
-    }
-
-    /// Returns the underlying rewriter base.
-    pub fn as_rewriter_base(&self) -> RewriterBase<'c, '_> {
-        unsafe { RewriterBase::from_raw(mlirPatternRewriterAsBase(self.raw)) }
     }
 }
 
@@ -188,27 +100,11 @@ where
 mod tests {
     use super::*;
     use crate::{
-        Context,
         greedy_rewrite_driver::{GreedyRewriteDriverConfig, apply_patterns_and_fold_greedily},
         ir::{Location, Module},
         test::create_test_context,
     };
     use indoc::indoc;
-
-    #[test]
-    fn new_pattern_set() {
-        let context = Context::new();
-
-        RewritePatternSet::new(&context);
-    }
-
-    #[test]
-    fn freeze_pattern_set() {
-        let context = Context::new();
-
-        let set = RewritePatternSet::new(&context);
-        let _frozen = set.freeze();
-    }
 
     #[test]
     fn apply_frozen_patterns() {
@@ -263,46 +159,6 @@ mod tests {
         let config = GreedyRewriteDriverConfig::new();
 
         assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
-    }
-
-    #[test]
-    fn pattern_rewriter_as_rewriter_base() {
-        let context = create_test_context();
-        let mut module = Module::parse(
-            &context,
-            indoc!(
-                "
-                func.func private @foo()
-
-                func.func @bar() {
-                    func.call @foo() : () -> ()
-                    return
-                }
-                "
-            ),
-        )
-        .unwrap();
-
-        let pattern = create_op_rewrite_pattern(
-            "func.call",
-            1,
-            &context,
-            |op, rewriter| {
-                rewriter.as_rewriter_base().erase_op(op);
-
-                true
-            },
-            &[],
-        );
-
-        let set = RewritePatternSet::new(&context);
-        set.add(pattern);
-
-        let frozen = set.freeze();
-        let config = GreedyRewriteDriverConfig::new();
-
-        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
-        insta::assert_snapshot!(module.as_operation());
     }
 
     #[test]
