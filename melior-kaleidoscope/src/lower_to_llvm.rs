@@ -3,8 +3,8 @@ use crate::{
     utility::{body_block, check_lowering, is_operation, symbol_name},
 };
 use melior::{
-    Context, GreedyRewriteDriverConfig, PatternRewriter, RewritePatternSet, RewriterBase,
-    apply_patterns_and_fold_greedily, create_op_rewrite_pattern,
+    Context, GreedyRewriteDriverConfig, PatternRewriter, RewritePattern, RewritePatternSet,
+    RewriterBase, apply_patterns_and_fold_greedily,
     dialect::{
         llvm::{
             attributes::{Linkage, linkage},
@@ -30,7 +30,7 @@ use melior::{
 pub fn lower_to_llvm<'c>(context: &'c Context, module: &mut Module<'c>) -> Result<(), Error> {
     let patterns = RewritePatternSet::new(context);
 
-    patterns.add(create_op_rewrite_pattern(
+    patterns.add(RewritePattern::new(
         "toy.print",
         1,
         context,
