@@ -49,6 +49,7 @@
     "mlir",
     "mulf",
     "muli",
+    "mxint",
     "nhwc",
     "nvgpu",
     "nvvm",

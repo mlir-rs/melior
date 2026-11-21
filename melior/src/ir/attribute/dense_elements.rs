@@ -7,10 +7,10 @@ use crate::{
     ir::{Type, TypeLike},
 };
 use mlir_sys::{
-    MlirAttribute, MlirStringRef, mlirComplexTypeGetElementType, mlirDenseElementsAttrBoolGet,
-    mlirDenseElementsAttrBoolSplatGet, mlirDenseElementsAttrDoubleGet,
-    mlirDenseElementsAttrDoubleSplatGet, mlirDenseElementsAttrFloatGet,
-    mlirDenseElementsAttrFloatSplatGet, mlirDenseElementsAttrGet,
+    MlirAttribute, MlirStringRef, mlirAttributeGetTypeID, mlirComplexTypeGetElementType,
+    mlirDenseElementsAttrBoolGet, mlirDenseElementsAttrBoolSplatGet,
+    mlirDenseElementsAttrDoubleGet, mlirDenseElementsAttrDoubleSplatGet,
+    mlirDenseElementsAttrFloatGet, mlirDenseElementsAttrFloatSplatGet, mlirDenseElementsAttrGet,
     mlirDenseElementsAttrGetBoolSplatValue, mlirDenseElementsAttrGetBoolValue,
     mlirDenseElementsAttrGetDoubleSplatValue, mlirDenseElementsAttrGetDoubleValue,
     mlirDenseElementsAttrGetFloatSplatValue, mlirDenseElementsAttrGetFloatValue,
@@ -30,8 +30,9 @@ use mlir_sys::{
     mlirDenseElementsAttrReshapeGet, mlirDenseElementsAttrSplatGet, mlirDenseElementsAttrStringGet,
     mlirDenseElementsAttrUInt8Get, mlirDenseElementsAttrUInt16Get, mlirDenseElementsAttrUInt32Get,
     mlirDenseElementsAttrUInt32SplatGet, mlirDenseElementsAttrUInt64Get,
-    mlirDenseElementsAttrUInt64SplatGet, mlirElementsAttrGetNumElements, mlirShapedTypeGetDimSize,
-    mlirShapedTypeGetElementType, mlirShapedTypeGetRank, mlirShapedTypeHasStaticShape,
+    mlirDenseElementsAttrUInt64SplatGet, mlirDenseTypedElementsAttrGetTypeID,
+    mlirElementsAttrGetNumElements, mlirShapedTypeGetDimSize, mlirShapedTypeGetElementType,
+    mlirShapedTypeGetRank, mlirShapedTypeHasStaticShape, mlirTypeIDEqual,
 };
 
 macro_rules! dense_elements_constructor {
@@ -88,7 +89,7 @@ macro_rules! dense_elements_splat_accessor {
     ($name:ident, $type:ty, $function:ident) => {
         #[doc = concat!(" Returns the ", stringify!($type), " splat value.")]
         pub fn $name(&self) -> Result<$type, Error> {
-            self.check_splat::<$type>(stringify!($type))?;
+            self.check_splat(self.has_elements::<$type>(), stringify!($type))?;
 
             Ok(unsafe { $function(self.attribute.to_raw()) })
         }
@@ -106,12 +107,17 @@ impl<'c> DenseElementsAttribute<'c> {
     pub fn new(r#type: Type<'c>, values: &[Attribute<'c>]) -> Result<Self, Error> {
         Self::check_attributes(r#type, values)?;
 
-        Ok(unsafe {
-            Self::from_raw(mlirDenseElementsAttrGet(
+        unsafe {
+            Attribute::from_option_raw(mlirDenseElementsAttrGet(
                 r#type.to_raw(),
                 values.len() as isize,
                 values.as_ptr() as *const _ as *const _,
             ))
+        }
+        .map(|attribute| Self { attribute })
+        .ok_or_else(|| Error::ElementExpected {
+            r#type: "string",
+            value: r#type.to_string(),
         })
     }
 
@@ -185,11 +191,16 @@ impl<'c> DenseElementsAttribute<'c> {
     pub fn splat(r#type: Type<'c>, element: Attribute<'c>) -> Result<Self, Error> {
         Self::check_attributes(r#type, &[element])?;
 
-        Ok(unsafe {
-            Self::from_raw(mlirDenseElementsAttrSplatGet(
+        unsafe {
+            Attribute::from_option_raw(mlirDenseElementsAttrSplatGet(
                 r#type.to_raw(),
                 element.to_raw(),
             ))
+        }
+        .map(|attribute| Self { attribute })
+        .ok_or_else(|| Error::ElementExpected {
+            r#type: "string",
+            value: r#type.to_string(),
         })
     }
 
@@ -227,7 +238,7 @@ impl<'c> DenseElementsAttribute<'c> {
     pub fn reshape(&self, r#type: Type<'c>) -> Result<Self, Error> {
         let count = Self::element_count(r#type)?;
 
-        if self.has_elements::<StringRef>() {
+        if !self.is_typed() {
             Err(Error::AttributeExpected(
                 "numeric dense elements",
                 self.to_string(),
@@ -255,13 +266,13 @@ impl<'c> DenseElementsAttribute<'c> {
 
     /// Returns a raw pointer to the packed element data.
     pub fn raw_data(&self) -> Result<*const core::ffi::c_void, Error> {
-        if self.has_elements::<StringRef>() {
+        if self.is_typed() {
+            Ok(unsafe { mlirDenseElementsAttrGetRawData(self.attribute.to_raw()) })
+        } else {
             Err(Error::AttributeExpected(
                 "numeric dense elements",
                 self.to_string(),
             ))
-        } else {
-            Ok(unsafe { mlirDenseElementsAttrGetRawData(self.attribute.to_raw()) })
         }
     }
 
@@ -305,7 +316,7 @@ impl<'c> DenseElementsAttribute<'c> {
 
     /// Returns a string element at the given index.
     pub fn string_element(&self, index: usize) -> Result<&str, Error> {
-        if !self.has_elements::<StringRef>() {
+        if self.is_typed() {
             Err(Error::ElementExpected {
                 r#type: "string",
                 value: self.to_string(),
@@ -350,7 +361,7 @@ impl<'c> DenseElementsAttribute<'c> {
 
     /// Returns the bool splat value. Non-zero means true.
     pub fn bool_splat_value(&self) -> Result<bool, Error> {
-        self.check_splat::<bool>("bool")?;
+        self.check_splat(self.has_elements::<bool>(), "bool")?;
 
         Ok(unsafe { mlirDenseElementsAttrGetBoolSplatValue(self.attribute.to_raw()) != 0 })
     }
@@ -389,7 +400,7 @@ impl<'c> DenseElementsAttribute<'c> {
 
     /// Returns the string splat value.
     pub fn string_splat_value(&self) -> Result<&str, Error> {
-        self.check_splat::<StringRef>("string")?;
+        self.check_splat(!self.is_typed(), "string")?;
 
         let raw = unsafe { mlirDenseElementsAttrGetStringSplatValue(self.attribute.to_raw()) };
 
@@ -405,12 +416,21 @@ impl<'c> DenseElementsAttribute<'c> {
         Self::shaped_element_type(self.attribute.r#type())
     }
 
-    fn has_elements<T: DenseElement>(&self) -> bool {
-        T::matches(self.element_type())
+    fn is_typed(&self) -> bool {
+        unsafe {
+            mlirTypeIDEqual(
+                mlirAttributeGetTypeID(self.attribute.to_raw()),
+                mlirDenseTypedElementsAttrGetTypeID(),
+            )
+        }
     }
 
-    fn check_splat<T: DenseElement>(&self, name: &'static str) -> Result<(), Error> {
-        if !self.has_elements::<T>() {
+    fn has_elements<T: DenseElement>(&self) -> bool {
+        self.is_typed() && T::matches(self.element_type())
+    }
+
+    fn check_splat(&self, matched: bool, name: &'static str) -> Result<(), Error> {
+        if !matched {
             return Err(Error::ElementExpected {
                 r#type: name,
                 value: self.to_string(),
@@ -522,7 +542,7 @@ mod tests {
     use super::*;
     use crate::{
         ir::{
-            attribute::IntegerAttribute,
+            attribute::{IntegerAttribute, StringAttribute},
             r#type::{IntegerType, MemRefType, RankedTensorType},
         },
         test::create_test_context,
@@ -546,6 +566,22 @@ mod tests {
     fn f64_tensor_type<'c>(context: &'c crate::Context, len: u64) -> Type<'c> {
         let element = Type::float64(context);
         RankedTensorType::new(&[len], element, None).into()
+    }
+
+    fn mxint8_elements<'c>(context: &'c crate::Context) -> DenseElementsAttribute<'c> {
+        Attribute::parse(
+            context,
+            &format!(
+                "dense<tensor<16x!tosa.mxint8> : [{}]>",
+                (0..16)
+                    .map(|index| format!("{index} : i8"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+        )
+        .unwrap()
+        .try_into()
+        .unwrap()
     }
 
     #[test]
@@ -733,6 +769,19 @@ mod tests {
     }
 
     #[test]
+    fn string_values_with_dense_element_type() {
+        let context = create_test_context();
+        let attribute = DenseElementsAttribute::string_values(
+            Type::parse(&context, "tensor<1x!tosa.mxint8>").unwrap(),
+            &[StringRef::new("foo")],
+        )
+        .unwrap();
+
+        assert_eq!(attribute.string_element(0), Ok("foo"));
+        assert_eq!(attribute.string_splat_value(), Ok("foo"));
+    }
+
+    #[test]
     fn splat_i32() {
         let context = create_test_context();
         let attr = DenseElementsAttribute::i32_splat(i32_tensor_type(&context, 4), 77).unwrap();
@@ -845,6 +894,13 @@ mod tests {
     }
 
     #[test]
+    fn raw_data_of_dialect_elements() {
+        let context = create_test_context();
+
+        assert!(!mxint8_elements(&context).raw_data().unwrap().is_null());
+    }
+
+    #[test]
     fn reshape() {
         let context = create_test_context();
         let element = IntegerType::new(&context, 32).into();
@@ -855,6 +911,19 @@ mod tests {
         assert_eq!(reshaped.len(), 6);
         assert_eq!(reshaped.i32_element(0), Ok(1));
         assert_eq!(reshaped.i32_element(5), Ok(6));
+    }
+
+    #[test]
+    fn reshape_dialect_elements() {
+        let context = create_test_context();
+
+        assert_eq!(
+            mxint8_elements(&context)
+                .reshape(Type::parse(&context, "tensor<4x4x!tosa.mxint8>").unwrap())
+                .unwrap()
+                .len(),
+            16
+        );
     }
 
     #[test]
@@ -985,6 +1054,26 @@ mod tests {
     }
 
     #[test]
+    fn fail_to_create_with_string_for_dense_element_type() {
+        let context = create_test_context();
+        let r#type = Type::parse(&context, "tensor<1x!tosa.mxint8>").unwrap();
+        let attribute = StringAttribute::new(&context, "foo").into();
+        let error = Error::ElementExpected {
+            r#type: "string",
+            value: "tensor<1x!tosa.mxint8>".into(),
+        };
+
+        assert_eq!(
+            DenseElementsAttribute::new(r#type, &[attribute]).unwrap_err(),
+            error
+        );
+        assert_eq!(
+            DenseElementsAttribute::splat(r#type, attribute).unwrap_err(),
+            error
+        );
+    }
+
+    #[test]
     fn fail_to_create_splat_with_wrong_element_type() {
         let context = create_test_context();
 
@@ -1036,6 +1125,56 @@ mod tests {
                 r#type: "string",
                 value: attribute.to_string()
             })
+        );
+    }
+
+    #[test]
+    fn fail_to_get_string_element_of_dialect_elements() {
+        let context = create_test_context();
+        let attribute = mxint8_elements(&context);
+
+        assert_eq!(
+            attribute.string_element(0),
+            Err(Error::ElementExpected {
+                r#type: "string",
+                value: attribute.to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn fail_to_get_string_splat_value_of_dialect_elements() {
+        let context = create_test_context();
+        let attribute = DenseElementsAttribute::try_from(
+            Attribute::parse(&context, "dense<tensor<4x!tosa.mxint8> : 65 : i8>").unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            attribute.string_splat_value(),
+            Err(Error::ElementExpected {
+                r#type: "string",
+                value: attribute.to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn fail_to_get_string_splat_value_of_non_splat() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let attribute = DenseElementsAttribute::string_values(
+            Type::parse(&context, "tensor<2x!foo.string>").unwrap(),
+            &[StringRef::new("foo"), StringRef::new("bar")],
+        )
+        .unwrap();
+
+        assert_eq!(
+            attribute.string_splat_value(),
+            Err(Error::AttributeExpected(
+                "splat dense elements",
+                attribute.to_string()
+            ))
         );
     }
 
@@ -1141,6 +1280,20 @@ mod tests {
                 "numeric dense elements",
                 attribute.to_string()
             ))
+        );
+    }
+
+    #[test]
+    fn fail_to_reshape_strings() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let r#type = Type::parse(&context, "tensor<1x!foo.string>").unwrap();
+        let attribute =
+            DenseElementsAttribute::string_values(r#type, &[StringRef::new("foo")]).unwrap();
+
+        assert_eq!(
+            attribute.reshape(r#type).unwrap_err(),
+            Error::AttributeExpected("numeric dense elements", attribute.to_string())
         );
     }
 
