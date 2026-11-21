@@ -123,7 +123,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
                     return Err(error(
                         declaration.location(),
                         format!(
-                            "struct type of initializer is different than the variable declaration: got {}, but expected {type}",
+                            "struct type of initializer is different than the variable declaration: expected {type} but got {}",
                             value.r#type()
                         ),
                     ));
@@ -346,7 +346,7 @@ impl<'c, 'a, 'b> FunctionGenerator<'c, 'a, 'b> {
         let Some(function_type) = self.module.functions().get(call.callee()) else {
             return Err(error(
                 call.location(),
-                format!("function '{}' not found", call.callee()),
+                format!("unknown function '{}'", call.callee()),
             ));
         };
 

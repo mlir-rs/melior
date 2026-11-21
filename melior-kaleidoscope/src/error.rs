@@ -72,7 +72,7 @@ impl Display for Error {
             Self::CodeGeneration { location, message } => {
                 write!(formatter, "{location}: {message}")
             }
-            Self::FunctionNotFound(name) => write!(formatter, "function '{name}' not found"),
+            Self::FunctionNotFound(name) => write!(formatter, "unknown function '{name}'"),
             Self::InvalidFunction(name) => write!(formatter, "function '{name}' is invalid"),
             Self::Lowering(operation) => {
                 write!(formatter, "failed to lower operation: {operation}")
@@ -90,9 +90,9 @@ impl Display for Error {
                 formatter,
                 "call to function '{function}' expects {expected} results but got {actual}"
             ),
-            Self::ShapeInference(message) => write!(formatter, "shape inference failed: {message}"),
+            Self::ShapeInference(message) => write!(formatter, "failed to infer shapes: {message}"),
             Self::Syntax { location, message } => write!(formatter, "{location}: {message}"),
-            Self::Verification => write!(formatter, "module verification error"),
+            Self::Verification => write!(formatter, "failed to verify module"),
         }
     }
 }

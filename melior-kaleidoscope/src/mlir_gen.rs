@@ -90,7 +90,7 @@ mod tests {
     fn fail_to_generate_unknown_function() {
         assert!(matches!(
             generate_source("def main() { foo(1); }"),
-            Err(Error::CodeGeneration { message, .. }) if message == "function 'foo' not found"
+            Err(Error::CodeGeneration { message, .. }) if message == "unknown function 'foo'"
         ));
     }
 
@@ -109,6 +109,15 @@ mod tests {
             generate_source("def main() { var a = 1; var a = 2; }"),
             Err(Error::CodeGeneration { message, .. })
                 if message == "variable 'a' is already declared"
+        ));
+    }
+
+    #[test]
+    fn fail_to_generate_duplicate_struct() {
+        assert!(matches!(
+            generate_source("struct Foo { var a; } struct Foo { var a; }"),
+            Err(Error::CodeGeneration { message, .. })
+                if message == "struct type 'Foo' is already defined"
         ));
     }
 

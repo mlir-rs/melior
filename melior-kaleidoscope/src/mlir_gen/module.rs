@@ -74,7 +74,7 @@ impl<'c, 'a> ModuleGenerator<'c, 'a> {
         if self.structs.contains_key(r#struct.name()) {
             return Err(error(
                 r#struct.location(),
-                format!("struct type with name '{}' already exists", r#struct.name()),
+                format!("struct type '{}' is already defined", r#struct.name()),
             ));
         }
 
