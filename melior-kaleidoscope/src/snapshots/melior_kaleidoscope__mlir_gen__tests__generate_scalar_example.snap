@@ -1,0 +1,12 @@
+---
+source: melior-kaleidoscope/src/mlir_gen.rs
+expression: "generate_source(include_str!(\"../examples/scalar.toy\")).unwrap()"
+---
+module {
+  "toy.func"() ({
+    %0 = "toy.constant"() {value = dense<5.500000e+00> : tensor<f64>} : () -> tensor<f64>
+    %1 = "toy.reshape"(%0) : (tensor<f64>) -> tensor<2x2xf64>
+    "toy.print"(%1) : (tensor<2x2xf64>) -> ()
+    "toy.return"() : () -> ()
+  }) {function_type = () -> (), sym_name = "main"} : () -> ()
+}

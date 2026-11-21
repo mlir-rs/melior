@@ -1,0 +1,37 @@
+---
+source: melior-kaleidoscope/src/lower_to_llvm.rs
+expression: "lower_source(indoc!(\"\n                    def main() {\n                      print(1);\n                    }\n                    \"),\nfalse).unwrap()"
+---
+module {
+  llvm.func @free(!llvm.ptr)
+  llvm.func @malloc(i64) -> !llvm.ptr
+  llvm.mlir.global internal constant @newline("\0A\00") {addr_space = 0 : i32}
+  llvm.mlir.global internal constant @format_specifier("%f \00") {addr_space = 0 : i32}
+  llvm.func @printf(!llvm.ptr, ...) -> i32
+  llvm.func @main() attributes {llvm.emit_c_interface} {
+    %0 = llvm.mlir.addressof @format_specifier : !llvm.ptr
+    %1 = llvm.mlir.constant(1.000000e+00 : f64) : f64
+    %2 = llvm.mlir.constant(1 : index) : i64
+    %3 = llvm.mlir.zero : !llvm.ptr
+    %4 = llvm.getelementptr %3[%2] : (!llvm.ptr, i64) -> !llvm.ptr, f64
+    %5 = llvm.ptrtoint %4 : !llvm.ptr to i64
+    %6 = llvm.call @malloc(%5) : (i64) -> !llvm.ptr
+    %7 = llvm.mlir.poison : !llvm.struct<(ptr, ptr, i64)>
+    %8 = llvm.insertvalue %6, %7[0] : !llvm.struct<(ptr, ptr, i64)> 
+    %9 = llvm.insertvalue %6, %8[1] : !llvm.struct<(ptr, ptr, i64)> 
+    %10 = llvm.mlir.constant(0 : index) : i64
+    %11 = llvm.insertvalue %10, %9[2] : !llvm.struct<(ptr, ptr, i64)> 
+    %12 = llvm.extractvalue %11[1] : !llvm.struct<(ptr, ptr, i64)> 
+    llvm.store %1, %12 : f64, !llvm.ptr
+    %13 = llvm.extractvalue %11[1] : !llvm.struct<(ptr, ptr, i64)> 
+    %14 = llvm.load %13 : !llvm.ptr -> f64
+    %15 = llvm.call @printf(%0, %14) vararg(!llvm.func<i32 (ptr, ...)>) : (!llvm.ptr, f64) -> i32
+    %16 = llvm.extractvalue %11[0] : !llvm.struct<(ptr, ptr, i64)> 
+    llvm.call @free(%16) : (!llvm.ptr) -> ()
+    llvm.return
+  }
+  llvm.func @_mlir_ciface_main() attributes {llvm.emit_c_interface} {
+    llvm.call @main() : () -> ()
+    llvm.return
+  }
+}
