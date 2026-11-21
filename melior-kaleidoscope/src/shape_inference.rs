@@ -107,8 +107,8 @@ fn infer_shape(operation: OperationRef) -> Result<(), Error> {
 mod tests {
     use super::*;
     use crate::{
-        canonicalize::canonicalize, compile::create_context, inliner::inline_functions,
-        mlir_gen::generate, parse::parse,
+        canonicalize::canonicalize, compile::create_context, generate::generate,
+        inliner::inline_functions, parse::parse,
     };
     use indoc::indoc;
 

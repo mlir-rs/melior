@@ -1,7 +1,7 @@
 use crate::{
     compile::{Action, compile},
     error::Error,
-    mlir_gen::generate,
+    generate::generate,
     parse::parse,
 };
 use melior::{Context, ir::Module};

@@ -17,7 +17,7 @@ The `--emit` option selects an output like the tutorial's `-emit` option: `ast`,
 | Chapter                                                      | Implementation                                |
 | ------------------------------------------------------------ | --------------------------------------------- |
 | 1. Toy language and AST                                      | `src/parse.rs` and `src/ast.rs`               |
-| 2. Emitting basic MLIR                                       | `src/toy.td` and `src/mlir_gen.rs`            |
+| 2. Emitting basic MLIR                                       | `src/toy.td` and `src/generate.rs`            |
 | 3. High-level language-specific analysis and transformation  | `src/canonicalize.rs`                         |
 | 4. Enabling generic transformation with interfaces           | `src/inliner.rs` and `src/shape_inference.rs` |
 | 5. Partial lowering to lower-level dialects for optimization | `src/lower_to_affine.rs`                      |
