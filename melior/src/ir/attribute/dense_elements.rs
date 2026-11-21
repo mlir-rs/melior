@@ -4,7 +4,7 @@ use self::element::DenseElement;
 use super::{ArrayAttribute, Attribute, AttributeLike};
 use crate::{
     Error, StringRef,
-    ir::{Type, TypeLike},
+    ir::{Type, TypeLike, r#type::IntegerType},
 };
 use mlir_sys::{
     MlirAttribute, MlirStringRef, mlirComplexTypeGetElementType, mlirDenseElementsAttrBoolGet,
@@ -160,9 +160,10 @@ impl<'c> DenseElementsAttribute<'c> {
     /// Creates a dense elements attribute from a raw buffer of packed element
     /// data, or returns `None` if the buffer does not match the type.
     pub fn raw_buffer(r#type: Type<'c>, buffer: &[u8]) -> Option<Self> {
-        if Self::element_count(r#type).is_err()
-            || StringRef::matches(Self::shaped_element_type(r#type))
-        {
+        let count = Self::element_count(r#type).ok()?;
+        let size = Self::storage_size(Self::shaped_element_type(r#type))?;
+
+        if buffer.len() != size && Some(buffer.len()) != count.checked_mul(size) {
             return None;
         }
 
@@ -449,6 +450,23 @@ impl<'c> DenseElementsAttribute<'c> {
         unsafe { Type::from_raw(mlirShapedTypeGetElementType(r#type.to_raw())) }
     }
 
+    fn storage_size(r#type: Type<'c>) -> Option<usize> {
+        if r#type.is_index() {
+            Some(8)
+        } else if let Ok(r#type) = IntegerType::try_from(r#type) {
+            Some(r#type.width().div_ceil(8) as usize)
+        } else if r#type.is_float() {
+            Some(r#type.float_width().div_ceil(8) as usize)
+        } else if r#type.is_complex() {
+            Self::storage_size(unsafe {
+                Type::from_raw(mlirComplexTypeGetElementType(r#type.to_raw()))
+            })
+            .map(|size| 2 * size)
+        } else {
+            None
+        }
+    }
+
     const fn check_count(expected: usize, actual: usize) -> Result<(), Error> {
         if actual != 1 && actual != expected {
             return Err(Error::CountMismatch {
@@ -515,7 +533,35 @@ impl<'c> DenseElementsAttribute<'c> {
     }
 }
 
-attribute_traits!(DenseElementsAttribute, is_dense_elements, "dense elements");
+attribute_traits_no_try_from!(DenseElementsAttribute);
+
+impl<'c> TryFrom<Attribute<'c>> for DenseElementsAttribute<'c> {
+    type Error = Error;
+
+    fn try_from(attribute: Attribute<'c>) -> Result<Self, Self::Error> {
+        if !attribute.is_dense_elements() {
+            return Err(Error::AttributeExpected(
+                "dense elements",
+                attribute.to_string(),
+            ));
+        }
+
+        let attribute = Self { attribute };
+        let count = Self::element_count(attribute.r#type())?;
+
+        if !attribute.is_splat()
+            && Self::storage_size(attribute.element_type())
+                .is_some_and(|size| count.checked_mul(8 * size).is_none())
+        {
+            return Err(Error::TypeExpected(
+                "countable",
+                attribute.r#type().to_string(),
+            ));
+        }
+
+        Ok(attribute)
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -845,6 +891,84 @@ mod tests {
     }
 
     #[test]
+    fn raw_buffer_splat() {
+        let context = create_test_context();
+        let attribute =
+            DenseElementsAttribute::raw_buffer(i32_tensor_type(&context, 4), &42i32.to_ne_bytes())
+                .unwrap();
+
+        assert!(attribute.is_splat());
+        assert_eq!(attribute.i32_element(0), Ok(42));
+        assert_eq!(attribute.i32_element(3), Ok(42));
+    }
+
+    #[test]
+    fn raw_buffer_of_bools() {
+        let context = create_test_context();
+        let attribute = DenseElementsAttribute::raw_buffer(
+            Type::parse(&context, "tensor<2xi1>").unwrap(),
+            &[1, 0],
+        )
+        .unwrap();
+
+        assert_eq!(attribute.bool_element(0), Ok(true));
+        assert_eq!(attribute.bool_element(1), Ok(false));
+    }
+
+    #[test]
+    fn raw_buffer_of_indices() {
+        let context = create_test_context();
+        let attribute = DenseElementsAttribute::raw_buffer(
+            Type::parse(&context, "tensor<2xindex>").unwrap(),
+            &[1u64, 2].map(u64::to_ne_bytes).concat(),
+        )
+        .unwrap();
+
+        assert_eq!(attribute.index_element(0), Ok(1));
+        assert_eq!(attribute.index_element(1), Ok(2));
+    }
+
+    #[test]
+    fn raw_buffer_of_f16() {
+        let context = create_test_context();
+        let attribute = DenseElementsAttribute::raw_buffer(
+            Type::parse(&context, "tensor<2xf16>").unwrap(),
+            &[1, 2, 3, 4],
+        )
+        .unwrap();
+
+        assert!(!attribute.is_splat());
+        assert_eq!(attribute.len(), 2);
+    }
+
+    #[test]
+    fn raw_buffer_of_f80() {
+        let context = create_test_context();
+        let attribute = DenseElementsAttribute::raw_buffer(
+            Type::parse(&context, "tensor<2xf80>").unwrap(),
+            &[[1; 10], [2; 10]].concat(),
+        )
+        .unwrap();
+
+        assert!(!attribute.is_splat());
+        assert_eq!(attribute.len(), 2);
+    }
+
+    #[test]
+    fn raw_buffer_of_complex_numbers() {
+        let context = create_test_context();
+        let attribute = DenseElementsAttribute::raw_buffer(
+            RankedTensorType::new(&[2], Type::parse(&context, "complex<f32>").unwrap(), None)
+                .into(),
+            &[1f32, 2.0, 3.0, 4.0].map(f32::to_ne_bytes).concat(),
+        )
+        .unwrap();
+
+        assert!(!attribute.is_splat());
+        assert_eq!(attribute.len(), 2);
+    }
+
+    #[test]
     fn reshape() {
         let context = create_test_context();
         let element = IntegerType::new(&context, 32).into();
@@ -1007,6 +1131,34 @@ mod tests {
     }
 
     #[test]
+    fn fail_to_create_from_raw_buffer_with_overflowing_size() {
+        let context = create_test_context();
+
+        assert!(
+            DenseElementsAttribute::raw_buffer(
+                RankedTensorType::new(&[(1 << 61) + 2], IntegerType::new(&context, 8).into(), None)
+                    .into(),
+                &[1, 2]
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn fail_to_create_from_raw_buffer_with_opaque_element_type() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+
+        assert!(
+            DenseElementsAttribute::raw_buffer(
+                Type::parse(&context, "tensor<1x!foo.string>").unwrap(),
+                &[0]
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
     fn fail_to_get_element_of_wrong_width() {
         let context = create_test_context();
         let attribute = DenseElementsAttribute::i8_values(
@@ -1156,10 +1308,84 @@ mod tests {
     }
 
     #[test]
+    fn try_from_accepts_parsed_values() {
+        let context = create_test_context();
+        let attribute = DenseElementsAttribute::try_from(
+            Attribute::parse(&context, "dense<[1, 2, 3]> : tensor<3xi32>").unwrap(),
+        )
+        .unwrap();
+
+        assert!(!attribute.is_splat());
+        assert_eq!(attribute.i32_element(2), Ok(3));
+    }
+
+    #[test]
+    fn try_from_accepts_parsed_splat_of_large_shape() {
+        let context = create_test_context();
+        let attribute = DenseElementsAttribute::try_from(
+            Attribute::parse(&context, "dense<1> : tensor<4611686018427387904xi32>").unwrap(),
+        )
+        .unwrap();
+
+        assert!(attribute.is_splat());
+        assert_eq!(attribute.i32_element((1 << 62) - 1), Ok(1));
+    }
+
+    #[test]
+    fn try_from_accepts_parsed_strings() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let attribute = DenseElementsAttribute::try_from(
+            Attribute::parse(&context, r#"dense<["a", "b"]> : tensor<2x!foo.string>"#).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(attribute.len(), 2);
+    }
+
+    #[test]
+    fn try_from_accepts_parsed_empty_values() {
+        let context = create_test_context();
+        let attribute = DenseElementsAttribute::try_from(
+            Attribute::parse(&context, "dense<[]> : tensor<0xi32>").unwrap(),
+        )
+        .unwrap();
+
+        assert!(attribute.is_empty());
+    }
+
+    #[test]
     fn try_from_rejects_another_kind() {
         let context = create_test_context();
         let attribute = Attribute::unit(&context);
 
         assert!(DenseElementsAttribute::try_from(attribute).is_err());
+    }
+
+    #[test]
+    fn try_from_rejects_overflowing_storage_size() {
+        let context = create_test_context();
+        let attribute = Attribute::parse(
+            &context,
+            r#"dense<"0x41414141414141414242424242424242"> : tensor<2x144115188075855873xf64>"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            DenseElementsAttribute::try_from(attribute).unwrap_err(),
+            Error::TypeExpected("countable", "tensor<2x144115188075855873xf64>".into())
+        );
+    }
+
+    #[test]
+    fn try_from_rejects_overflowing_element_count() {
+        let context = create_test_context();
+        let attribute =
+            Attribute::parse(&context, "dense<1> : tensor<4611686018427387904x4xi32>").unwrap();
+
+        assert_eq!(
+            DenseElementsAttribute::try_from(attribute).unwrap_err(),
+            Error::TypeExpected("countable", "tensor<4611686018427387904x4xi32>".into())
+        );
     }
 }
