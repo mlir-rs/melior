@@ -101,13 +101,13 @@ mod tests {
     mod jit {
         use crate::{
             compile::{Action, create_context, run_jit},
-            test::compile,
+            test::compile_source,
         };
 
         #[test]
         fn print() {
             let context = create_context();
-            let module = compile(
+            let module = compile_source(
                 &context,
                 include_str!("../examples/jit.toy"),
                 Action::Jit,
@@ -121,7 +121,7 @@ mod tests {
         #[test]
         fn optimized_multiply_transpose() {
             let context = create_context();
-            let module = compile(
+            let module = compile_source(
                 &context,
                 include_str!("../examples/codegen.toy"),
                 Action::Jit,

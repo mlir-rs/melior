@@ -347,13 +347,13 @@ mod tests {
     use super::*;
     use crate::{
         compile::{Action, create_context},
-        test::compile,
+        test::compile_source,
     };
     use indoc::indoc;
 
     fn lower_source(source: &str, optimize: bool) -> Result<String, Error> {
         let context = create_context();
-        let module = compile(&context, source, Action::MlirLlvm, optimize)?;
+        let module = compile_source(&context, source, Action::MlirLlvm, optimize)?;
 
         assert!(module.as_operation().verify());
 

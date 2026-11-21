@@ -1,7 +1,12 @@
-use crate::{compile::Action, error::Error, mlir_gen::generate, parse::parse};
+use crate::{
+    compile::{Action, compile},
+    error::Error,
+    mlir_gen::generate,
+    parse::parse,
+};
 use melior::{Context, ir::Module};
 
-pub fn compile<'c>(
+pub fn compile_source<'c>(
     context: &'c Context,
     source: &str,
     action: Action,
@@ -9,7 +14,7 @@ pub fn compile<'c>(
 ) -> Result<Module<'c>, Error> {
     let mut module = generate(context, &parse(source, "test.toy")?)?;
 
-    crate::compile::compile(context, &mut module, action, optimize)?;
+    compile(context, &mut module, action, optimize)?;
 
     Ok(module)
 }
