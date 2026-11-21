@@ -9,7 +9,7 @@ mod location;
 mod lower_to_affine;
 mod lower_to_llvm;
 mod mlir_gen;
-pub mod parse;
+mod parse;
 mod shape_inference;
 #[cfg(test)]
 mod test;
@@ -24,6 +24,7 @@ pub use self::{
     lower_to_affine::lower_to_affine,
     lower_to_llvm::lower_to_llvm,
     mlir_gen::generate,
+    parse::parse,
     shape_inference::infer_shapes,
 };
 

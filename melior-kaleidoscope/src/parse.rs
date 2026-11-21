@@ -1,5 +1,3 @@
-//! A parser.
-
 use crate::{
     ast::{
         Binary, BinaryOperator, Call, Expression, Function, Literal, Module, Number, Print,
