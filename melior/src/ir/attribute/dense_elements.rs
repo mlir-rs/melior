@@ -541,6 +541,7 @@ attribute_traits!(DenseElementsAttribute, is_dense_elements, "dense elements");
 mod tests {
     use super::*;
     use crate::{
+        Context,
         ir::{
             attribute::{IntegerAttribute, StringAttribute},
             r#type::{IntegerType, MemRefType, RankedTensorType},
@@ -568,16 +569,10 @@ mod tests {
         RankedTensorType::new(&[len], element, None).into()
     }
 
-    fn mxint8_elements<'c>(context: &'c crate::Context) -> DenseElementsAttribute<'c> {
+    fn mxint8_elements<'c>(context: &'c Context) -> DenseElementsAttribute<'c> {
         Attribute::parse(
             context,
-            &format!(
-                "dense<tensor<16x!tosa.mxint8> : [{}]>",
-                (0..16)
-                    .map(|index| format!("{index} : i8"))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            "dense<tensor<4x!tosa.mxint8> : [1 : i8, 2 : i8, 3 : i8, 4 : i8]>",
         )
         .unwrap()
         .try_into()
@@ -769,7 +764,7 @@ mod tests {
     }
 
     #[test]
-    fn string_values_with_dense_element_type() {
+    fn string_values_with_dialect_element_type() {
         let context = create_test_context();
         let attribute = DenseElementsAttribute::string_values(
             Type::parse(&context, "tensor<1x!tosa.mxint8>").unwrap(),
@@ -894,13 +889,6 @@ mod tests {
     }
 
     #[test]
-    fn raw_data_of_dialect_elements() {
-        let context = create_test_context();
-
-        assert!(!mxint8_elements(&context).raw_data().unwrap().is_null());
-    }
-
-    #[test]
     fn reshape() {
         let context = create_test_context();
         let element = IntegerType::new(&context, 32).into();
@@ -919,11 +907,18 @@ mod tests {
 
         assert_eq!(
             mxint8_elements(&context)
-                .reshape(Type::parse(&context, "tensor<4x4x!tosa.mxint8>").unwrap())
+                .reshape(Type::parse(&context, "tensor<2x2x!tosa.mxint8>").unwrap())
                 .unwrap()
                 .len(),
-            16
+            4
         );
+    }
+
+    #[test]
+    fn raw_data_of_dialect_elements() {
+        let context = create_test_context();
+
+        assert!(!mxint8_elements(&context).raw_data().unwrap().is_null());
     }
 
     #[test]
@@ -1054,13 +1049,13 @@ mod tests {
     }
 
     #[test]
-    fn fail_to_create_with_string_for_dense_element_type() {
+    fn fail_to_create_with_string_for_dialect_element_type() {
         let context = create_test_context();
         let r#type = Type::parse(&context, "tensor<1x!tosa.mxint8>").unwrap();
         let attribute = StringAttribute::new(&context, "foo").into();
         let error = Error::ElementExpected {
             r#type: "string",
-            value: "tensor<1x!tosa.mxint8>".into(),
+            value: r#type.to_string(),
         };
 
         assert_eq!(
@@ -1265,6 +1260,20 @@ mod tests {
     }
 
     #[test]
+    fn fail_to_reshape_strings() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let r#type = Type::parse(&context, "tensor<1x!foo.string>").unwrap();
+        let attribute =
+            DenseElementsAttribute::string_values(r#type, &[StringRef::new("foo")]).unwrap();
+
+        assert_eq!(
+            attribute.reshape(r#type).unwrap_err(),
+            Error::AttributeExpected("numeric dense elements", attribute.to_string())
+        );
+    }
+
+    #[test]
     fn fail_to_get_raw_data_of_strings() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
@@ -1280,20 +1289,6 @@ mod tests {
                 "numeric dense elements",
                 attribute.to_string()
             ))
-        );
-    }
-
-    #[test]
-    fn fail_to_reshape_strings() {
-        let context = create_test_context();
-        context.set_allow_unregistered_dialects(true);
-        let r#type = Type::parse(&context, "tensor<1x!foo.string>").unwrap();
-        let attribute =
-            DenseElementsAttribute::string_values(r#type, &[StringRef::new("foo")]).unwrap();
-
-        assert_eq!(
-            attribute.reshape(r#type).unwrap_err(),
-            Error::AttributeExpected("numeric dense elements", attribute.to_string())
         );
     }
 
