@@ -167,20 +167,19 @@ mod tests {
     }
 
     #[test]
-    fn new_with_out_of_bounds_benefit() {
+    fn fail_to_create_with_out_of_bounds_benefit() {
         let context = create_test_context();
 
-        assert_eq!(
+        assert!(matches!(
             RewritePattern::new(
                 "arith.constant",
                 u16::MAX,
                 &context,
                 |_op, _rewriter| false,
                 &[],
-            )
-            .err(),
-            Some(Error::PatternBenefitOutOfBounds(u16::MAX))
-        );
+            ),
+            Err(Error::PatternBenefitOutOfBounds(u16::MAX))
+        ));
     }
 
     #[test]
