@@ -53,7 +53,7 @@ impl<'c> RewritePattern<'c> {
             user_data: *mut c_void,
         ) -> mlir_sys::MlirLogicalResult
         where
-            F: for<'a> FnMut(OperationRef<'a, '_>, &PatternRewriter<'a, '_>) -> bool,
+            F: for<'c> FnMut(OperationRef<'c, '_>, &PatternRewriter<'c, '_>) -> bool,
         {
             LogicalResult::from(unsafe {
                 (*(user_data as *mut F))(
