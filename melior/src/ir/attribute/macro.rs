@@ -42,7 +42,7 @@ macro_rules! attribute_traits {
     };
 }
 
-macro_rules! attribute_traits_no_try_from {
+macro_rules! attribute_traits_without_try_from {
     ($name: ident) => {
         impl<'c> $name<'c> {
             #[allow(unused)]
