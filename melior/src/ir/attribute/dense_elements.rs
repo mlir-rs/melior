@@ -504,7 +504,7 @@ impl<'c> DenseElementsAttribute<'c> {
         r#type: Type<'c>,
         name: &'static str,
         len: usize,
-        matches: impl FnOnce(Type<'c>) -> bool,
+        matches: fn(Type<'c>) -> bool,
     ) -> Result<(), Error> {
         let count = Self::element_count(r#type)?;
 
