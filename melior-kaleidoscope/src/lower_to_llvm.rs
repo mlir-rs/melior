@@ -45,7 +45,7 @@ pub fn lower_to_llvm<'c>(context: &'c Context, module: &mut Module<'c>) -> Resul
             "scf.for",
             "scf.yield",
         ],
-    ));
+    )?);
 
     apply_patterns_and_fold_greedily(
         module,

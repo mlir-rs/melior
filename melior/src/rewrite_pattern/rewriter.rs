@@ -70,7 +70,8 @@ mod tests {
                 true
             },
             &[],
-        );
+        )
+        .unwrap();
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);

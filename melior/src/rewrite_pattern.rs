@@ -6,7 +6,7 @@ pub use self::{
     frozen_set::FrozenRewritePatternSet, rewriter::PatternRewriter, set::RewritePatternSet,
 };
 use crate::{
-    context::Context, ir::OperationRef, logical_result::LogicalResult, string_ref::StringRef,
+    Error, context::Context, ir::OperationRef, logical_result::LogicalResult, string_ref::StringRef,
 };
 use core::{ffi::c_void, marker::PhantomData};
 use mlir_sys::{
@@ -30,13 +30,16 @@ impl<'c> RewritePattern<'c> {
     /// without modifying the IR if the pattern does not match. Panics in the
     /// callback abort the process because they might leave the IR partially
     /// rewritten.
+    ///
+    /// A benefit of `u16::MAX` is rejected because MLIR reserves it for
+    /// patterns impossible to match.
     pub fn new<F>(
         root_name: &str,
-        benefit: u32,
+        benefit: u16,
         context: &'c Context,
         callback: F,
         generated_names: &[&str],
-    ) -> Self
+    ) -> Result<Self, Error>
     where
         F: for<'a> FnMut(OperationRef<'a, '_>, &PatternRewriter<'a, '_>) -> bool + 'static,
     {
@@ -64,6 +67,10 @@ impl<'c> RewritePattern<'c> {
             .to_raw()
         }
 
+        if benefit == u16::MAX {
+            return Err(Error::PatternBenefitOutOfBounds(benefit));
+        }
+
         let callbacks = MlirRewritePatternCallbacks {
             construct: None,
             destruct: Some(destruct::<F>),
@@ -80,7 +87,7 @@ impl<'c> RewritePattern<'c> {
         let raw = unsafe {
             mlirOpRewritePatternCreate(
                 root.to_raw(),
-                benefit,
+                benefit.into(),
                 context.to_raw(),
                 callbacks,
                 user_data,
@@ -89,10 +96,10 @@ impl<'c> RewritePattern<'c> {
             )
         };
 
-        Self {
+        Ok(Self {
             raw,
             _context: Default::default(),
-        }
+        })
     }
 
     /// Converts the pattern into a raw object, transferring ownership.
@@ -109,14 +116,17 @@ mod tests {
         ir::{Location, Module},
         test::create_test_context,
     };
+    use alloc::rc::Rc;
     use indoc::indoc;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn new() {
         let context = create_test_context();
 
         let pattern =
-            RewritePattern::new("arith.constant", 1, &context, |_op, _rewriter| false, &[]);
+            RewritePattern::new("arith.constant", 1, &context, |_op, _rewriter| false, &[])
+                .unwrap();
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);
@@ -132,10 +142,67 @@ mod tests {
             &context,
             |_op, _rewriter| false,
             &["arith.addi"],
-        );
+        )
+        .unwrap();
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);
+    }
+
+    #[test]
+    fn new_with_largest_benefit() {
+        let context = create_test_context();
+
+        let pattern = RewritePattern::new(
+            "arith.constant",
+            u16::MAX - 1,
+            &context,
+            |_op, _rewriter| false,
+            &[],
+        )
+        .unwrap();
+
+        let set = RewritePatternSet::new(&context);
+        set.add(pattern);
+    }
+
+    #[test]
+    fn new_with_out_of_bounds_benefit() {
+        let context = create_test_context();
+
+        assert_eq!(
+            RewritePattern::new(
+                "arith.constant",
+                u16::MAX,
+                &context,
+                |_op, _rewriter| false,
+                &[],
+            )
+            .err(),
+            Some(Error::PatternBenefitOutOfBounds(u16::MAX))
+        );
+    }
+
+    #[test]
+    fn drop_callback_with_out_of_bounds_benefit() {
+        let context = create_test_context();
+        let matched = Rc::new(false);
+
+        assert!(
+            RewritePattern::new(
+                "arith.constant",
+                u16::MAX,
+                &context,
+                {
+                    let matched = matched.clone();
+
+                    move |_op, _rewriter| *matched
+                },
+                &[],
+            )
+            .is_err()
+        );
+        assert_eq!(Rc::strong_count(&matched), 1);
     }
 
     #[test]
@@ -155,7 +222,8 @@ mod tests {
         let mut module = Module::new(Location::unknown(&context));
 
         let pattern =
-            RewritePattern::new("arith.constant", 1, &context, |_op, _rewriter| false, &[]);
+            RewritePattern::new("arith.constant", 1, &context, |_op, _rewriter| false, &[])
+                .unwrap();
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);
@@ -185,24 +253,23 @@ mod tests {
         .unwrap();
 
         let set = RewritePatternSet::new(&context);
-        set.add(RewritePattern::new(
-            "func.call",
-            2,
-            &context,
-            |_op, _rewriter| false,
-            &[],
-        ));
-        set.add(RewritePattern::new(
-            "func.call",
-            1,
-            &context,
-            |op, rewriter| {
-                rewriter.as_rewriter_base().erase_op(op);
+        set.add(
+            RewritePattern::new("func.call", 2, &context, |_op, _rewriter| false, &[]).unwrap(),
+        );
+        set.add(
+            RewritePattern::new(
+                "func.call",
+                1,
+                &context,
+                |op, rewriter| {
+                    rewriter.as_rewriter_base().erase_op(op);
 
-                true
-            },
-            &[],
-        ));
+                    true
+                },
+                &[],
+            )
+            .unwrap(),
+        );
 
         let frozen = set.freeze();
         let config = GreedyRewriteDriverConfig::new();

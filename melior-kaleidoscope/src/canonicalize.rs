@@ -35,22 +35,22 @@ pub fn canonicalize<'c>(context: &'c Context, module: &mut Module<'c>) -> Result
         context,
         simplify_redundant_transpose,
         &[],
-    ));
+    )?);
     patterns.add(RewritePattern::new(
         "toy.reshape",
         1,
         context,
         simplify_reshape,
         &["toy.constant", "toy.reshape"],
-    ));
-    patterns.add(RewritePattern::new("toy.cast", 1, context, fold_cast, &[]));
+    )?);
+    patterns.add(RewritePattern::new("toy.cast", 1, context, fold_cast, &[])?);
     patterns.add(RewritePattern::new(
         "toy.struct_access",
         1,
         context,
         fold_struct_access,
         &["toy.constant", "toy.struct_constant"],
-    ));
+    )?);
 
     apply_patterns_and_fold_greedily(
         module,
