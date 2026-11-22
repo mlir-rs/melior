@@ -1,6 +1,6 @@
 use super::{FrozenRewritePatternSet, RewritePattern};
 use crate::context::Context;
-use core::marker::PhantomData;
+use core::{cell::Cell, marker::PhantomData};
 use mlir_sys::{
     MlirRewritePatternSet, mlirFreezeRewritePattern, mlirRewritePatternSetAdd,
     mlirRewritePatternSetCreate, mlirRewritePatternSetDestroy,
@@ -9,7 +9,7 @@ use mlir_sys::{
 /// A set of rewrite patterns.
 pub struct RewritePatternSet<'c> {
     raw: MlirRewritePatternSet,
-    _context: PhantomData<&'c Context>,
+    _context: PhantomData<Cell<&'c Context>>,
 }
 
 impl<'c> RewritePatternSet<'c> {
@@ -22,12 +22,12 @@ impl<'c> RewritePatternSet<'c> {
     }
 
     /// Adds a pattern to the set. The pattern's ownership is transferred.
-    pub fn add(&self, pattern: RewritePattern) {
+    pub fn add(&self, pattern: RewritePattern<'c>) {
         unsafe { mlirRewritePatternSetAdd(self.raw, pattern.into_raw()) }
     }
 
     /// Freezes the pattern set into a frozen set. Consumes self.
-    pub fn freeze(self) -> FrozenRewritePatternSet {
+    pub fn freeze(self) -> FrozenRewritePatternSet<'c> {
         unsafe { FrozenRewritePatternSet::from_raw(mlirFreezeRewritePattern(self.raw)) }
     }
 }

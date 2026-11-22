@@ -1,0 +1,12 @@
+error[E0597]: `context` does not live long enough
+ --> tests/ui/rewrite_pattern_context_escape.rs:7:50
+  |
+4 |     let pattern = {
+  |         ------- borrow later stored here
+5 |         let context = Context::new();
+  |             ------- binding `context` declared here
+6 |
+7 |         RewritePattern::new("arith.constant", 1, &context, |_, _| false, &[]).unwrap()
+  |                                                  ^^^^^^^^ borrowed value does not live long enough
+8 |     };
+  |     - `context` dropped here while still borrowed

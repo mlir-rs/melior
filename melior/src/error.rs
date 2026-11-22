@@ -53,6 +53,8 @@ pub enum Error {
     OperationResultExpected(String),
     /// A failure of pass pipeline parsing.
     ParsePassPipeline(String),
+    /// A pattern benefit out of bounds.
+    PatternBenefitOutOfBounds(u16),
     /// A permutation expected.
     PermutationExpected(String),
     /// A position out of bounds.
@@ -135,6 +137,9 @@ impl Display for Error {
             }
             Self::ParsePassPipeline(message) => {
                 write!(formatter, "failed to parse pass pipeline:\n{message}")
+            }
+            Self::PatternBenefitOutOfBounds(benefit) => {
+                write!(formatter, "pattern benefit out of bounds: {benefit}")
             }
             Self::PermutationExpected(value) => {
                 write!(formatter, "permutation expected: {value}")

@@ -45,14 +45,14 @@ pub fn lower_to_affine<'c>(context: &'c Context, module: &mut Module<'c>) -> Res
             "arith.constant",
             "affine.store",
         ],
-    ));
+    )?);
     patterns.add(RewritePattern::new(
         "toy.transpose",
         1,
         context,
         lower_transpose,
         &loop_operations,
-    ));
+    )?);
     patterns.add(RewritePattern::new(
         "toy.add",
         1,
@@ -63,7 +63,7 @@ pub fn lower_to_affine<'c>(context: &'c Context, module: &mut Module<'c>) -> Res
             })
         },
         &[&loop_operations[..], &["arith.addf"]].concat(),
-    ));
+    )?);
     patterns.add(RewritePattern::new(
         "toy.mul",
         1,
@@ -74,21 +74,21 @@ pub fn lower_to_affine<'c>(context: &'c Context, module: &mut Module<'c>) -> Res
             })
         },
         &[&loop_operations[..], &["arith.mulf"]].concat(),
-    ));
+    )?);
     patterns.add(RewritePattern::new(
         "toy.func",
         1,
         context,
         lower_function,
         &["func.func"],
-    ));
+    )?);
     patterns.add(RewritePattern::new(
         "toy.return",
         1,
         context,
         lower_return,
         &["func.return"],
-    ));
+    )?);
 
     let config = GreedyRewriteDriverConfig::new();
     // Producers are visited before consumers so that operands are already
