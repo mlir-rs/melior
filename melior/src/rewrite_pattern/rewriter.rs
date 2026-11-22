@@ -37,7 +37,7 @@ mod tests {
     use crate::{
         greedy_rewrite_driver::{GreedyRewriteDriverConfig, apply_patterns_and_fold_greedily},
         ir::Module,
-        rewrite_pattern::{RewritePatternSet, create_op_rewrite_pattern},
+        rewrite_pattern::{RewritePattern, RewritePatternSet},
         test::create_test_context,
     };
     use indoc::indoc;
@@ -60,7 +60,7 @@ mod tests {
         )
         .unwrap();
 
-        let pattern = create_op_rewrite_pattern(
+        let pattern = RewritePattern::new(
             "func.call",
             1,
             &context,
