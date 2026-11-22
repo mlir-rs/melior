@@ -1,7 +1,4 @@
-use crate::{
-    StringRef,
-    ir::{Type, TypeLike, r#type::IntegerType},
-};
+use crate::ir::{Type, TypeLike, r#type::IntegerType};
 
 pub trait DenseElement {
     fn matches(r#type: Type) -> bool;
@@ -48,11 +45,5 @@ float_dense_element!(f64, 64);
 impl DenseElement for bool {
     fn matches(r#type: Type) -> bool {
         IntegerType::try_from(r#type).is_ok_and(|r#type| r#type.width() == 1)
-    }
-}
-
-impl DenseElement for StringRef<'_> {
-    fn matches(r#type: Type) -> bool {
-        !(r#type.is_integer() || r#type.is_index() || r#type.is_float() || r#type.is_complex())
     }
 }

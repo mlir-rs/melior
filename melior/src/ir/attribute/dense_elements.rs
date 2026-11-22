@@ -4,13 +4,16 @@ use self::element::DenseElement;
 use super::{ArrayAttribute, Attribute, AttributeLike};
 use crate::{
     Error, StringRef,
-    ir::{Type, TypeLike, r#type::IntegerType},
+    ir::{
+        Type, TypeLike,
+        r#type::{IntegerType, TypeId},
+    },
 };
 use mlir_sys::{
-    MlirAttribute, MlirStringRef, mlirAttributeGetTypeID, mlirComplexTypeGetElementType,
-    mlirDenseElementsAttrBoolGet, mlirDenseElementsAttrBoolSplatGet,
-    mlirDenseElementsAttrDoubleGet, mlirDenseElementsAttrDoubleSplatGet,
-    mlirDenseElementsAttrFloatGet, mlirDenseElementsAttrFloatSplatGet, mlirDenseElementsAttrGet,
+    MlirAttribute, MlirStringRef, mlirComplexTypeGetElementType, mlirDenseElementsAttrBoolGet,
+    mlirDenseElementsAttrBoolSplatGet, mlirDenseElementsAttrDoubleGet,
+    mlirDenseElementsAttrDoubleSplatGet, mlirDenseElementsAttrFloatGet,
+    mlirDenseElementsAttrFloatSplatGet, mlirDenseElementsAttrGet,
     mlirDenseElementsAttrGetBoolSplatValue, mlirDenseElementsAttrGetBoolValue,
     mlirDenseElementsAttrGetDoubleSplatValue, mlirDenseElementsAttrGetDoubleValue,
     mlirDenseElementsAttrGetFloatSplatValue, mlirDenseElementsAttrGetFloatValue,
@@ -32,14 +35,14 @@ use mlir_sys::{
     mlirDenseElementsAttrUInt32SplatGet, mlirDenseElementsAttrUInt64Get,
     mlirDenseElementsAttrUInt64SplatGet, mlirDenseTypedElementsAttrGetTypeID,
     mlirElementsAttrGetNumElements, mlirShapedTypeGetDimSize, mlirShapedTypeGetElementType,
-    mlirShapedTypeGetRank, mlirShapedTypeHasStaticShape, mlirTypeIDEqual,
+    mlirShapedTypeGetRank, mlirShapedTypeHasStaticShape,
 };
 
 macro_rules! dense_elements_constructor {
     ($name:ident, $type:ty, $function:ident) => {
         #[doc = concat!(" Creates a dense elements attribute from ", stringify!($type), " values.")]
         pub fn $name(r#type: Type<'c>, values: &[$type]) -> Result<Self, Error> {
-            Self::check_values::<$type>(r#type, stringify!($type), values.len())?;
+            Self::check_values(r#type, stringify!($type), values.len(), <$type>::matches)?;
 
             Ok(unsafe {
                 Self::from_raw($function(
@@ -56,7 +59,7 @@ macro_rules! dense_elements_splat_constructor {
     ($name:ident, $type:ty, $function:ident) => {
         #[doc = concat!(" Creates a splat dense elements attribute with the given ", stringify!($type), " value.")]
         pub fn $name(r#type: Type<'c>, value: $type) -> Result<Self, Error> {
-            Self::check_values::<$type>(r#type, stringify!($type), 1)?;
+            Self::check_values(r#type, stringify!($type), 1, <$type>::matches)?;
 
             Ok(unsafe { Self::from_raw($function(r#type.to_raw(), value)) })
         }
@@ -126,7 +129,7 @@ impl<'c> DenseElementsAttribute<'c> {
     /// The C API takes `int*`, so values are passed as `&[i32]` where non-zero
     /// means true.
     pub fn bool_values(r#type: Type<'c>, values: &[i32]) -> Result<Self, Error> {
-        Self::check_values::<bool>(r#type, "bool", values.len())?;
+        Self::check_values(r#type, "bool", values.len(), bool::matches)?;
 
         Ok(unsafe {
             Self::from_raw(mlirDenseElementsAttrBoolGet(
@@ -150,7 +153,9 @@ impl<'c> DenseElementsAttribute<'c> {
 
     /// Creates a dense elements attribute from string values.
     pub fn string_values(r#type: Type<'c>, values: &[StringRef]) -> Result<Self, Error> {
-        Self::check_values::<StringRef>(r#type, "string", values.len())?;
+        Self::check_values(r#type, "string", values.len(), |r#type| {
+            Self::storage_size(r#type).is_none()
+        })?;
 
         let mut raws: Vec<MlirStringRef> = values.iter().map(|s| s.to_raw()).collect();
 
@@ -418,12 +423,8 @@ impl<'c> DenseElementsAttribute<'c> {
     }
 
     fn is_typed(&self) -> bool {
-        unsafe {
-            mlirTypeIDEqual(
-                mlirAttributeGetTypeID(self.attribute.to_raw()),
-                mlirDenseTypedElementsAttrGetTypeID(),
-            )
-        }
+        self.attribute.type_id()
+            == unsafe { TypeId::from_raw(mlirDenseTypedElementsAttrGetTypeID()) }
     }
 
     fn has_elements<T: DenseElement>(&self) -> bool {
@@ -499,14 +500,15 @@ impl<'c> DenseElementsAttribute<'c> {
         Ok(())
     }
 
-    fn check_values<T: DenseElement>(
+    fn check_values(
         r#type: Type<'c>,
         name: &'static str,
         len: usize,
+        matches: fn(Type<'c>) -> bool,
     ) -> Result<(), Error> {
         let count = Self::element_count(r#type)?;
 
-        if !T::matches(Self::shaped_element_type(r#type)) {
+        if !matches(Self::shaped_element_type(r#type)) {
             return Err(Error::ElementExpected {
                 r#type: name,
                 value: r#type.to_string(),
@@ -553,7 +555,7 @@ impl<'c> DenseElementsAttribute<'c> {
     }
 }
 
-attribute_traits_no_try_from!(DenseElementsAttribute);
+attribute_traits_without_try_from!(DenseElementsAttribute);
 
 impl<'c> TryFrom<Attribute<'c>> for DenseElementsAttribute<'c> {
     type Error = Error;
@@ -1002,6 +1004,7 @@ mod tests {
     fn raw_buffer_of_complex_numbers() {
         let context = create_test_context();
         let attribute = DenseElementsAttribute::raw_buffer(
+            // spell-checker: disable-next-line
             Type::parse(&context, "tensor<2xcomplex<f32>>").unwrap(),
             &[1f32, 2.0, 3.0, 4.0].map(f32::to_ne_bytes).concat(),
         )
@@ -1152,6 +1155,49 @@ mod tests {
             Error::ElementExpected {
                 r#type: "string",
                 value: "tensor<1xi8>".into()
+            }
+        );
+    }
+
+    #[test]
+    fn fail_to_create_strings_with_index_element_type() {
+        let context = create_test_context();
+        let r#type = Type::parse(&context, "tensor<1xindex>").unwrap();
+
+        assert_eq!(
+            DenseElementsAttribute::string_values(r#type, &[StringRef::new("foo")]).unwrap_err(),
+            Error::ElementExpected {
+                r#type: "string",
+                value: r#type.to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn fail_to_create_strings_with_float_element_type() {
+        let context = create_test_context();
+        let r#type = Type::parse(&context, "tensor<1xf32>").unwrap();
+
+        assert_eq!(
+            DenseElementsAttribute::string_values(r#type, &[StringRef::new("foo")]).unwrap_err(),
+            Error::ElementExpected {
+                r#type: "string",
+                value: r#type.to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn fail_to_create_strings_with_complex_element_type() {
+        let context = create_test_context();
+        // spell-checker: disable-next-line
+        let r#type = Type::parse(&context, "tensor<1xcomplex<f32>>").unwrap();
+
+        assert_eq!(
+            DenseElementsAttribute::string_values(r#type, &[StringRef::new("foo")]).unwrap_err(),
+            Error::ElementExpected {
+                r#type: "string",
+                value: r#type.to_string()
             }
         );
     }
