@@ -40,7 +40,6 @@ pub use self::{
     ir_rewriter::{IrRewriter, RewriterBase},
     rewrite_pattern::{
         FrozenRewritePatternSet, PatternRewriter, RewritePattern, RewritePatternSet,
-        create_op_rewrite_pattern,
     },
     string_ref::StringRef,
     thread_pool::ThreadPool,
