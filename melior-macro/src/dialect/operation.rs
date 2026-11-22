@@ -30,9 +30,6 @@ const VOWELS: &str = "aeiou";
 /// How a generated builder populates result types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TypeInference {
-    /// Op implements `InferTypeOpInterface` — call
-    /// `enable_result_type_inference()`.
-    Interface,
     /// Op has `SameOperandsAndResultType` — copy `operands[0].type()` to all
     /// results in the first-operand setter.
     SameOperands,
@@ -65,7 +62,6 @@ impl<'a> Operation<'a> {
         let trait_names = Self::collect_trait_names(definition)?;
 
         let arguments = Self::dag_constraints(definition, "arguments")?;
-        let regions = Self::collect_regions(definition)?;
         let results = Self::collect_results(
             definition,
             trait_names.contains("::mlir::OpTrait::SameVariadicResultSize"),
@@ -90,8 +86,6 @@ impl<'a> Operation<'a> {
             description: sanitize_documentation(definition.str_value("description")?)?,
             type_inference: {
                 let has_unfixed_results = results.iter().any(OperationElement::is_unfixed);
-                let has_interface = regions.is_empty()
-                    && trait_names.contains("::mlir::InferTypeOpInterface::Trait");
                 let has_same_operands = !has_unfixed_results
                     && operands
                         .first()
@@ -102,9 +96,7 @@ impl<'a> Operation<'a> {
                         .first()
                         .is_some_and(|attribute| !attribute.is_optional())
                     && trait_names.contains("::mlir::OpTrait::FirstAttrDerivedResultType");
-                if has_interface {
-                    Some(TypeInference::Interface)
-                } else if has_same_operands {
+                if has_same_operands {
                     Some(TypeInference::SameOperands)
                 } else if has_first_attr_derived {
                     Some(TypeInference::FirstAttrDerived)
@@ -114,7 +106,7 @@ impl<'a> Operation<'a> {
             },
             results,
             operands,
-            regions,
+            regions: Self::collect_regions(definition)?,
             successors: Self::collect_successors(definition)?,
             attributes,
             derived_attributes: Self::collect_derived_attributes(definition)?,

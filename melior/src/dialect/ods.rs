@@ -803,6 +803,42 @@ mod tests {
     }
 
     #[test]
+    fn build_shape_shape_of() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+        let r#type = Type::parse(&context, "tensor<1xindex>").unwrap();
+
+        let block = Block::new(
+            &[Type::parse(&context, "tensor<2xf32>").unwrap()],
+            &[location],
+        )
+        .unwrap();
+        let operation = shape::shape_of(
+            &context,
+            r#type,
+            block.argument(0).unwrap().into(),
+            location,
+        );
+
+        assert!(operation.as_operation().verify());
+        assert_eq!(operation.result().unwrap().r#type(), r#type);
+    }
+
+    #[test]
+    fn build_vector_to_elements_with_invalid_operand() {
+        let context = create_test_context();
+        let location = Location::unknown(&context);
+
+        let block = Block::new(&[IntegerType::new(&context, 32).into()], &[location]).unwrap();
+
+        assert!(
+            !vector::to_elements(&context, &[], block.argument(0).unwrap().into(), location)
+                .as_operation()
+                .verify()
+        );
+    }
+
+    #[test]
     fn read_operand_groups_of_attribute_sized_operation() {
         let context = create_test_context();
         let location = Location::unknown(&context);

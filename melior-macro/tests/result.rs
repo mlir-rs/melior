@@ -133,3 +133,15 @@ fn same_size() {
     );
     assert_eq!(operation.as_operation().result_count(), 4);
 }
+
+#[test]
+fn inference_interface() {
+    let context = create_test_context();
+    context.set_allow_unregistered_dialects(true);
+
+    let r#type = Type::parse(&context, "i8").unwrap();
+    let operation = result_test::inference_interface(&context, r#type, Location::unknown(&context));
+
+    assert_eq!(operation.output().unwrap().r#type(), r#type);
+    assert_eq!(operation.as_operation().result_count(), 1);
+}

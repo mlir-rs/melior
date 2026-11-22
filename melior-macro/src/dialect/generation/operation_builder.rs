@@ -274,11 +274,6 @@ fn generate_build_fn(builder: &TypeStateBuilder) -> TokenStream {
     let parameters = arguments.iter().filter_map(|argument| argument.parameter());
     let operation_identifier = format_ident!("{}", &builder.operation().name());
     let error = format!("should be a valid {operation_identifier}");
-    let maybe_infer = matches!(
-        builder.operation().type_inference(),
-        Some(TypeInference::Interface)
-    )
-    .then_some(quote! { .enable_result_type_inference() });
     let add_segment_size_attributes = builder.operation().segment_arrays().map(|(kind, _)| {
         let field_identifier = kind.segment_size_field_identifier();
         let name = kind.segment_size_attribute_name();
@@ -298,7 +293,7 @@ fn generate_build_fn(builder: &TypeStateBuilder) -> TokenStream {
         impl<'c, #(#parameters),*> #identifier<'c, #(#arguments),*> {
             /// Builds an operation.
             pub fn build(self) -> #operation_identifier<'c> {
-                self.builder #(#add_segment_size_attributes)* #maybe_infer
+                self.builder #(#add_segment_size_attributes)*
                     .build().expect("valid operation").try_into().expect(#error)
             }
         }

@@ -1,4 +1,5 @@
 include "mlir/IR/OpBase.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
 
 def ResultTest_Dialect : Dialect {
     let name = "result_test";
@@ -20,4 +21,9 @@ def ResultTest_AttributeSizedOp :
 def ResultTest_SameSizeOp :
         ResultTest_Op<"same_size", [SameVariadicResultSize]> {
     let results = (outs Variadic<AnyType>:$lhs, Variadic<AnyType>:$rhs);
+}
+
+def ResultTest_InferenceInterfaceOp :
+        ResultTest_Op<"inference_interface", [InferTypeOpInterface]> {
+    let results = (outs AnyType:$output);
 }
