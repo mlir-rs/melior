@@ -1,0 +1,14 @@
+error[E0597]: `other_context` does not live long enough
+  --> tests/ui/rewrite_pattern_set_add_context_escape.rs:13:13
+   |
+ 8 |         let other_context = Context::new();
+   |             ------------- binding `other_context` declared here
+...
+13 |             &other_context,
+   |             ^^^^^^^^^^^^^^ borrowed value does not live long enough
+...
+17 |     }
+   |     - `other_context` dropped here while still borrowed
+18 |
+19 |     let _patterns = set.freeze();
+   |                     --- borrow later used here

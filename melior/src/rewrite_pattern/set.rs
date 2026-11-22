@@ -1,6 +1,6 @@
 use super::{FrozenRewritePatternSet, RewritePattern};
 use crate::context::Context;
-use core::marker::PhantomData;
+use core::{cell::Cell, marker::PhantomData};
 use mlir_sys::{
     MlirRewritePatternSet, mlirFreezeRewritePattern, mlirRewritePatternSetAdd,
     mlirRewritePatternSetCreate, mlirRewritePatternSetDestroy,
@@ -9,7 +9,7 @@ use mlir_sys::{
 /// A set of rewrite patterns.
 pub struct RewritePatternSet<'c> {
     raw: MlirRewritePatternSet,
-    _context: PhantomData<&'c Context>,
+    _context: PhantomData<Cell<&'c Context>>,
 }
 
 impl<'c> RewritePatternSet<'c> {
