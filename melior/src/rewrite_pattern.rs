@@ -117,6 +117,7 @@ mod tests {
         test::create_test_context,
     };
     use alloc::rc::Rc;
+    use core::cell::RefCell;
     use indoc::indoc;
     use pretty_assertions::assert_eq;
 
@@ -275,5 +276,53 @@ mod tests {
 
         assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
         insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn apply_patterns_in_benefit_order() {
+        let context = create_test_context();
+        let mut module = Module::parse(
+            &context,
+            indoc!(
+                "
+                func.func private @foo()
+
+                func.func @bar() {
+                    func.call @foo() : () -> ()
+                    return
+                }
+                "
+            ),
+        )
+        .unwrap();
+        let benefits = Rc::new(RefCell::new(vec![]));
+        let set = RewritePatternSet::new(&context);
+
+        for benefit in [1, 256, u16::MAX - 1] {
+            set.add(
+                RewritePattern::new(
+                    "func.call",
+                    benefit,
+                    &context,
+                    {
+                        let benefits = benefits.clone();
+
+                        move |_op, _rewriter| {
+                            benefits.borrow_mut().push(benefit);
+
+                            false
+                        }
+                    },
+                    &[],
+                )
+                .unwrap(),
+            );
+        }
+
+        let frozen = set.freeze();
+        let config = GreedyRewriteDriverConfig::new();
+
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
+        assert_eq!(*benefits.borrow(), [u16::MAX - 1, 256, 1]);
     }
 }
