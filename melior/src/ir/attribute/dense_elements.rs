@@ -1491,6 +1491,7 @@ mod tests {
         .unwrap();
 
         assert!(attribute.is_splat());
+        assert_eq!(attribute.len() as u64, 1 << 62);
         assert_eq!(attribute.i32_element(attribute.len() - 1), Ok(1));
     }
 
