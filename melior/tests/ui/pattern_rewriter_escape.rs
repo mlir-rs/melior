@@ -1,4 +1,4 @@
-use melior::{Context, PatternRewriter, create_op_rewrite_pattern};
+use melior::{Context, PatternRewriter, RewritePattern};
 use std::{cell::Cell, rc::Rc};
 
 fn main() {
@@ -6,7 +6,7 @@ fn main() {
     let rewriter = Rc::new(Cell::new(None::<PatternRewriter>));
     let inner_rewriter = rewriter.clone();
 
-    let _pattern = create_op_rewrite_pattern(
+    let _pattern = RewritePattern::new(
         "arith.constant",
         1,
         &context,

@@ -4,8 +4,8 @@ use crate::{
     utility::{body_block, defining_operation, is_operation},
 };
 use melior::{
-    Context, GreedyRewriteDriverConfig, IrRewriter, PatternRewriter, RewritePatternSet,
-    RewriterBase, apply_patterns_and_fold_greedily, create_op_rewrite_pattern,
+    Context, GreedyRewriteDriverConfig, IrRewriter, PatternRewriter, RewritePattern,
+    RewritePatternSet, RewriterBase, apply_patterns_and_fold_greedily,
     ir::{
         BlockRef, Module, OperationRef, TypeLike, Value, ValueLike,
         attribute::{ArrayAttribute, AttributeLike, DenseElementsAttribute, IntegerAttribute},
@@ -29,28 +29,22 @@ const PURE_OPERATIONS: &[&str] = &[
 pub fn canonicalize<'c>(context: &'c Context, module: &mut Module<'c>) -> Result<(), Error> {
     let patterns = RewritePatternSet::new(context);
 
-    patterns.add(create_op_rewrite_pattern(
+    patterns.add(RewritePattern::new(
         "toy.transpose",
         1,
         context,
         simplify_redundant_transpose,
         &[],
     ));
-    patterns.add(create_op_rewrite_pattern(
+    patterns.add(RewritePattern::new(
         "toy.reshape",
         1,
         context,
         simplify_reshape,
         &["toy.constant", "toy.reshape"],
     ));
-    patterns.add(create_op_rewrite_pattern(
-        "toy.cast",
-        1,
-        context,
-        fold_cast,
-        &[],
-    ));
-    patterns.add(create_op_rewrite_pattern(
+    patterns.add(RewritePattern::new("toy.cast", 1, context, fold_cast, &[]));
+    patterns.add(RewritePattern::new(
         "toy.struct_access",
         1,
         context,

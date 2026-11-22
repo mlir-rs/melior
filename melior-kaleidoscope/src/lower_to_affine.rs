@@ -3,8 +3,8 @@ use crate::{
     utility::{body_block, check_lowering, is_operation, terminator},
 };
 use melior::{
-    Context, GreedyRewriteDriverConfig, PatternRewriter, RewritePatternSet, RewriterBase,
-    apply_patterns_and_fold_greedily, create_op_rewrite_pattern,
+    Context, GreedyRewriteDriverConfig, PatternRewriter, RewritePattern, RewritePatternSet,
+    RewriterBase, apply_patterns_and_fold_greedily,
     dialect::ods::{affine, arith, func, memref},
     ir::{
         AffineExpr, AffineMap, Attribute, Block, BlockLike, Location, Module, Operation,
@@ -34,7 +34,7 @@ pub fn lower_to_affine<'c>(context: &'c Context, module: &mut Module<'c>) -> Res
         "affine.yield",
     ];
 
-    patterns.add(create_op_rewrite_pattern(
+    patterns.add(RewritePattern::new(
         "toy.constant",
         1,
         context,
@@ -46,14 +46,14 @@ pub fn lower_to_affine<'c>(context: &'c Context, module: &mut Module<'c>) -> Res
             "affine.store",
         ],
     ));
-    patterns.add(create_op_rewrite_pattern(
+    patterns.add(RewritePattern::new(
         "toy.transpose",
         1,
         context,
         lower_transpose,
         &loop_operations,
     ));
-    patterns.add(create_op_rewrite_pattern(
+    patterns.add(RewritePattern::new(
         "toy.add",
         1,
         context,
@@ -64,7 +64,7 @@ pub fn lower_to_affine<'c>(context: &'c Context, module: &mut Module<'c>) -> Res
         },
         &[&loop_operations[..], &["arith.addf"]].concat(),
     ));
-    patterns.add(create_op_rewrite_pattern(
+    patterns.add(RewritePattern::new(
         "toy.mul",
         1,
         context,
@@ -75,14 +75,14 @@ pub fn lower_to_affine<'c>(context: &'c Context, module: &mut Module<'c>) -> Res
         },
         &[&loop_operations[..], &["arith.mulf"]].concat(),
     ));
-    patterns.add(create_op_rewrite_pattern(
+    patterns.add(RewritePattern::new(
         "toy.func",
         1,
         context,
         lower_function,
         &["func.func"],
     ));
-    patterns.add(create_op_rewrite_pattern(
+    patterns.add(RewritePattern::new(
         "toy.return",
         1,
         context,
