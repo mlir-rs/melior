@@ -108,17 +108,6 @@ mod tests {
     use indoc::indoc;
 
     #[test]
-    fn apply_frozen_patterns() {
-        let context = create_test_context();
-        let mut module = Module::new(Location::unknown(&context));
-        let patterns = RewritePatternSet::new(&context);
-        let frozen = patterns.freeze();
-        let config = GreedyRewriteDriverConfig::new();
-
-        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
-    }
-
-    #[test]
     fn new() {
         let context = create_test_context();
 
@@ -143,6 +132,17 @@ mod tests {
 
         let set = RewritePatternSet::new(&context);
         set.add(pattern);
+    }
+
+    #[test]
+    fn apply_frozen_patterns() {
+        let context = create_test_context();
+        let mut module = Module::new(Location::unknown(&context));
+        let patterns = RewritePatternSet::new(&context);
+        let frozen = patterns.freeze();
+        let config = GreedyRewriteDriverConfig::new();
+
+        assert!(apply_patterns_and_fold_greedily(&mut module, &frozen, &config).is_ok());
     }
 
     #[test]
