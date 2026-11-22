@@ -14,7 +14,7 @@ impl<'c> DistinctAttribute<'c> {
     }
 }
 
-attribute_traits_no_try_from!(DistinctAttribute);
+attribute_traits_without_try_from!(DistinctAttribute);
 
 #[cfg(test)]
 mod tests {
