@@ -1,19 +1,24 @@
-use core::mem::forget;
+use crate::context::Context;
+use core::{marker::PhantomData, mem::forget};
 use mlir_sys::{MlirFrozenRewritePatternSet, mlirFrozenRewritePatternSetDestroy};
 
 /// A frozen (immutable) rewrite pattern set.
-pub struct FrozenRewritePatternSet {
+pub struct FrozenRewritePatternSet<'c> {
     raw: MlirFrozenRewritePatternSet,
+    _context: PhantomData<&'c Context>,
 }
 
-impl FrozenRewritePatternSet {
+impl FrozenRewritePatternSet<'_> {
     /// Creates a frozen pattern set from a raw object.
     ///
     /// # Safety
     ///
     /// A raw object must be valid.
     pub const unsafe fn from_raw(raw: MlirFrozenRewritePatternSet) -> Self {
-        Self { raw }
+        Self {
+            raw,
+            _context: PhantomData,
+        }
     }
 
     /// Converts the frozen pattern set into a raw object.
@@ -32,7 +37,7 @@ impl FrozenRewritePatternSet {
     }
 }
 
-impl Drop for FrozenRewritePatternSet {
+impl Drop for FrozenRewritePatternSet<'_> {
     fn drop(&mut self) {
         unsafe { mlirFrozenRewritePatternSetDestroy(self.raw) }
     }

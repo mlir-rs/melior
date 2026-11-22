@@ -8,7 +8,7 @@ pub use self::{
 use crate::{
     context::Context, ir::OperationRef, logical_result::LogicalResult, string_ref::StringRef,
 };
-use core::ffi::c_void;
+use core::{ffi::c_void, marker::PhantomData};
 use mlir_sys::{
     MlirOperation, MlirPatternRewriter, MlirRewritePattern, MlirRewritePatternCallbacks,
     mlirOpRewritePatternCreate,
@@ -16,11 +16,12 @@ use mlir_sys::{
 
 /// A single rewrite pattern.
 #[must_use = "add to a RewritePatternSet or resources will leak"]
-pub struct RewritePattern {
+pub struct RewritePattern<'c> {
     raw: MlirRewritePattern,
+    _context: PhantomData<&'c Context>,
 }
 
-impl RewritePattern {
+impl<'c> RewritePattern<'c> {
     /// Creates a rewrite pattern that matches operations with the given root
     /// name.
     ///
@@ -32,12 +33,12 @@ impl RewritePattern {
     pub fn new<F>(
         root_name: &str,
         benefit: u32,
-        context: &Context,
+        context: &'c Context,
         callback: F,
         generated_names: &[&str],
     ) -> Self
     where
-        F: for<'c> FnMut(OperationRef<'c, '_>, &PatternRewriter<'c, '_>) -> bool + 'static,
+        F: for<'a> FnMut(OperationRef<'a, '_>, &PatternRewriter<'a, '_>) -> bool + 'static,
     {
         unsafe extern "C" fn destruct<F>(user_data: *mut c_void) {
             unsafe {
@@ -52,7 +53,7 @@ impl RewritePattern {
             user_data: *mut c_void,
         ) -> mlir_sys::MlirLogicalResult
         where
-            F: for<'c> FnMut(OperationRef<'c, '_>, &PatternRewriter<'c, '_>) -> bool,
+            F: for<'a> FnMut(OperationRef<'a, '_>, &PatternRewriter<'a, '_>) -> bool,
         {
             LogicalResult::from(unsafe {
                 (*(user_data as *mut F))(
@@ -88,7 +89,10 @@ impl RewritePattern {
             )
         };
 
-        Self { raw }
+        Self {
+            raw,
+            _context: Default::default(),
+        }
     }
 
     /// Converts the pattern into a raw object, transferring ownership.

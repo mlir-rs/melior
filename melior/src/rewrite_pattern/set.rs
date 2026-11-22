@@ -22,12 +22,12 @@ impl<'c> RewritePatternSet<'c> {
     }
 
     /// Adds a pattern to the set. The pattern's ownership is transferred.
-    pub fn add(&self, pattern: RewritePattern) {
+    pub fn add(&self, pattern: RewritePattern<'c>) {
         unsafe { mlirRewritePatternSetAdd(self.raw, pattern.into_raw()) }
     }
 
     /// Freezes the pattern set into a frozen set. Consumes self.
-    pub fn freeze(self) -> FrozenRewritePatternSet {
+    pub fn freeze(self) -> FrozenRewritePatternSet<'c> {
         unsafe { FrozenRewritePatternSet::from_raw(mlirFreezeRewritePattern(self.raw)) }
     }
 }
