@@ -1136,7 +1136,7 @@ mod tests {
         assert!(
             DenseElementsAttribute::raw_buffer(
                 i64_tensor_type(&context, (1 << 61) + 2),
-                &[1u64, 2].map(u64::to_ne_bytes).concat()
+                &[1i64, 2].map(i64::to_ne_bytes).concat()
             )
             .is_none()
         );
