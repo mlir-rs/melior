@@ -1160,6 +1160,49 @@ mod tests {
     }
 
     #[test]
+    fn fail_to_create_strings_with_index_element_type() {
+        let context = create_test_context();
+        let r#type = Type::parse(&context, "tensor<1xindex>").unwrap();
+
+        assert_eq!(
+            DenseElementsAttribute::string_values(r#type, &[StringRef::new("foo")]).unwrap_err(),
+            Error::ElementExpected {
+                r#type: "string",
+                value: r#type.to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn fail_to_create_strings_with_float_element_type() {
+        let context = create_test_context();
+        let r#type = Type::parse(&context, "tensor<1xf32>").unwrap();
+
+        assert_eq!(
+            DenseElementsAttribute::string_values(r#type, &[StringRef::new("foo")]).unwrap_err(),
+            Error::ElementExpected {
+                r#type: "string",
+                value: r#type.to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn fail_to_create_strings_with_complex_element_type() {
+        let context = create_test_context();
+        // spell-checker: disable-next-line
+        let r#type = Type::parse(&context, "tensor<1xcomplex<f32>>").unwrap();
+
+        assert_eq!(
+            DenseElementsAttribute::string_values(r#type, &[StringRef::new("foo")]).unwrap_err(),
+            Error::ElementExpected {
+                r#type: "string",
+                value: r#type.to_string()
+            }
+        );
+    }
+
+    #[test]
     fn fail_to_create_with_wrong_attribute() {
         let context = create_test_context();
         let attribute = IntegerAttribute::new(IntegerType::new(&context, 64).into(), 1).into();
