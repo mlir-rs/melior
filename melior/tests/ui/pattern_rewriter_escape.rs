@@ -15,5 +15,6 @@ fn main() {
             false
         },
         &[],
-    );
+    )
+    .unwrap();
 }
