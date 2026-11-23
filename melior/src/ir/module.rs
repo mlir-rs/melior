@@ -25,8 +25,8 @@ impl<'c> Module<'c> {
 
     /// Parses a module.
     ///
-    /// The MLIR parser can read memory out of bounds or crash on malformed
-    /// sources. Untrusted sources must not be parsed.
+    /// The MLIR parser can crash or create objects whose use reads memory out
+    /// of bounds on malformed sources. Untrusted sources must not be parsed.
     pub fn parse(context: &'c Context, source: &str) -> Option<Self> {
         // TODO Use a string not null-terminated.
         // Somehow, we still need a null-terminated string for a source.
