@@ -48,9 +48,9 @@ pub struct Attribute<'c> {
 impl<'c> Attribute<'c> {
     /// Parses an attribute.
     ///
-    /// On malformed sources, the MLIR parser can read memory out of bounds,
-    /// crash, or create objects whose use reads memory out of bounds. Untrusted
-    /// sources must not be parsed.
+    /// On malformed sources, the MLIR parser can read memory out of bounds or
+    /// crash, and so can uses of the objects it creates. Untrusted sources must
+    /// not be parsed.
     pub fn parse(context: &'c Context, source: &str) -> Option<Self> {
         unsafe {
             Self::from_option_raw(mlirAttributeParseGet(
