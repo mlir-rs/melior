@@ -113,11 +113,9 @@ Although Melior aims to be completely type safe, some part of the current API is
     return such references.
   - e.g. `Region::append_block()`
   - Fix plan: Use dynamic check, such as `RefCell`, for the objects.
-- Parsing malformed IR text can crash the process or create objects whose
-  use reads memory out of bounds because of defects in the MLIR parser.
-  Untrusted text must not be parsed.
+- Parsing malformed IR text can read memory out of bounds, crash the process, or create objects whose use reads memory out of bounds because of defects in the MLIR parser. Untrusted text must not be parsed.
   - e.g. `Attribute::parse()` with `dense<(1, 2)> : tensor<5xi32>`
-  - Fix plan: Fix the MLIR parser upstream.
+  - Fix plan: Fix the defects in the MLIR parser upstream.
 
 ## References
 
