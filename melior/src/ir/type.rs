@@ -50,6 +50,10 @@ pub struct Type<'c> {
 
 impl<'c> Type<'c> {
     /// Parses a type.
+    ///
+    /// On malformed sources, the MLIR parser can read memory out of bounds or
+    /// crash, and so can uses of the objects it creates. Untrusted sources must
+    /// not be parsed.
     pub fn parse(context: &'c Context, source: &str) -> Option<Self> {
         unsafe {
             Self::from_option_raw(mlirTypeParseGet(
