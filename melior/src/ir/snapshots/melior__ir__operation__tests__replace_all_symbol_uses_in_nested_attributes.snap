@@ -1,0 +1,8 @@
+---
+source: melior/src/ir/operation.rs
+expression: module.as_operation()
+---
+module {
+  func.func private @foo()
+  func.func private @bar() attributes {baz = [@bar, {qux = @bar}]}
+}

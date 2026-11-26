@@ -10,6 +10,7 @@ mod location;
 mod module;
 pub mod operation;
 mod region;
+mod symbol_table;
 pub mod r#type;
 mod value;
 
@@ -24,6 +25,7 @@ pub use self::{
     module::Module,
     operation::{Operation, OperationRef},
     region::{Region, RegionIterator, RegionLike, RegionRef},
+    symbol_table::SymbolTable,
     r#type::{ShapedTypeLike, Type, TypeLike},
     value::{Value, ValueLike},
 };

@@ -1,0 +1,11 @@
+error[E0502]: cannot borrow `module` as mutable because it is also borrowed as immutable
+  --> tests/ui/pass_manager_run_held_symbol_table.rs:12:36
+   |
+10 |     let table = SymbolTable::new(module.as_operation()).unwrap();
+   |                                  ------ immutable borrow occurs here
+11 |
+12 |     PassManager::new(&context).run(&mut module).unwrap();
+   |                                    ^^^^^^^^^^^ mutable borrow occurs here
+13 |
+14 |     let _ = table.lookup("foo");
+   |             ----- immutable borrow later used here

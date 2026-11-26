@@ -1,0 +1,7 @@
+---
+source: melior/src/ir/operation.rs
+expression: module.as_operation()
+---
+module {
+  func.func private @foo()
+}
