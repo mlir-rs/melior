@@ -163,8 +163,8 @@ impl Display for Error {
             Self::SymbolExpected(operation) => {
                 write!(formatter, "symbol expected: {operation}")
             }
-            Self::SymbolNotFound(operation) => {
-                write!(formatter, "symbol not found: {operation}")
+            Self::SymbolNotFound(name) => {
+                write!(formatter, "symbol {name} not found")
             }
             Self::SymbolTableExpected(operation) => {
                 write!(formatter, "symbol table expected: {operation}")

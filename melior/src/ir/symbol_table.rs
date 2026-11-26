@@ -1,6 +1,6 @@
 use super::{
-    Attribute, BlockLike, Operation, OperationRef, RegionLike, attribute::StringAttribute,
-    operation::OperationLike,
+    Attribute, AttributeLike, BlockLike, Operation, OperationRef, RegionLike, TypeLike,
+    attribute::StringAttribute, operation::OperationLike,
 };
 use crate::{Error, StringRef};
 use mlir_sys::{
@@ -84,10 +84,12 @@ impl<'c, 'a> SymbolTable<'c, 'a> {
     /// this or other symbol tables later. Symbol tables created for the symbol
     /// or operations nested in it must not be used other than being dropped.
     /// Values defined in the symbol must have no uses outside of it.
-    // TODO Make this safe when symbol tables borrow their operations exclusively.
+    // TODO Make this safe when symbol tables borrow operations exclusively.
     pub unsafe fn erase(&mut self, symbol: OperationRef<'c, '_>) -> Result<(), Error> {
-        if self.lookup(self.check_symbol(symbol)?.value()?) != Some(symbol) {
-            return Err(Error::SymbolNotFound(symbol.to_string()));
+        let name = self.check_symbol(symbol)?.value()?;
+
+        if self.lookup(name) != Some(symbol) {
+            return Err(Error::SymbolNotFound(name.into()));
         }
 
         unsafe { mlirSymbolTableErase(self.raw, symbol.to_raw()) };
@@ -116,7 +118,7 @@ impl<'c, 'a> SymbolTable<'c, 'a> {
         };
 
         if symbol.parent_operation() != Some(self.operation) {
-            return Err(Error::SymbolNotFound(symbol.to_string()));
+            return Err(Error::SymbolNotFound(name.value()?.into()));
         }
 
         Ok(name)
@@ -149,6 +151,7 @@ fn symbol_name<'c: 'a, 'a>(operation: impl OperationLike<'c, 'a>) -> Option<Stri
         .attribute(SymbolTable::symbol_attribute_name().as_str().ok()?)
         .and_then(StringAttribute::try_from)
         .ok()
+        .filter(|name| name.r#type().is_none())
 }
 
 #[cfg(test)]
@@ -161,7 +164,7 @@ mod tests {
             Block, Identifier, Location, Module, Region,
             attribute::TypeAttribute,
             operation::{OperationBuilder, OperationMutLike},
-            r#type::FunctionType,
+            r#type::{FunctionType, IntegerType},
         },
         test::create_test_context,
     };
@@ -184,6 +187,13 @@ mod tests {
 
     fn create_operation<'c>(context: &'c Context) -> Operation<'c> {
         OperationBuilder::new("foo", Location::unknown(context))
+            .build()
+            .unwrap()
+    }
+
+    fn create_operation_with_name<'c>(context: &'c Context, name: Attribute<'c>) -> Operation<'c> {
+        OperationBuilder::new("foo", Location::unknown(context))
+            .add_attributes(&[(Identifier::new(context, "sym_name"), name)])
             .build()
             .unwrap()
     }
@@ -434,13 +444,27 @@ mod tests {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
         let module = Module::new(Location::unknown(&context));
-        let operation = OperationBuilder::new("foo", Location::unknown(&context))
-            .add_attributes(&[(
-                Identifier::new(&context, "sym_name"),
-                Attribute::unit(&context),
-            )])
-            .build()
-            .unwrap();
+        let operation = create_operation_with_name(&context, Attribute::unit(&context));
+
+        assert_eq!(
+            SymbolTable::new(module.as_operation())
+                .unwrap()
+                .insert(operation.clone())
+                .unwrap_err(),
+            Error::SymbolExpected(operation.to_string())
+        );
+        assert_eq!(module.body().first_operation(), None);
+    }
+
+    #[test]
+    fn fail_to_insert_with_typed_name() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let module = Module::new(Location::unknown(&context));
+        let operation = create_operation_with_name(
+            &context,
+            StringAttribute::typed(IntegerType::new(&context, 32).into(), "foo").into(),
+        );
 
         assert_eq!(
             SymbolTable::new(module.as_operation())
@@ -570,7 +594,7 @@ mod tests {
 
         assert_eq!(
             table.register(function).unwrap_err(),
-            Error::SymbolNotFound(function.to_string())
+            Error::SymbolNotFound("foo".into())
         );
         assert_eq!(table.lookup("foo"), None);
     }
@@ -605,7 +629,7 @@ mod tests {
 
         assert_eq!(
             table.register(function).unwrap_err(),
-            Error::SymbolNotFound(function.to_string())
+            Error::SymbolNotFound("bar".into())
         );
         assert_eq!(table.lookup("bar"), None);
     }
@@ -621,7 +645,7 @@ mod tests {
             table
                 .register(unsafe { OperationRef::from_raw(function.to_raw()) })
                 .unwrap_err(),
-            Error::SymbolNotFound(function.to_string())
+            Error::SymbolNotFound("foo".into())
         );
         assert_eq!(table.lookup("foo"), None);
         assert_eq!(module.body().first_operation(), None);
@@ -653,11 +677,32 @@ mod tests {
                 SymbolTable::new(module.as_operation())
                     .unwrap()
                     .erase(operation)
-            }
-            .unwrap_err(),
-            Error::SymbolExpected(operation.to_string())
+            },
+            Err(Error::SymbolExpected(operation.to_string()))
         );
         assert_eq!(module.body().first_operation(), Some(operation));
+    }
+
+    #[test]
+    fn fail_to_erase_symbol_with_typed_name() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let function = module
+            .body()
+            .append_operation(create_function(&context, "foo"));
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+
+        module.body().first_operation_mut().unwrap().set_attribute(
+            "sym_name",
+            StringAttribute::typed(IntegerType::new(&context, 32).into(), "foo").into(),
+        );
+
+        assert_eq!(
+            unsafe { table.erase(function) },
+            Err(Error::SymbolExpected(function.to_string()))
+        );
+        assert_eq!(table.lookup("foo"), Some(function));
+        assert_eq!(module.body().first_operation(), Some(function));
     }
 
     #[test]
@@ -674,9 +719,8 @@ mod tests {
                 SymbolTable::new(module.as_operation())
                     .unwrap()
                     .erase(function)
-            }
-            .unwrap_err(),
-            Error::SymbolNotFound(function.to_string())
+            },
+            Err(Error::SymbolNotFound("foo".into()))
         );
         assert_eq!(other_module.body().first_operation(), Some(function));
     }
@@ -692,9 +736,8 @@ mod tests {
                 SymbolTable::new(module.as_operation())
                     .unwrap()
                     .erase(OperationRef::from_raw(function.to_raw()))
-            }
-            .unwrap_err(),
-            Error::SymbolNotFound(function.to_string())
+            },
+            Err(Error::SymbolNotFound("foo".into()))
         );
     }
 
@@ -708,8 +751,8 @@ mod tests {
             .append_operation(create_function(&context, "foo"));
 
         assert_eq!(
-            unsafe { table.erase(function) }.unwrap_err(),
-            Error::SymbolNotFound(function.to_string())
+            unsafe { table.erase(function) },
+            Err(Error::SymbolNotFound("foo".into()))
         );
         assert_eq!(module.body().first_operation(), Some(function));
     }
@@ -730,8 +773,8 @@ mod tests {
             .set_attribute("sym_name", StringAttribute::new(&context, "bar").into());
 
         assert_eq!(
-            unsafe { table.erase(function) }.unwrap_err(),
-            Error::SymbolNotFound(function.to_string())
+            unsafe { table.erase(function) },
+            Err(Error::SymbolNotFound("bar".into()))
         );
         assert_eq!(module.body().first_operation(), Some(function));
     }
