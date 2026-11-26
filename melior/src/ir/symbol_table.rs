@@ -12,8 +12,8 @@ use mlir_sys::{
 /// A symbol table.
 ///
 /// A symbol table holds symbols found in its operation on its creation and
-/// symbols inserted through it. It does not track symbols added, renamed, or
-/// removed in other ways.
+/// symbols inserted or registered through it. It does not track symbols added,
+/// renamed, or removed in other ways.
 pub struct SymbolTable<'c, 'a> {
     raw: MlirSymbolTable,
     operation: OperationRef<'c, 'a>,
@@ -65,6 +65,18 @@ impl<'c, 'a> SymbolTable<'c, 'a> {
         }
     }
 
+    /// Registers a symbol in the operation of a symbol table and returns its
+    /// name.
+    ///
+    /// The symbol is renamed if its name is taken by another symbol already.
+    pub fn register(&mut self, symbol: OperationRef<'c, '_>) -> Result<StringAttribute<'c>, Error> {
+        self.check_symbol(symbol)?;
+
+        StringAttribute::try_from(unsafe {
+            Attribute::from_raw(mlirSymbolTableInsert(self.raw, symbol.to_raw()))
+        })
+    }
+
     /// Erases a symbol.
     ///
     /// # Safety
@@ -75,9 +87,7 @@ impl<'c, 'a> SymbolTable<'c, 'a> {
     /// uses outside of it.
     // TODO Make this safe when mutable operation references are exclusive.
     pub unsafe fn erase(&mut self, symbol: OperationRef<'c, '_>) -> Result<(), Error> {
-        if !is_symbol(symbol) || symbol.parent_operation() != Some(self.operation) {
-            return Err(Error::SymbolExpected(symbol.to_string()));
-        }
+        self.check_symbol(symbol)?;
 
         unsafe { mlirSymbolTableErase(self.raw, symbol.to_raw()) };
 
@@ -97,6 +107,14 @@ impl<'c, 'a> SymbolTable<'c, 'a> {
     /// Converts a symbol table into a raw object.
     pub const fn to_raw(&self) -> MlirSymbolTable {
         self.raw
+    }
+
+    fn check_symbol(&self, symbol: OperationRef<'c, '_>) -> Result<(), Error> {
+        if !is_symbol(symbol) || symbol.parent_operation() != Some(self.operation) {
+            return Err(Error::SymbolExpected(symbol.to_string()));
+        }
+
+        Ok(())
     }
 }
 
@@ -395,6 +413,115 @@ mod tests {
                 .err(),
             Some(Error::SymbolExpected(operation.to_string()))
         );
+        assert_eq!(module.body().first_operation(), None);
+    }
+
+    #[test]
+    fn register() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+        let function = module
+            .body()
+            .append_operation(create_function(&context, "foo"));
+
+        assert_eq!(table.lookup("foo"), None);
+        assert_eq!(table.register(function).unwrap().value(), Ok("foo"));
+        assert_eq!(table.lookup("foo"), Some(function));
+        assert!(module.as_operation().verify());
+    }
+
+    #[test]
+    fn register_with_name_conflict() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let function = module
+            .body()
+            .append_operation(create_function(&context, "foo"));
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+        let other_function = module
+            .body()
+            .append_operation(create_function(&context, "foo"));
+
+        assert_eq!(table.register(other_function).unwrap().value(), Ok("foo_0"));
+        assert_eq!(
+            other_function.attribute("sym_name"),
+            Ok(StringAttribute::new(&context, "foo_0").into())
+        );
+        assert_eq!(table.lookup("foo"), Some(function));
+        assert_eq!(table.lookup("foo_0"), Some(other_function));
+        assert!(module.as_operation().verify());
+    }
+
+    #[test]
+    fn register_registered_symbol() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let function = module
+            .body()
+            .append_operation(create_function(&context, "foo"));
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+
+        assert_eq!(table.register(function).unwrap().value(), Ok("foo"));
+        assert_eq!(
+            function.attribute("sym_name"),
+            Ok(StringAttribute::new(&context, "foo").into())
+        );
+        assert_eq!(table.lookup("foo"), Some(function));
+        assert_eq!(table.lookup("foo_0"), None);
+    }
+
+    #[test]
+    fn fail_to_register_non_symbol() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let module = Module::new(Location::unknown(&context));
+        let operation = module.body().append_operation(
+            OperationBuilder::new("foo", Location::unknown(&context))
+                .build()
+                .unwrap(),
+        );
+
+        assert_eq!(
+            SymbolTable::new(module.as_operation())
+                .unwrap()
+                .register(operation)
+                .err(),
+            Some(Error::SymbolExpected(operation.to_string()))
+        );
+    }
+
+    #[test]
+    fn fail_to_register_symbol_in_another_symbol_table() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let other_module = Module::new(Location::unknown(&context));
+        let function = other_module
+            .body()
+            .append_operation(create_function(&context, "foo"));
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+
+        assert_eq!(
+            table.register(function).err(),
+            Some(Error::SymbolExpected(function.to_string()))
+        );
+        assert_eq!(table.lookup("foo"), None);
+    }
+
+    #[test]
+    fn fail_to_register_detached_symbol() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let function = create_function(&context, "foo");
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+
+        assert_eq!(
+            table
+                .register(unsafe { OperationRef::from_raw(function.to_raw()) })
+                .err(),
+            Some(Error::SymbolExpected(function.to_string()))
+        );
+        assert_eq!(table.lookup("foo"), None);
         assert_eq!(module.body().first_operation(), None);
     }
 
