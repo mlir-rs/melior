@@ -583,6 +583,25 @@ mod tests {
     }
 
     #[test]
+    fn fail_to_register_symbol_with_typed_name() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let module = Module::new(Location::unknown(&context));
+        let operation = module.body().append_operation(create_operation_with_name(
+            &context,
+            StringAttribute::typed(IntegerType::new(&context, 32).into(), "foo").into(),
+        ));
+
+        assert_eq!(
+            SymbolTable::new(module.as_operation())
+                .unwrap()
+                .register(operation)
+                .unwrap_err(),
+            Error::SymbolExpected(operation.to_string())
+        );
+    }
+
+    #[test]
     fn fail_to_register_symbol_in_another_symbol_table() {
         let context = create_test_context();
         let module = Module::new(Location::unknown(&context));
