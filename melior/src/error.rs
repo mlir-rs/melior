@@ -74,6 +74,8 @@ pub enum Error {
     RunPass,
     /// A symbol expected.
     SymbolExpected(String),
+    /// A symbol not found.
+    SymbolNotFound(String),
     /// A symbol table expected.
     SymbolTableExpected(String),
     /// A failure of module translation into LLVM IR.
@@ -160,6 +162,9 @@ impl Display for Error {
             Self::RunPass => write!(formatter, "failed to run pass"),
             Self::SymbolExpected(operation) => {
                 write!(formatter, "symbol expected: {operation}")
+            }
+            Self::SymbolNotFound(operation) => {
+                write!(formatter, "symbol not found: {operation}")
             }
             Self::SymbolTableExpected(operation) => {
                 write!(formatter, "symbol table expected: {operation}")

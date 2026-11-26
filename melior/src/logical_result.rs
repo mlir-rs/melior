@@ -27,7 +27,6 @@ impl LogicalResult {
     }
 
     /// Returns `true` if a result is failure.
-    #[allow(dead_code)]
     pub const fn is_failure(&self) -> bool {
         self.raw.value == 0
     }
