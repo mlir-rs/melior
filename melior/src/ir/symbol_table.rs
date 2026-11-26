@@ -606,13 +606,16 @@ mod tests {
         let context = create_test_context();
         let module = Module::new(Location::unknown(&context));
         let other_module = Module::new(Location::unknown(&context));
-        let function = other_module
-            .body()
-            .append_operation(create_function(&context, "foo"));
         let mut table = SymbolTable::new(module.as_operation()).unwrap();
 
         assert_eq!(
-            table.register(function).unwrap_err(),
+            table
+                .register(
+                    other_module
+                        .body()
+                        .append_operation(create_function(&context, "foo"))
+                )
+                .unwrap_err(),
             Error::SymbolNotFound("foo".into())
         );
         assert_eq!(table.lookup("foo"), None);
@@ -634,20 +637,23 @@ mod tests {
             ),
         )
         .unwrap();
-        let function = module
-            .body()
-            .first_operation()
-            .unwrap()
-            .first_region()
-            .unwrap()
-            .first_block()
-            .unwrap()
-            .first_operation()
-            .unwrap();
         let mut table = SymbolTable::new(module.as_operation()).unwrap();
 
         assert_eq!(
-            table.register(function).unwrap_err(),
+            table
+                .register(
+                    module
+                        .body()
+                        .first_operation()
+                        .unwrap()
+                        .first_region()
+                        .unwrap()
+                        .first_block()
+                        .unwrap()
+                        .first_operation()
+                        .unwrap()
+                )
+                .unwrap_err(),
             Error::SymbolNotFound("bar".into())
         );
         assert_eq!(table.lookup("bar"), None);
@@ -682,6 +688,20 @@ mod tests {
         assert_eq!(unsafe { table.erase(function) }, Ok(()));
         assert_eq!(table.lookup("foo"), None);
         assert_eq!(module.body().first_operation(), None);
+    }
+
+    #[test]
+    fn erase_symbol_registered_after_creation() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+        let function = module
+            .body()
+            .append_operation(create_function(&context, "foo"));
+
+        assert_eq!(table.register(function).unwrap().value(), Ok("foo"));
+        assert_eq!(unsafe { table.erase(function) }, Ok(()));
+        assert_eq!(table.lookup("foo"), None);
     }
 
     #[test]
