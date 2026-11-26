@@ -605,13 +605,12 @@ mod tests {
     fn fail_to_register_symbol_in_another_symbol_table() {
         let context = create_test_context();
         let module = Module::new(Location::unknown(&context));
-        let other_module = Module::new(Location::unknown(&context));
         let mut table = SymbolTable::new(module.as_operation()).unwrap();
 
         assert_eq!(
             table
                 .register(
-                    other_module
+                    Module::new(Location::unknown(&context))
                         .body()
                         .append_operation(create_function(&context, "foo"))
                 )
@@ -699,9 +698,11 @@ mod tests {
             .body()
             .append_operation(create_function(&context, "foo"));
 
-        assert_eq!(table.register(function).unwrap().value(), Ok("foo"));
+        table.register(function).unwrap();
+
         assert_eq!(unsafe { table.erase(function) }, Ok(()));
         assert_eq!(table.lookup("foo"), None);
+        assert_eq!(module.body().first_operation(), None);
     }
 
     #[test]
