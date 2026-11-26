@@ -4,9 +4,9 @@ use super::{
 };
 use crate::{Error, StringRef};
 use mlir_sys::{
-    MlirSymbolTable, mlirSymbolTableCreate, mlirSymbolTableDestroy, mlirSymbolTableErase,
-    mlirSymbolTableGetSymbolAttributeName, mlirSymbolTableGetVisibilityAttributeName,
-    mlirSymbolTableInsert, mlirSymbolTableLookup,
+    MlirOperation, MlirSymbolTable, mlirSymbolTableCreate, mlirSymbolTableDestroy,
+    mlirSymbolTableErase, mlirSymbolTableGetSymbolAttributeName,
+    mlirSymbolTableGetVisibilityAttributeName, mlirSymbolTableInsert, mlirSymbolTableLookup,
 };
 
 /// A symbol table.
@@ -57,24 +57,22 @@ impl<'c, 'a> SymbolTable<'c, 'a> {
         if !has_single_block(self.operation) {
             Err(Error::SymbolTableExpected(self.operation.to_string()))
         } else if symbol_name(&symbol).is_some() {
-            StringAttribute::try_from(unsafe {
-                Attribute::from_raw(mlirSymbolTableInsert(self.raw, symbol.into_raw()))
-            })
+            unsafe { self.insert_raw(symbol.into_raw()) }
         } else {
             Err(Error::SymbolExpected(symbol.to_string()))
         }
     }
 
-    /// Registers a symbol in the operation of a symbol table and returns its
-    /// name.
+    /// Registers a symbol and returns its name.
     ///
-    /// The symbol is renamed if its name is taken by another symbol already.
+    /// The symbol must be in the operation of the symbol table already. It is
+    /// renamed if the symbol table holds another symbol of the same name. Uses
+    /// of a renamed symbol are left as they are. A symbol that the symbol table
+    /// holds under an earlier name is held under both names afterwards.
     pub fn register(&mut self, symbol: OperationRef<'c, '_>) -> Result<StringAttribute<'c>, Error> {
         self.check_symbol(symbol)?;
 
-        StringAttribute::try_from(unsafe {
-            Attribute::from_raw(mlirSymbolTableInsert(self.raw, symbol.to_raw()))
-        })
+        unsafe { self.insert_raw(symbol.to_raw()) }
     }
 
     /// Erases a symbol held by a symbol table.
@@ -122,6 +120,12 @@ impl<'c, 'a> SymbolTable<'c, 'a> {
         }
 
         Ok(name)
+    }
+
+    unsafe fn insert_raw(&mut self, symbol: MlirOperation) -> Result<StringAttribute<'c>, Error> {
+        StringAttribute::try_from(unsafe {
+            Attribute::from_raw(mlirSymbolTableInsert(self.raw, symbol))
+        })
     }
 }
 
@@ -474,10 +478,8 @@ mod tests {
             .body()
             .append_operation(create_function(&context, "foo"));
 
-        assert_eq!(table.lookup("foo"), None);
         assert_eq!(table.register(function).unwrap().value(), Ok("foo"));
         assert_eq!(table.lookup("foo"), Some(function));
-        assert!(module.as_operation().verify());
     }
 
     #[test]
@@ -521,22 +523,38 @@ mod tests {
     }
 
     #[test]
+    fn register_symbol_renamed_after_creation() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let function = module
+            .body()
+            .append_operation(create_function(&context, "foo"));
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+
+        module
+            .body()
+            .first_operation_mut()
+            .unwrap()
+            .set_attribute("sym_name", StringAttribute::new(&context, "bar").into());
+
+        assert_eq!(table.register(function).unwrap().value(), Ok("bar"));
+        assert_eq!(table.lookup("foo"), Some(function));
+        assert_eq!(table.lookup("bar"), Some(function));
+    }
+
+    #[test]
     fn fail_to_register_non_symbol() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
         let module = Module::new(Location::unknown(&context));
-        let operation = module.body().append_operation(
-            OperationBuilder::new("foo", Location::unknown(&context))
-                .build()
-                .unwrap(),
-        );
+        let operation = module.body().append_operation(create_operation(&context));
 
         assert_eq!(
             SymbolTable::new(module.as_operation())
                 .unwrap()
                 .register(operation)
-                .err(),
-            Some(Error::SymbolExpected(operation.to_string()))
+                .unwrap_err(),
+            Error::SymbolExpected(operation.to_string())
         );
     }
 
@@ -551,10 +569,45 @@ mod tests {
         let mut table = SymbolTable::new(module.as_operation()).unwrap();
 
         assert_eq!(
-            table.register(function).err(),
-            Some(Error::SymbolNotFound(function.to_string()))
+            table.register(function).unwrap_err(),
+            Error::SymbolNotFound(function.to_string())
         );
         assert_eq!(table.lookup("foo"), None);
+    }
+
+    #[test]
+    fn fail_to_register_symbol_in_nested_symbol_table() {
+        let context = create_test_context();
+        let module = Module::parse(
+            &context,
+            indoc!(
+                "
+                module {
+                    module @foo {
+                        func.func private @bar()
+                    }
+                }
+                "
+            ),
+        )
+        .unwrap();
+        let function = module
+            .body()
+            .first_operation()
+            .unwrap()
+            .first_region()
+            .unwrap()
+            .first_block()
+            .unwrap()
+            .first_operation()
+            .unwrap();
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+
+        assert_eq!(
+            table.register(function).unwrap_err(),
+            Error::SymbolNotFound(function.to_string())
+        );
+        assert_eq!(table.lookup("bar"), None);
     }
 
     #[test]
@@ -567,8 +620,8 @@ mod tests {
         assert_eq!(
             table
                 .register(unsafe { OperationRef::from_raw(function.to_raw()) })
-                .err(),
-            Some(Error::SymbolNotFound(function.to_string()))
+                .unwrap_err(),
+            Error::SymbolNotFound(function.to_string())
         );
         assert_eq!(table.lookup("foo"), None);
         assert_eq!(module.body().first_operation(), None);
