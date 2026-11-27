@@ -21,7 +21,8 @@ use mlir_sys::{
     mlirOperationSetDiscardableAttributeByName, mlirOperationSetInherentAttributeByName,
     mlirOperationSetLocation, mlirOperationSetOperand, mlirOperationSetOperands,
     mlirOperationSetSuccessor, mlirOperationVerify, mlirOperationWalk, mlirOperationWriteBytecode,
-    mlirOperationWriteBytecodeWithConfig,
+    mlirOperationWriteBytecodeWithConfig, mlirSymbolTableReplaceAllSymbolUses,
+    mlirSymbolTableWalkSymbolTables,
 };
 
 use crate::{
@@ -342,6 +343,37 @@ pub trait OperationLike<'c: 'a, 'a>: Copy + Display + 'a {
         }
     }
 
+    /// Walks symbol tables nested in an operation, including the operation
+    /// itself.
+    ///
+    /// The callback receives each symbol table operation after the ones nested
+    /// in it, and a flag of whether all uses of its symbols are visible. The
+    /// flag given to this function tells whether all uses of symbols in the
+    /// operation are visible.
+    fn walk_symbol_tables<F>(self, all_symbol_uses_visible: bool, mut callback: F)
+    where
+        F: for<'b> FnMut(OperationRef<'c, 'b>, bool),
+    {
+        unsafe extern "C" fn visit<'c: 'a, 'a, F: FnMut(OperationRef<'c, 'a>, bool)>(
+            operation: MlirOperation,
+            all_symbol_uses_visible: bool,
+            data: *mut c_void,
+        ) {
+            unsafe {
+                (*(data as *mut F))(OperationRef::from_raw(operation), all_symbol_uses_visible)
+            }
+        }
+
+        unsafe {
+            mlirSymbolTableWalkSymbolTables(
+                self.to_raw(),
+                all_symbol_uses_visible,
+                Some(visit::<'c, 'a, F>),
+                &mut callback as *mut _ as *mut _,
+            );
+        }
+    }
+
     /// Returns the type ID of the operation, or `None` if the operation does
     /// not have a registered description.
     fn type_id(self) -> Option<TypeId<'c>> {
@@ -596,6 +628,27 @@ pub trait OperationMutLike<'c: 'a, 'a>: Display {
     /// Replaces all uses of `of` inside this operation with `with`.
     fn replace_uses_of_with(&mut self, of: Value<'c, 'a>, with: Value<'c, 'a>) {
         unsafe { mlirOperationReplaceUsesOfWith(self.to_raw(), of.to_raw(), with.to_raw()) }
+    }
+
+    /// Replaces all uses of a symbol nested in an operation with uses of
+    /// another symbol.
+    ///
+    /// The symbol itself is not renamed, and its uses in nested symbol tables
+    /// are left as they are.
+    fn replace_all_symbol_uses(&mut self, old: &str, new: &str) -> Result<(), Error> {
+        if LogicalResult::from_raw(unsafe {
+            mlirSymbolTableReplaceAllSymbolUses(
+                StringRef::new(old).to_raw(),
+                StringRef::new(new).to_raw(),
+                self.to_raw(),
+            )
+        })
+        .is_failure()
+        {
+            return Err(Error::ReplaceSymbolUses);
+        }
+
+        Ok(())
     }
 
     /// Sets an inherent attribute by name. Has no effect if `name` does not

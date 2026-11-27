@@ -66,10 +66,18 @@ pub enum Error {
         /// An index.
         index: usize,
     },
+    /// A failure of symbol use replacement.
+    ReplaceSymbolUses,
     /// A result not found.
     ResultNotFound(&'static str),
     /// A failure of a pass run.
     RunPass,
+    /// A symbol expected.
+    SymbolExpected(String),
+    /// A symbol not found.
+    SymbolNotFound(String),
+    /// A symbol table expected.
+    SymbolTableExpected(String),
     /// A failure of module translation into LLVM IR.
     TranslateToLlvmIr,
     /// A type expected.
@@ -147,10 +155,20 @@ impl Display for Error {
             Self::PositionOutOfBounds { name, value, index } => {
                 write!(formatter, "{name} position {index} out of bounds: {value}")
             }
+            Self::ReplaceSymbolUses => write!(formatter, "failed to replace symbol uses"),
             Self::ResultNotFound(name) => {
                 write!(formatter, "result {name} not found")
             }
             Self::RunPass => write!(formatter, "failed to run pass"),
+            Self::SymbolExpected(operation) => {
+                write!(formatter, "symbol expected: {operation}")
+            }
+            Self::SymbolNotFound(name) => {
+                write!(formatter, "symbol {name} not found")
+            }
+            Self::SymbolTableExpected(operation) => {
+                write!(formatter, "symbol table expected: {operation}")
+            }
             Self::TranslateToLlvmIr => {
                 write!(formatter, "failed to translate module into LLVM IR")
             }

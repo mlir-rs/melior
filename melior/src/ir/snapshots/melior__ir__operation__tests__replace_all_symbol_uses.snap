@@ -1,0 +1,12 @@
+---
+source: melior/src/ir/operation.rs
+expression: module.as_operation()
+---
+module {
+  func.func private @foo()
+  func.func private @bar()
+  func.func @baz() {
+    call @bar() : () -> ()
+    return
+  }
+}

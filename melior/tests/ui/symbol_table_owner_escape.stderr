@@ -1,0 +1,12 @@
+error[E0597]: `module` does not live long enough
+  --> tests/ui/symbol_table_owner_escape.rs:12:26
+   |
+ 9 |     let table = {
+   |         ----- borrow later stored here
+10 |         let module = Module::new(Location::unknown(&context));
+   |             ------ binding `module` declared here
+11 |
+12 |         SymbolTable::new(module.as_operation()).unwrap()
+   |                          ^^^^^^ borrowed value does not live long enough
+13 |     };
+   |     - `module` dropped here while still borrowed

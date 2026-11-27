@@ -311,6 +311,7 @@ mod tests {
         },
         test::create_test_context,
     };
+    use indoc::indoc;
     use pretty_assertions::assert_eq;
 
     // -----------------------------------------------------------------------
@@ -1191,6 +1192,80 @@ mod tests {
     }
 
     #[test]
+    fn walk_symbol_tables() {
+        let context = create_test_context();
+        let module = Module::parse(
+            &context,
+            indoc!(
+                r#"
+                module @foo {
+                    module @bar {
+                    }
+
+                    module @baz attributes {sym_visibility = "private"} {
+                    }
+                }
+                "#
+            ),
+        )
+        .unwrap();
+        let mut tables = vec![];
+
+        module
+            .as_operation()
+            .walk_symbol_tables(false, |operation, visible| {
+                tables.push((
+                    StringAttribute::try_from(operation.attribute("sym_name").unwrap())
+                        .unwrap()
+                        .value()
+                        .unwrap(),
+                    visible,
+                ))
+            });
+
+        assert_eq!(tables, [("bar", false), ("baz", true), ("foo", false)]);
+    }
+
+    #[test]
+    fn walk_symbol_tables_with_all_symbol_uses_visible() {
+        let context = create_test_context();
+        let module = Module::parse(
+            &context,
+            indoc!(
+                "
+                module @foo {
+                    module @bar {
+                    }
+                }
+                "
+            ),
+        )
+        .unwrap();
+        let mut flags = vec![];
+
+        module
+            .as_operation()
+            .walk_symbol_tables(true, |_, visible| flags.push(visible));
+
+        assert_eq!(flags, [true, true]);
+    }
+
+    #[test]
+    fn walk_symbol_tables_in_non_symbol_table() {
+        let context = create_test_context();
+        let module = Module::parse(&context, "func.func @foo() { return }").unwrap();
+        let mut count = 0;
+
+        module
+            .body()
+            .first_operation()
+            .unwrap()
+            .walk_symbol_tables(false, |_, _| count += 1);
+
+        assert_eq!(count, 0);
+    }
+
+    #[test]
     fn walk_pre_mut() {
         let pre = operation_like::WalkOrder::PreOrder;
         let context = create_test_context();
@@ -1376,5 +1451,114 @@ mod tests {
                 .unwrap()
                 .has_attribute("bar")
         );
+    }
+
+    #[test]
+    fn replace_all_symbol_uses() {
+        let context = create_test_context();
+        let mut module = Module::parse(
+            &context,
+            indoc!(
+                "
+                func.func private @foo()
+
+                func.func private @bar()
+
+                func.func @baz() {
+                    call @foo() : () -> ()
+                    return
+                }
+                "
+            ),
+        )
+        .unwrap();
+
+        assert_eq!(
+            module
+                .as_operation_mut()
+                .replace_all_symbol_uses("foo", "bar"),
+            Ok(())
+        );
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn replace_all_symbol_uses_in_nested_attributes() {
+        let context = create_test_context();
+        let mut module = Module::parse(
+            &context,
+            indoc!(
+                "
+                func.func private @foo()
+
+                func.func private @bar() attributes {baz = [@foo, {qux = @foo}]}
+                "
+            ),
+        )
+        .unwrap();
+
+        assert_eq!(
+            module
+                .as_operation_mut()
+                .replace_all_symbol_uses("foo", "bar"),
+            Ok(())
+        );
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn replace_all_symbol_uses_with_nested_symbol_table() {
+        let context = create_test_context();
+        let mut module = Module::parse(
+            &context,
+            indoc!(
+                "
+                func.func private @foo()
+
+                func.func private @bar()
+
+                func.func @baz() {
+                    call @foo() : () -> ()
+                    return
+                }
+
+                module @qux {
+                    func.func private @foo()
+
+                    func.func @baz() {
+                        call @foo() : () -> ()
+                        return
+                    }
+                }
+                "
+            ),
+        )
+        .unwrap();
+
+        assert_eq!(
+            module
+                .as_operation_mut()
+                .replace_all_symbol_uses("foo", "bar"),
+            Ok(())
+        );
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
+    }
+
+    #[test]
+    fn replace_all_symbol_uses_of_unused_symbol() {
+        let context = create_test_context();
+        let mut module = Module::parse(&context, "func.func private @foo()").unwrap();
+
+        assert_eq!(
+            module
+                .as_operation_mut()
+                .replace_all_symbol_uses("foo", "bar"),
+            Ok(())
+        );
+        assert!(module.as_operation().verify());
+        insta::assert_snapshot!(module.as_operation());
     }
 }
