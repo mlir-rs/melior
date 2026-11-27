@@ -407,4 +407,54 @@ mod tests {
             .unwrap()
         );
     }
+
+    #[test]
+    fn fail_to_lower_print_with_non_llvm_printf() {
+        let context = create_context();
+        let mut module = Module::parse(
+            &context,
+            indoc!(
+                r#"
+                func.func private @printf()
+                func.func @main() {
+                  %0 = memref.alloc() : memref<2xf64>
+                  "toy.print"(%0) : (memref<2xf64>) -> ()
+                  memref.dealloc %0 : memref<2xf64>
+                  return
+                }
+                "#
+            ),
+        )
+        .unwrap();
+
+        assert!(matches!(
+            lower_to_llvm(&context, &mut module),
+            Err(Error::Melior(melior::Error::RunPass))
+        ));
+    }
+
+    #[test]
+    fn fail_to_lower_print_with_non_global_newline() {
+        let context = create_context();
+        let mut module = Module::parse(
+            &context,
+            indoc!(
+                r#"
+                func.func private @newline()
+                func.func @main() {
+                  %0 = memref.alloc() : memref<2xf64>
+                  "toy.print"(%0) : (memref<2xf64>) -> ()
+                  memref.dealloc %0 : memref<2xf64>
+                  return
+                }
+                "#
+            ),
+        )
+        .unwrap();
+
+        assert!(matches!(
+            lower_to_llvm(&context, &mut module),
+            Err(Error::Melior(melior::Error::RunPass))
+        ));
+    }
 }
