@@ -360,7 +360,7 @@ mod tests {
     }
 
     #[test]
-    fn insert_in_nested_symbol_table() {
+    fn insert_with_nested_symbol_table() {
         let context = create_test_context();
         let module = Module::parse(&context, "module { module @foo {} }").unwrap();
         let nested_module = module.body().first_operation().unwrap();
@@ -399,15 +399,10 @@ mod tests {
     }
 
     #[test]
-    fn insert_with_name_conflict_and_use() {
+    fn insert_with_name_conflict_and_symbol_use() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
-        let module = Module::new(Location::unknown(&context));
-
-        module
-            .body()
-            .append_operation(create_function(&context, "foo"));
-
+        let module = Module::parse(&context, "func.func private @foo()").unwrap();
         let mut table = SymbolTable::new(module.as_operation()).unwrap();
         let user = module.body().append_operation(
             OperationBuilder::new("bar", Location::unknown(&context))
@@ -419,14 +414,17 @@ mod tests {
                 .unwrap(),
         );
 
-        table
-            .insert(
-                module
-                    .body()
-                    .append_operation(create_function(&context, "foo")),
-            )
-            .unwrap();
-
+        assert_eq!(
+            table
+                .insert(
+                    module
+                        .body()
+                        .append_operation(create_function(&context, "foo"))
+                )
+                .unwrap()
+                .value(),
+            Ok("foo_0")
+        );
         assert_eq!(
             user.attribute("callee"),
             Ok(FlatSymbolRefAttribute::new(&context, "foo").into())
