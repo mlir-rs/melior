@@ -1,5 +1,5 @@
 use super::{
-    Attribute, AttributeLike, BlockLike, Operation, OperationRef, RegionLike, TypeLike,
+    Attribute, AttributeLike, BlockLike, OperationRef, RegionLike, TypeLike,
     attribute::StringAttribute, operation::OperationLike,
 };
 use crate::{Error, StringRef};
@@ -50,19 +50,16 @@ impl<'c, 'a> SymbolTable<'c, 'a> {
 
     /// Inserts a symbol and returns its name.
     ///
-    /// The symbol is appended to the operation of the symbol table, before a
-    /// terminator if any, and renamed if its name is taken already. Uses of a
-    /// renamed symbol are left as they are.
-    pub fn insert(&mut self, symbol: Operation<'c>) -> Result<StringAttribute<'c>, Error> {
-        if !has_single_block(self.operation) {
-            Err(Error::SymbolTableExpected(self.operation.to_string()))
-        } else if symbol_name(&symbol).is_some() {
-            StringAttribute::try_from(unsafe {
-                Attribute::from_raw(mlirSymbolTableInsert(self.raw, symbol.into_raw()))
-            })
-        } else {
-            Err(Error::SymbolExpected(symbol.to_string()))
-        }
+    /// The symbol must be in the operation of the symbol table already. It is
+    /// renamed if the symbol table holds another symbol of the same name. Uses
+    /// of a renamed symbol are left as they are. A symbol that the symbol table
+    /// holds under an earlier name is held under both names afterwards.
+    pub fn insert(&mut self, symbol: OperationRef<'c, '_>) -> Result<StringAttribute<'c>, Error> {
+        self.check_symbol(symbol)?;
+
+        StringAttribute::try_from(unsafe {
+            Attribute::from_raw(mlirSymbolTableInsert(self.raw, symbol.to_raw()))
+        })
     }
 
     /// Erases a symbol held by a symbol table.
@@ -76,12 +73,9 @@ impl<'c, 'a> SymbolTable<'c, 'a> {
     /// Values defined in the symbol must have no uses outside of it.
     // TODO Make this safe when symbol tables borrow operations exclusively.
     pub unsafe fn erase(&mut self, symbol: OperationRef<'c, '_>) -> Result<(), Error> {
-        let Some(name) = symbol_name(symbol) else {
-            return Err(Error::SymbolExpected(symbol.to_string()));
-        };
-        let name = name.value()?;
+        let name = self.check_symbol(symbol)?.value()?;
 
-        if symbol.parent_operation() != Some(self.operation) || self.lookup(name) != Some(symbol) {
+        if self.lookup(name) != Some(symbol) {
             return Err(Error::SymbolNotFound(name.into()));
         }
 
@@ -103,6 +97,18 @@ impl<'c, 'a> SymbolTable<'c, 'a> {
     /// Converts a symbol table into a raw object.
     pub const fn to_raw(&self) -> MlirSymbolTable {
         self.raw
+    }
+
+    fn check_symbol(&self, symbol: OperationRef<'c, '_>) -> Result<StringAttribute<'c>, Error> {
+        let Some(name) = symbol_name(symbol) else {
+            return Err(Error::SymbolExpected(symbol.to_string()));
+        };
+
+        if symbol.parent_operation() != Some(self.operation) {
+            return Err(Error::SymbolNotFound(name.value()?.into()));
+        }
+
+        Ok(name)
     }
 }
 
@@ -136,8 +142,8 @@ mod tests {
         Context, IrRewriter,
         dialect::func,
         ir::{
-            Block, Identifier, Location, Module, Region,
-            attribute::TypeAttribute,
+            Block, Identifier, Location, Module, Operation, Region,
+            attribute::{FlatSymbolRefAttribute, TypeAttribute},
             operation::{OperationBuilder, OperationMutLike},
             r#type::{FunctionType, IntegerType},
         },
@@ -345,17 +351,29 @@ mod tests {
         let context = create_test_context();
         let module = Module::new(Location::unknown(&context));
         let mut table = SymbolTable::new(module.as_operation()).unwrap();
+        let function = module
+            .body()
+            .append_operation(create_function(&context, "foo"));
 
-        assert_eq!(
-            table
-                .insert(create_function(&context, "foo"))
-                .unwrap()
-                .value(),
-            Ok("foo")
-        );
-        assert!(table.lookup("foo").is_some());
-        assert_eq!(table.lookup("foo"), module.body().first_operation());
-        assert!(module.as_operation().verify());
+        assert_eq!(table.insert(function).unwrap().value(), Ok("foo"));
+        assert_eq!(table.lookup("foo"), Some(function));
+    }
+
+    #[test]
+    fn insert_with_nested_symbol_table() {
+        let context = create_test_context();
+        let module = Module::parse(&context, "module { module @foo {} }").unwrap();
+        let nested_module = module.body().first_operation().unwrap();
+        let mut table = SymbolTable::new(nested_module).unwrap();
+        let function = nested_module
+            .first_region()
+            .unwrap()
+            .first_block()
+            .unwrap()
+            .append_operation(create_function(&context, "bar"));
+
+        assert_eq!(table.insert(function).unwrap().value(), Ok("bar"));
+        assert_eq!(table.lookup("bar"), Some(function));
     }
 
     #[test]
@@ -366,96 +384,230 @@ mod tests {
             .body()
             .append_operation(create_function(&context, "foo"));
         let mut table = SymbolTable::new(module.as_operation()).unwrap();
+        let other_function = module
+            .body()
+            .append_operation(create_function(&context, "foo"));
 
+        assert_eq!(table.insert(other_function).unwrap().value(), Ok("foo_0"));
         assert_eq!(
-            table
-                .insert(create_function(&context, "foo"))
-                .unwrap()
-                .value(),
-            Ok("foo_0")
+            other_function.attribute("sym_name"),
+            Ok(StringAttribute::new(&context, "foo_0").into())
         );
         assert_eq!(table.lookup("foo"), Some(function));
-        assert_eq!(table.lookup("foo_0"), function.next_in_block());
+        assert_eq!(table.lookup("foo_0"), Some(other_function));
         assert!(module.as_operation().verify());
     }
 
     #[test]
-    fn insert_before_terminator() {
+    fn insert_with_name_conflict_and_symbol_use() {
+        let context = create_test_context();
+        context.set_allow_unregistered_dialects(true);
+        let module = Module::parse(&context, "func.func private @foo()").unwrap();
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+        let user = module.body().append_operation(
+            OperationBuilder::new("bar", Location::unknown(&context))
+                .add_attributes(&[(
+                    Identifier::new(&context, "callee"),
+                    FlatSymbolRefAttribute::new(&context, "foo").into(),
+                )])
+                .build()
+                .unwrap(),
+        );
+
+        assert_eq!(
+            table
+                .insert(
+                    module
+                        .body()
+                        .append_operation(create_function(&context, "foo"))
+                )
+                .unwrap()
+                .value(),
+            Ok("foo_0")
+        );
+        assert_eq!(
+            user.attribute("callee"),
+            Ok(FlatSymbolRefAttribute::new(&context, "foo").into())
+        );
+    }
+
+    #[test]
+    fn insert_held_symbol() {
         let context = create_test_context();
         let module = Module::new(Location::unknown(&context));
-        let terminator = module
+        let function = module
             .body()
-            .append_operation(func::r#return(&[], Location::unknown(&context)));
+            .append_operation(create_function(&context, "foo"));
         let mut table = SymbolTable::new(module.as_operation()).unwrap();
 
-        table.insert(create_function(&context, "foo")).unwrap();
-
-        assert_eq!(table.lookup("foo"), module.body().first_operation());
+        assert_eq!(table.insert(function).unwrap().value(), Ok("foo"));
         assert_eq!(
-            table.lookup("foo").unwrap().next_in_block(),
-            Some(terminator)
+            function.attribute("sym_name"),
+            Ok(StringAttribute::new(&context, "foo").into())
         );
+        assert_eq!(table.lookup("foo"), Some(function));
+        assert_eq!(table.lookup("foo_0"), None);
     }
 
     #[test]
-    fn fail_to_insert_without_name() {
+    fn insert_symbol_renamed_after_creation() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let function = module
+            .body()
+            .append_operation(create_function(&context, "foo"));
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+
+        module
+            .body()
+            .first_operation_mut()
+            .unwrap()
+            .set_attribute("sym_name", StringAttribute::new(&context, "bar").into());
+
+        assert_eq!(table.insert(function).unwrap().value(), Ok("bar"));
+        assert_eq!(table.lookup("foo"), Some(function));
+        assert_eq!(table.lookup("bar"), Some(function));
+    }
+
+    #[test]
+    fn fail_to_insert_non_symbol() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
         let module = Module::new(Location::unknown(&context));
-        let operation = create_operation(&context);
+        let operation = module.body().append_operation(create_operation(&context));
 
         assert_eq!(
             SymbolTable::new(module.as_operation())
                 .unwrap()
-                .insert(operation.clone())
+                .insert(operation)
                 .unwrap_err(),
             Error::SymbolExpected(operation.to_string())
         );
-        assert_eq!(module.body().first_operation(), None);
     }
 
     #[test]
-    fn fail_to_insert_with_non_string_name() {
+    fn fail_to_insert_symbol_with_non_string_name() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
         let module = Module::new(Location::unknown(&context));
-        let operation = create_operation_with_name(&context, Attribute::unit(&context));
+        let operation = module.body().append_operation(create_operation_with_name(
+            &context,
+            Attribute::unit(&context),
+        ));
 
         assert_eq!(
             SymbolTable::new(module.as_operation())
                 .unwrap()
-                .insert(operation.clone())
+                .insert(operation)
                 .unwrap_err(),
             Error::SymbolExpected(operation.to_string())
         );
-        assert_eq!(module.body().first_operation(), None);
     }
 
     #[test]
-    fn fail_to_insert_with_typed_name() {
+    fn fail_to_insert_symbol_with_typed_name() {
         let context = create_test_context();
         context.set_allow_unregistered_dialects(true);
         let module = Module::new(Location::unknown(&context));
-        let operation = create_operation_with_name(
+        let operation = module.body().append_operation(create_operation_with_name(
             &context,
             StringAttribute::typed(IntegerType::new(&context, 32).into(), "foo").into(),
-        );
+        ));
 
         assert_eq!(
             SymbolTable::new(module.as_operation())
                 .unwrap()
-                .insert(operation.clone())
+                .insert(operation)
                 .unwrap_err(),
             Error::SymbolExpected(operation.to_string())
         );
+    }
+
+    #[test]
+    fn fail_to_insert_symbol_in_another_symbol_table() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+
+        assert_eq!(
+            table
+                .insert(
+                    Module::new(Location::unknown(&context))
+                        .body()
+                        .append_operation(create_function(&context, "foo"))
+                )
+                .unwrap_err(),
+            Error::SymbolNotFound("foo".into())
+        );
+        assert_eq!(table.lookup("foo"), None);
+    }
+
+    #[test]
+    fn fail_to_insert_symbol_in_nested_symbol_table() {
+        let context = create_test_context();
+        let module = Module::parse(
+            &context,
+            indoc!(
+                "
+                module {
+                    module @foo {
+                        func.func private @bar()
+                    }
+                }
+                "
+            ),
+        )
+        .unwrap();
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+
+        assert_eq!(
+            table
+                .insert(
+                    module
+                        .body()
+                        .first_operation()
+                        .unwrap()
+                        .first_region()
+                        .unwrap()
+                        .first_block()
+                        .unwrap()
+                        .first_operation()
+                        .unwrap()
+                )
+                .unwrap_err(),
+            Error::SymbolNotFound("bar".into())
+        );
+        assert_eq!(table.lookup("bar"), None);
+    }
+
+    #[test]
+    fn fail_to_insert_detached_symbol() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+
+        assert_eq!(
+            table
+                .insert(
+                    Module::parse(&context, "module @foo {}")
+                        .unwrap()
+                        .as_operation()
+                )
+                .unwrap_err(),
+            Error::SymbolNotFound("foo".into())
+        );
+        assert_eq!(table.lookup("foo"), None);
         assert_eq!(module.body().first_operation(), None);
     }
 
     #[test]
-    fn fail_to_insert_without_block() {
+    fn fail_to_insert_symbol_in_moved_block() {
         let context = create_test_context();
         let module = Module::new(Location::unknown(&context));
         let region = create_region(1);
+        let function = module
+            .body()
+            .append_operation(create_function(&context, "foo"));
         let mut table = SymbolTable::new(module.as_operation()).unwrap();
 
         IrRewriter::new(&context)
@@ -463,8 +615,8 @@ mod tests {
             .move_block_before(module.body(), region.first_block().unwrap());
 
         assert_eq!(
-            table.insert(create_function(&context, "foo")).unwrap_err(),
-            Error::SymbolTableExpected(module.as_operation().to_string())
+            table.insert(function).unwrap_err(),
+            Error::SymbolNotFound("foo".into())
         );
     }
 
@@ -476,6 +628,22 @@ mod tests {
             .body()
             .append_operation(create_function(&context, "foo"));
         let mut table = SymbolTable::new(module.as_operation()).unwrap();
+
+        assert_eq!(unsafe { table.erase(function) }, Ok(()));
+        assert_eq!(table.lookup("foo"), None);
+        assert_eq!(module.body().first_operation(), None);
+    }
+
+    #[test]
+    fn erase_symbol_inserted_after_creation() {
+        let context = create_test_context();
+        let module = Module::new(Location::unknown(&context));
+        let mut table = SymbolTable::new(module.as_operation()).unwrap();
+        let function = module
+            .body()
+            .append_operation(create_function(&context, "foo"));
+
+        table.insert(function).unwrap();
 
         assert_eq!(unsafe { table.erase(function) }, Ok(()));
         assert_eq!(table.lookup("foo"), None);
