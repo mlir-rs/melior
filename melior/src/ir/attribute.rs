@@ -15,6 +15,7 @@ mod float;
 mod integer;
 mod strided_layout;
 mod string;
+mod symbol_ref;
 mod r#type;
 
 pub use self::{
@@ -22,7 +23,8 @@ pub use self::{
     dense_elements::DenseElementsAttribute, dense_i32_array::DenseI32ArrayAttribute,
     dense_i64_array::DenseI64ArrayAttribute, dictionary::DictionaryAttribute,
     flat_symbol_ref::FlatSymbolRefAttribute, float::FloatAttribute, integer::IntegerAttribute,
-    strided_layout::StridedLayoutAttribute, string::StringAttribute, r#type::TypeAttribute,
+    strided_layout::StridedLayoutAttribute, string::StringAttribute,
+    symbol_ref::SymbolRefAttribute, r#type::TypeAttribute,
 };
 use crate::{context::Context, string_ref::StringRef, utility::print_callback};
 use core::{
@@ -151,6 +153,7 @@ from_subtypes!(
     IntegerAttribute,
     StringAttribute,
     StridedLayoutAttribute,
+    SymbolRefAttribute,
     TypeAttribute,
     DistinctAttribute,
 );
