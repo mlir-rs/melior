@@ -24,6 +24,7 @@ melior_macro::passes!(
         mlirCreateTransformsSymbolDCEPass,
         mlirCreateTransformsSymbolPrivatizePass,
         mlirCreateTransformsTopologicalSortPass,
+        mlirCreateTransformsTrivialDeadCodeEliminationPass,
         mlirCreateTransformsViewOpGraphPass,
     ]
 );

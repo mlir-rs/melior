@@ -2,5 +2,9 @@
 
 melior_macro::passes!(
     "Shard",
-    [mlirCreateShardPartition, mlirCreateShardShardingPropagation,]
+    [
+        mlirCreateShardPartition,
+        mlirCreateShardShardSimplify,
+        mlirCreateShardShardingPropagation,
+    ]
 );
