@@ -14,7 +14,7 @@ use melior::{
     },
     ir::{
         Attribute, Block, BlockLike, BlockRef, Location, Module, Operation, OperationRef, Region,
-        RegionLike, Type, Value, ValueLike,
+        RegionLike, SymbolTable, Type, Value, ValueLike,
         attribute::{
             DenseI32ArrayAttribute, FlatSymbolRefAttribute, IntegerAttribute, StringAttribute,
             TypeAttribute,
@@ -73,7 +73,7 @@ pub fn lower_to_llvm<'c>(context: &'c Context, module: &mut Module<'c>) -> Resul
 
 // The execution engine invokes functions through their C interfaces.
 fn emit_c_interface<'c>(context: &'c Context, module: &mut Module<'c>) {
-    // TODO Use a symbol table lookup once Melior wraps the symbol table API.
+    // TODO Use a symbol table lookup once it can return mutable operations.
     module
         .as_operation_mut()
         .walk_mut(WalkOrder::PreOrder, |mut operation| {
@@ -112,17 +112,21 @@ fn lower_print<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewriter<'
     else {
         return false;
     };
-    let Some(module_body) = module_body(operation) else {
+    let Some(symbol_table) = module_symbol_table(operation) else {
+        return false;
+    };
+    let Some(module_body) = body_block(symbol_table.operation()) else {
         return false;
     };
     let location = operation.location();
 
-    declare_printf(context, &rewriter, module_body, location);
+    declare_printf(context, &rewriter, &symbol_table, module_body, location);
 
     let (Some(format_specifier), Some(newline)) = (
         global_string(
             context,
             &rewriter,
+            &symbol_table,
             module_body,
             operation,
             "format_specifier",
@@ -131,6 +135,7 @@ fn lower_print<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewriter<'
         global_string(
             context,
             &rewriter,
+            &symbol_table,
             module_body,
             operation,
             "newline",
@@ -207,14 +212,14 @@ fn lower_print<'c>(operation: OperationRef<'c, '_>, rewriter: &PatternRewriter<'
     true
 }
 
-fn module_body<'c, 'a>(operation: OperationRef<'c, 'a>) -> Option<BlockRef<'c, 'a>> {
+fn module_symbol_table<'c, 'a>(operation: OperationRef<'c, 'a>) -> Option<SymbolTable<'c, 'a>> {
     let mut operation = operation;
 
     while !is_operation(operation, "builtin.module") {
         operation = operation.parent_operation()?;
     }
 
-    body_block(operation)
+    SymbolTable::new(operation).ok()
 }
 
 fn index_constant<'c, 'a>(
@@ -252,14 +257,14 @@ fn printf_type(context: &Context) -> Type<'_> {
 fn declare_printf<'c>(
     context: &'c Context,
     rewriter: &RewriterBase<'c, '_>,
+    symbol_table: &SymbolTable<'c, '_>,
     module_body: BlockRef<'c, '_>,
     location: Location<'c>,
 ) {
-    // TODO Use a symbol table lookup once Melior wraps the symbol table API.
-    if module_body.into_iter().any(|operation| {
-        is_operation(operation, "llvm.func")
-            && symbol_name(operation).is_ok_and(|name| name == "printf")
-    }) {
+    if symbol_table
+        .lookup("printf")
+        .is_some_and(|operation| is_operation(operation, "llvm.func"))
+    {
         return;
     }
 
@@ -296,6 +301,7 @@ fn call_printf<'c>(
 fn global_string<'c, 'a>(
     context: &'c Context,
     rewriter: &'a RewriterBase<'c, '_>,
+    symbol_table: &SymbolTable<'c, '_>,
     module_body: BlockRef<'c, '_>,
     operation: OperationRef<'c, '_>,
     name: &str,
@@ -303,11 +309,10 @@ fn global_string<'c, 'a>(
 ) -> Option<Value<'c, 'a>> {
     let location = operation.location();
 
-    // TODO Use a symbol table lookup once Melior wraps the symbol table API.
-    if !module_body.into_iter().any(|operation| {
-        is_operation(operation, "llvm.mlir.global")
-            && symbol_name(operation).is_ok_and(|symbol| symbol == name)
-    }) {
+    if !symbol_table
+        .lookup(name)
+        .is_some_and(|operation| is_operation(operation, "llvm.mlir.global"))
+    {
         rewriter.set_insertion_point_to_start(module_body);
         rewriter.insert(
             llvm::GlobalOperation::builder(context, location)
