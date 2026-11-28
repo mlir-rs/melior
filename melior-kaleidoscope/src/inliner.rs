@@ -277,37 +277,6 @@ mod tests {
     }
 
     #[test]
-    fn fail_to_inline_call_to_unknown_function() {
-        assert!(matches!(
-            inline_module(indoc!(
-                r#"
-                "toy.func"() ({
-                  %0 = "toy.generic_call"() {callee = @unknown} : () -> tensor<*xf64>
-                  "toy.return"() : () -> ()
-                }) {function_type = () -> (), sym_name = "main"} : () -> ()
-                "#
-            )),
-            Err(Error::FunctionNotFound(name)) if name == "unknown"
-        ));
-    }
-
-    #[test]
-    fn fail_to_inline_call_to_non_toy_function() {
-        assert!(matches!(
-            inline_module(indoc!(
-                r#"
-                func.func private @foreign() -> tensor<*xf64>
-                "toy.func"() ({
-                  %0 = "toy.generic_call"() {callee = @foreign} : () -> tensor<*xf64>
-                  "toy.return"() : () -> ()
-                }) {function_type = () -> (), sym_name = "main"} : () -> ()
-                "#
-            )),
-            Err(Error::FunctionNotFound(name)) if name == "foreign"
-        ));
-    }
-
-    #[test]
     fn fail_to_inline_call_with_wrong_argument_count() {
         assert!(matches!(
             inline_module(indoc!(

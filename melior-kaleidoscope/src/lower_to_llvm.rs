@@ -73,7 +73,8 @@ pub fn lower_to_llvm<'c>(context: &'c Context, module: &mut Module<'c>) -> Resul
 
 // The execution engine invokes functions through their C interfaces.
 fn emit_c_interface<'c>(context: &'c Context, module: &mut Module<'c>) {
-    // TODO Use a symbol table lookup once it can return mutable operations.
+    // TODO Use a symbol table lookup once symbol tables can return mutable
+    // operations.
     module
         .as_operation_mut()
         .walk_mut(WalkOrder::PreOrder, |mut operation| {
