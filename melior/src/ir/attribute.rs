@@ -5,9 +5,14 @@ mod r#macro;
 mod array;
 mod attribute_like;
 mod bool;
+mod dense_bool_array;
 mod dense_elements;
+mod dense_f32_array;
+mod dense_f64_array;
+mod dense_i16_array;
 mod dense_i32_array;
 mod dense_i64_array;
+mod dense_i8_array;
 mod dictionary;
 mod distinct;
 mod flat_symbol_ref;
@@ -20,11 +25,13 @@ mod r#type;
 
 pub use self::{
     array::ArrayAttribute, attribute_like::AttributeLike, bool::BoolAttribute,
-    dense_elements::DenseElementsAttribute, dense_i32_array::DenseI32ArrayAttribute,
-    dense_i64_array::DenseI64ArrayAttribute, dictionary::DictionaryAttribute,
-    flat_symbol_ref::FlatSymbolRefAttribute, float::FloatAttribute, integer::IntegerAttribute,
-    strided_layout::StridedLayoutAttribute, string::StringAttribute,
-    symbol_ref::SymbolRefAttribute, r#type::TypeAttribute,
+    dense_bool_array::DenseBoolArrayAttribute, dense_elements::DenseElementsAttribute,
+    dense_f32_array::DenseF32ArrayAttribute, dense_f64_array::DenseF64ArrayAttribute,
+    dense_i8_array::DenseI8ArrayAttribute, dense_i16_array::DenseI16ArrayAttribute,
+    dense_i32_array::DenseI32ArrayAttribute, dense_i64_array::DenseI64ArrayAttribute,
+    dictionary::DictionaryAttribute, flat_symbol_ref::FlatSymbolRefAttribute,
+    float::FloatAttribute, integer::IntegerAttribute, strided_layout::StridedLayoutAttribute,
+    string::StringAttribute, symbol_ref::SymbolRefAttribute, r#type::TypeAttribute,
 };
 use crate::{context::Context, string_ref::StringRef, utility::print_callback};
 use core::{
@@ -144,7 +151,12 @@ from_subtypes!(
     Attribute,
     ArrayAttribute,
     BoolAttribute,
+    DenseBoolArrayAttribute,
     DenseElementsAttribute,
+    DenseF32ArrayAttribute,
+    DenseF64ArrayAttribute,
+    DenseI8ArrayAttribute,
+    DenseI16ArrayAttribute,
     DenseI32ArrayAttribute,
     DenseI64ArrayAttribute,
     DictionaryAttribute,

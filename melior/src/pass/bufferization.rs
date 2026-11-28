@@ -15,5 +15,6 @@ melior_macro::passes!(
         mlirCreateBufferizationOptimizeAllocationLivenessPass,
         mlirCreateBufferizationOwnershipBasedBufferDeallocationPass,
         mlirCreateBufferizationPromoteBuffersToStackPass,
+        mlirCreateBufferizationStaticMemoryPlannerAnalysisPass,
     ]
 );

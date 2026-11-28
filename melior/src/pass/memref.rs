@@ -3,6 +3,7 @@
 melior_macro::passes!(
     "MemRef",
     [
+        mlirCreateMemRefElideReinterpretCastPass,
         mlirCreateMemRefExpandOpsPass,
         // spell-checker: disable-next-line
         mlirCreateMemRefExpandReallocPass,

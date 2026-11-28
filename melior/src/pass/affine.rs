@@ -24,5 +24,6 @@ melior_macro::passes!(
         mlirCreateAffineRaiseMemrefDialect,
         mlirCreateAffineSimplifyAffineMinMaxPass,
         mlirCreateAffineSimplifyAffineStructures,
+        mlirCreateAffineSimplifyAffineWithBounds,
     ]
 );
