@@ -5,6 +5,7 @@ use mlir_sys::{MlirAttribute, mlirFlatSymbolRefAttrGet, mlirFlatSymbolRefAttrGet
 
 /// A flat symbol ref attribute.
 #[derive(Clone, Copy, Hash)]
+#[repr(transparent)]
 pub struct FlatSymbolRefAttribute<'c> {
     attribute: Attribute<'c>,
 }
