@@ -23,14 +23,17 @@ pub struct SymbolTable<'c, 'a> {
 impl<'c, 'a> SymbolTable<'c, 'a> {
     /// Creates a symbol table for an operation.
     pub fn new(operation: impl OperationLike<'c, 'a>) -> Result<Self, Error> {
-        has_single_block(operation)
+        if let Some(raw) = has_single_block(operation)
             .then(|| unsafe { mlirSymbolTableCreate(operation.to_raw()) })
             .filter(|raw| !raw.ptr.is_null())
-            .map(|raw| Self {
+        {
+            Ok(Self {
                 raw,
                 operation: unsafe { OperationRef::from_raw(operation.to_raw()) },
             })
-            .ok_or_else(|| Error::SymbolTableExpected(operation.to_string()))
+        } else {
+            Err(Error::SymbolTableExpected(operation.to_string()))
+        }
     }
 
     /// Returns an operation.
