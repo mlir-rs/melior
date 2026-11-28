@@ -72,3 +72,65 @@ macro_rules! attribute_traits_without_try_from {
         }
     };
 }
+
+macro_rules! dense_array_attribute {
+    ($name:ident, $type:ident, $create:ident, $get_element:ident, $is_type:ident) => {
+        #[doc = concat!(" A dense ", stringify!($type), " array attribute.")]
+        #[derive(Clone, Copy, Hash)]
+        pub struct $name<'c> {
+            attribute: Attribute<'c>,
+        }
+
+        impl<'c> $name<'c> {
+            #[doc = concat!(" Creates a dense ", stringify!($type), " array attribute.")]
+            pub fn new(context: &'c Context, values: &[$type]) -> Self {
+                unsafe {
+                    Self::from_raw($create(
+                        context.to_raw(),
+                        values.len() as isize,
+                        dense_array_attribute!(@values $type, values).as_ptr(),
+                    ))
+                }
+            }
+
+            /// Returns a length.
+            pub fn len(&self) -> usize {
+                (unsafe { mlirDenseArrayGetNumElements(self.attribute.to_raw()) }) as usize
+            }
+
+            /// Checks if an array is empty.
+            pub fn is_empty(&self) -> bool {
+                self.len() == 0
+            }
+
+            /// Returns an element.
+            pub fn element(&self, index: usize) -> Result<$type, Error> {
+                if index < self.len() {
+                    Ok(unsafe { $get_element(self.attribute.to_raw(), index as isize) })
+                } else {
+                    Err(Error::PositionOutOfBounds {
+                        name: "array element",
+                        value: self.to_string(),
+                        index,
+                    })
+                }
+            }
+        }
+
+        attribute_traits!(
+            $name,
+            $is_type,
+            concat!("dense ", stringify!($type), " array")
+        );
+    };
+    (@values bool, $values:ident) => {
+        $values
+            .iter()
+            .copied()
+            .map(core::ffi::c_int::from)
+            .collect::<Vec<_>>()
+    };
+    (@values $type:ident, $values:ident) => {
+        $values
+    };
+}

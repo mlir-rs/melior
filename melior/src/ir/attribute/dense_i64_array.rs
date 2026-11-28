@@ -4,59 +4,18 @@ use mlir_sys::{
     MlirAttribute, mlirDenseArrayGetNumElements, mlirDenseI64ArrayGet, mlirDenseI64ArrayGetElement,
 };
 
-/// A dense i64 array attribute.
-#[derive(Clone, Copy, Hash)]
-pub struct DenseI64ArrayAttribute<'c> {
-    attribute: Attribute<'c>,
-}
-
-impl<'c> DenseI64ArrayAttribute<'c> {
-    /// Creates a dense i64 array attribute.
-    pub fn new(context: &'c Context, values: &[i64]) -> Self {
-        unsafe {
-            Self::from_raw(mlirDenseI64ArrayGet(
-                context.to_raw(),
-                values.len() as isize,
-                values.as_ptr(),
-            ))
-        }
-    }
-
-    /// Returns a length.
-    pub fn len(&self) -> usize {
-        (unsafe { mlirDenseArrayGetNumElements(self.attribute.to_raw()) }) as usize
-    }
-
-    /// Checks if an array is empty.
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    /// Returns an element.
-    pub fn element(&self, index: usize) -> Result<i64, Error> {
-        if index < self.len() {
-            Ok(unsafe { mlirDenseI64ArrayGetElement(self.attribute.to_raw(), index as isize) })
-        } else {
-            Err(Error::PositionOutOfBounds {
-                name: "array element",
-                value: self.to_string(),
-                index,
-            })
-        }
-    }
-}
-
-attribute_traits!(
+dense_array_attribute!(
     DenseI64ArrayAttribute,
-    is_dense_i64_array,
-    "dense i64 array"
+    i64,
+    mlirDenseI64ArrayGet,
+    mlirDenseI64ArrayGetElement,
+    is_dense_i64_array
 );
 
 #[cfg(test)]
 mod tests {
-    use crate::test::create_test_context;
-
     use super::*;
+    use crate::test::create_test_context;
 
     #[test]
     fn element() {
